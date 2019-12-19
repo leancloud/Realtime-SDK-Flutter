@@ -1,4 +1,4 @@
-group 'cn.leancloud.leancloud_plugin'
+group 'cn.leancloud.plugin'
 version '1.0'
 
 buildscript {

@@ -1,4 +1,4 @@
-package cn.leancloud.leancloud_plugin;
+package cn.leancloud.plugin;
 
 import androidx.annotation.NonNull;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
