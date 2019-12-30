@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 
-import 'package:flutter/services.dart';
-import 'package:leancloud_plugin/leancloud_plugin.dart';
+import 'package:leancloud_plugin/leancloud_plugin.dart' as LC;
 
 void main() => runApp(MyApp());
 
@@ -12,44 +10,52 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
 
   @override
   void initState() {
     super.initState();
-    initPlatformState();
   }
 
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    try {
-      platformVersion = await LeancloudPlugin.platformVersion;
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
-  }
+  Map<String, int> states = {};
+  List<String> titles = [
+    'Init then Deinit',
+  ];
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Plugin example app'),
+          title: const Text('Plugin Unit Test Cases'),
         ),
-        body: Center(
-          child: Text('Running on: $_platformVersion\n'),
-        ),
+        body: ListView(padding: const EdgeInsets.all(16.0), children: [
+          Divider(),
+          ListTile(
+              title: Text(this.titles[0],
+                  style: TextStyle(
+                      color: this.states[this.titles[0]] == null
+                          ? Colors.black
+                          : (this.states[this.titles[0]] == 1
+                              ? Colors.green
+                              : Colors.red),
+                      fontSize: 18.0)),
+              onTap: () async {
+                LC.Client client = LC.Client(id: this.titles[0]);
+                int success = 0;
+                try {
+                  await client.initialize();
+                  await client.deinitialize();
+                  success = 1;
+                } on LC.RTMException catch (e) {
+                  print(e);
+                  success = -1;
+                }
+                setState(() {
+                  this.states[this.titles[0]] = success;
+                });
+              }),
+          Divider(),
+        ]),
       ),
     );
   }
