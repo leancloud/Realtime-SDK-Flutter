@@ -1,0 +1,43 @@
+PODS:
+  - Alamofire (5.0.0-rc.3)
+  - Flutter (1.0.0)
+  - LeanCloud/Foundation (17.4.0):
+    - Alamofire (~> 5.0-rc.3)
+  - LeanCloud/RTM-no-local-storage (17.4.0):
+    - LeanCloud/Foundation (= 17.4.0)
+    - Starscream (~> 3.1)
+    - SwiftProtobuf (~> 1.7.0)
+  - leancloud_plugin (0.0.1):
+    - Flutter
+    - LeanCloud/RTM-no-local-storage (~> 17.4)
+  - Starscream (3.1.1)
+  - SwiftProtobuf (1.7.0)
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - leancloud_plugin (from `.symlinks/plugins/leancloud_plugin/ios`)
+
+SPEC REPOS:
+  trunk:
+    - Alamofire
+    - LeanCloud
+    - Starscream
+    - SwiftProtobuf
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  leancloud_plugin:
+    :path: ".symlinks/plugins/leancloud_plugin/ios"
+
+SPEC CHECKSUMS:
+  Alamofire: ca8c0de6906873be89d6deec5c8de279e00bf872
+  Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
+  LeanCloud: ab14dedd0f7341f22b095866927f2b0b13d34c31
+  leancloud_plugin: 69d3ab30182aff7a81fe847f986b70166e3ed95a
+  Starscream: 4bb2f9942274833f7b4d296a55504dcfc7edb7b0
+  SwiftProtobuf: 4fd9645e69b72cbae6ec8da5be0cdd20ca6565dd
+
+PODFILE CHECKSUM: 1b66dae606f75376c5f2135a8290850eeb09ae83
+
+COCOAPODS: 1.8.4
