@@ -12,6 +12,18 @@ class _Bridge {
   }
 }
 
+mixin _Utilities {
+  bool isFailure(Map result) => result['error'] != null;
+
+  RTMException error(Map result) {
+    final Map error = result['error'];
+    return RTMException(
+        code: error['code'].toString(),
+        message: error['message'],
+        details: error['details']);
+  }
+}
+
 class RTMException implements Exception {
   RTMException({
     @required this.code,
@@ -27,29 +39,20 @@ class RTMException implements Exception {
   String toString() => 'LeanCloud.RTMException($code, $message, $details)';
 }
 
-class Client {
+class Client with _Utilities {
   Client({@required this.id, this.tag}) : assert(id != null);
 
   final String id;
   final String tag;
-
-  RTMException _encounteredError(Map result) {
-    final Map error = result['error'];
-    return RTMException(
-        code: error['code'],
-        message: error['message'],
-        details: error['details']);
-  }
 
   Future<void> initialize() async {
     var args = {'clientId': this.id};
     if (this.tag != null) {
       args['tag'] = this.tag;
     }
-    final Map result =
-        await _Bridge.invokeMethod('initClient', args);
-    if (result['error'] != null) {
-      throw _encounteredError(result);
+    final Map result = await _Bridge.invokeMethod('initClient', args);
+    if (isFailure(result)) {
+      throw error(result);
     } else {
       return;
     }
@@ -57,10 +60,9 @@ class Client {
 
   Future<void> deinitialize() async {
     var args = {'clientId': this.id};
-    final Map result =
-        await _Bridge.invokeMethod('deinitClient', args);
-    if (result['error'] != null) {
-      throw _encounteredError(result);
+    final Map result = await _Bridge.invokeMethod('deinitClient', args);
+    if (isFailure(result)) {
+      throw error(result);
     } else {
       return;
     }
@@ -68,10 +70,9 @@ class Client {
 
   Future<void> open({bool force = true}) async {
     var args = {'clientId': this.id, 'force': force};
-    final Map result =
-        await _Bridge.invokeMethod('openClient', args);
-    if (result['error'] != null) {
-      throw _encounteredError(result);
+    final Map result = await _Bridge.invokeMethod('openClient', args);
+    if (isFailure(result)) {
+      throw error(result);
     } else {
       return;
     }
@@ -79,10 +80,9 @@ class Client {
 
   Future<void> close() async {
     var args = {'clientId': this.id};
-    final Map result =
-        await _Bridge.invokeMethod('closeClient', args);
-    if (result['error'] != null) {
-      throw _encounteredError(result);
+    final Map result = await _Bridge.invokeMethod('closeClient', args);
+    if (isFailure(result)) {
+      throw error(result);
     } else {
       return;
     }
