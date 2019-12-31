@@ -9,7 +9,7 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
     
-    var clientMap: [String: IMClientDelegator] = [:]
+    var delegatorMap: [String: IMClientDelegator] = [:]
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let args = call.arguments as! [String: Any]
@@ -19,20 +19,44 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
             let tag = args["tag"] as? String
             do {
                 let delegator = try IMClientDelegator(ID: clientId, tag: tag)
-                self.clientMap[clientId] = delegator
+                self.delegatorMap[clientId] = delegator
                 result([:])
             } catch {
-                let err = error as! LCError
-                result(["error": ["code": err.code]])
+                result(["error": ["code": (error as! LCError).code]])
             }
         case "deinitClient":
             let clientId = args["clientId"] as! String
-            self.clientMap.removeValue(forKey: clientId)
+            self.delegatorMap.removeValue(forKey: clientId)
             result([:])
         case "openClient":
-            break
+            let clientId = args["clientId"] as! String
+            let force = args["force"] as! Bool
+            if let delegator = self.delegatorMap[clientId] {
+                delegator.client.open(options: force ? .forced : []) { (res) in
+                    switch res {
+                    case .success:
+                        result([:])
+                    case .failure(error: let error):
+                        result(["error": ["code": error.code]])
+                    }
+                }
+            } else {
+                result(["error": ["code": 9973]])
+            }
         case "closeClient":
-            break
+            let clientId = args["clientId"] as! String
+            if let delegator = self.delegatorMap[clientId] {
+                delegator.client.close { (res) in
+                    switch res {
+                    case .success:
+                        result([:])
+                    case .failure(error: let error):
+                        result(["error": ["code": error.code]])
+                    }
+                }
+            } else {
+                result(["error": ["code": 9973]])
+            }
         default:
             fatalError("unknown method.");
         }
