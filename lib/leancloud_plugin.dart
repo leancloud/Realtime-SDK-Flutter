@@ -45,31 +45,11 @@ class Client with _Utilities {
   final String id;
   final String tag;
 
-  Future<void> initialize() async {
-    var args = {'clientId': this.id};
+  Future<void> open({bool force = true}) async {
+    var args = {'clientId': this.id, 'force': force};
     if (this.tag != null) {
       args['tag'] = this.tag;
     }
-    final Map result = await _Bridge.invokeMethod('initClient', args);
-    if (isFailure(result)) {
-      throw error(result);
-    } else {
-      return;
-    }
-  }
-
-  Future<void> deinitialize() async {
-    var args = {'clientId': this.id};
-    final Map result = await _Bridge.invokeMethod('deinitClient', args);
-    if (isFailure(result)) {
-      throw error(result);
-    } else {
-      return;
-    }
-  }
-
-  Future<void> open({bool force = true}) async {
-    var args = {'clientId': this.id, 'force': force};
     final Map result = await _Bridge.invokeMethod('openClient', args);
     if (isFailure(result)) {
       throw error(result);
