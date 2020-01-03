@@ -9,56 +9,60 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
     
-    var delegatorMap: [String: IMClientDelegator] = [:]
-    
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        let args = call.arguments as! [String: Any]
+        let arguments = call.arguments as! [String: Any]
         switch call.method {
-        case "initClient":
-            let clientId = args["clientId"] as! String
-            let tag = args["tag"] as? String
-            do {
-                let delegator = try IMClientDelegator(ID: clientId, tag: tag)
-                self.delegatorMap[clientId] = delegator
-                result([:])
-            } catch {
-                result(["error": ["code": (error as! LCError).code]])
-            }
-        case "deinitClient":
-            let clientId = args["clientId"] as! String
-            self.delegatorMap.removeValue(forKey: clientId)
-            result([:])
         case "openClient":
-            let clientId = args["clientId"] as! String
-            let force = args["force"] as! Bool
-            if let delegator = self.delegatorMap[clientId] {
-                delegator.client.open(options: force ? .forced : []) { (res) in
-                    switch res {
-                    case .success:
-                        result([:])
-                    case .failure(error: let error):
-                        result(["error": ["code": error.code]])
-                    }
-                }
-            } else {
-                result(["error": ["code": 9973]])
-            }
+            self.openClient(arguments: arguments, completion: result)
         case "closeClient":
-            let clientId = args["clientId"] as! String
-            if let delegator = self.delegatorMap[clientId] {
-                delegator.client.close { (res) in
-                    switch res {
-                    case .success:
-                        result([:])
-                    case .failure(error: let error):
-                        result(["error": ["code": error.code]])
-                    }
-                }
-            } else {
-                result(["error": ["code": 9973]])
-            }
+            self.closeClient(arguments: arguments, completion: result)
         default:
             fatalError("unknown method.");
+        }
+    }
+    
+    static var delegatorMap: [String: IMClientDelegator] = [:]
+    
+    func openClient(arguments: [String: Any], completion: @escaping FlutterResult) {
+        let clientId = arguments["clientId"] as! String
+        let delegator: IMClientDelegator
+        if let _delegator = SwiftLeancloudPlugin.delegatorMap[clientId] {
+            delegator = _delegator
+        } else {
+            do {
+                let tag = arguments["tag"] as? String
+                delegator = try IMClientDelegator(ID: clientId, tag: tag)
+                SwiftLeancloudPlugin.delegatorMap[clientId] = delegator
+            } catch {
+                completion(self.error(error))
+                return
+            }
+        }
+        let force = (arguments["force"] as? Bool) ?? true
+        delegator.client.open(options: force ? .forced : []) { (result) in
+            switch result {
+            case .success:
+                completion([:])
+            case .failure(error: let error):
+                completion(self.error(error))
+            }
+        }
+    }
+    
+    func closeClient(arguments: [String: Any], completion: @escaping FlutterResult) {
+        let clientId = arguments["clientId"] as! String
+        if let delegator = SwiftLeancloudPlugin.delegatorMap[clientId] {
+            delegator.client.close { (result) in
+                switch result {
+                case .success:
+                    SwiftLeancloudPlugin.delegatorMap.removeValue(forKey: clientId)
+                    completion([:])
+                case .failure(error: let error):
+                    completion(self.error(error))
+                }
+            }
+        } else {
+            completion(self.clientNotFound)
         }
     }
 }
@@ -78,5 +82,47 @@ class IMClientDelegator: IMClientDelegate {
     
     func client(_ client: IMClient, conversation: IMConversation, event: IMConversationEvent) {
         
+    }
+}
+
+extension SwiftLeancloudPlugin {
+    
+    // MARK: Error
+    
+    var clientNotFound: [String: Any] {
+        return self.error(
+            code: 9973,
+            message: "client not found.")
+    }
+    
+    func error(code: Int, message: String?, details: [String: Any]? = nil) -> [String: Any] {
+        var error: [String: Any] = ["code": code]
+        if let message = message {
+            error["message"] = message
+        }
+        if let details = details {
+            error["details"] = details
+        }
+        return ["error": error]
+    }
+    
+    func error(_ err: Error) -> [String: Any] {
+        if let error = err as? LCError {
+            if error.code == 9977 {
+                return self.error(
+                    code: error.code,
+                    message: String(describing: error.underlyingError),
+                    details: error.userInfo)
+            } else {
+                return self.error(
+                    code: error.code,
+                    message: error.reason,
+                    details: error.userInfo)
+            }
+        } else {
+            return self.error(
+                code: 9977,
+                message: String(describing: err))
+        }
     }
 }
