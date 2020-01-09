@@ -23,20 +23,11 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   List<UnitTestCaseCard> cases = [
     UnitTestCaseCard(
-        title: 'Case: Client Init then Deinit',
-        callback: () async {
-          LC.Client client = LC.Client(id: randomString());
-          await client.initialize();
-          await client.deinitialize();
-        }),
-    UnitTestCaseCard(
         title: 'Case: Client Open then Close',
         callback: () async {
           LC.Client client = LC.Client(id: randomString());
-          await client.initialize();
           await client.open();
           await client.close();
-          await client.deinitialize();
         }),
   ];
 
