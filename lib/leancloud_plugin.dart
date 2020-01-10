@@ -1,21 +1,11 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class _Bridge {
   static const MethodChannel _channel = const MethodChannel('leancloud_plugin');
-
-  static Future<Map> invokeMethod({
-    String method,
-    Map arguments,
-  }) async {
-    Map result = await _channel.invokeMethod(
-      method,
-      arguments,
-    );
-    return result;
-  }
 }
 
 mixin _Utilities {
@@ -27,6 +17,21 @@ mixin _Utilities {
         code: error['code'].toString(),
         message: error['message'],
         details: error['details']);
+  }
+
+  Future<dynamic> call({
+    @required String method,
+    @required Map arguments,
+  }) async {
+    assert(method != null && arguments != null);
+    final Map result = await _Bridge._channel.invokeMethod(
+      method,
+      arguments,
+    );
+    if (this.isFailure(result)) {
+      throw this.error(result);
+    }
+    return result['success'];
   }
 }
 
@@ -63,7 +68,7 @@ class Signature {
   String toString() =>
       'LeanCloud.Signature(s: $signature, t: $timestamp, n: $nonce)';
 
-  Map<String, dynamic> _toJSON() => {
+  Map<String, dynamic> _toMap() => {
         's': this.signature,
         't': this.timestamp,
         'n': this.nonce,
@@ -119,36 +124,26 @@ class Client with _Utilities {
       final Signature sign = await this._signSessionOpen(
         clientId: this.id,
       );
-      args['sign'] = sign._toJSON();
+      args['sign'] = sign._toMap();
     }
     args['signRegistry'] = {
       'sessionOpen': (this._signSessionOpen != null),
       'conversation': (this._signConversation != null),
     };
-    final Map result = await _Bridge.invokeMethod(
+    await this.call(
       method: 'openClient',
       arguments: args,
     );
-    if (isFailure(result)) {
-      throw error(result);
-    } else {
-      return;
-    }
   }
 
   Future<void> close() async {
     var args = {
       'clientId': this.id,
     };
-    final Map result = await _Bridge.invokeMethod(
+    await this.call(
       method: 'closeClient',
       arguments: args,
     );
-    if (isFailure(result)) {
-      throw error(result);
-    } else {
-      return;
-    }
   }
 
   Future<Conversation> createConversation({
@@ -183,23 +178,44 @@ class Client with _Utilities {
         targetIds: Set.from(m),
         action: SignatureAction.create,
       );
-      args['sign'] = sign._toJSON();
+      args['sign'] = sign._toMap();
     }
-    final Map result = await _Bridge.invokeMethod(
+    final Map rawData = await this.call(
       method: 'createConversation',
       arguments: args,
     );
-    if (isFailure(result)) {
-      throw error(result);
-    } else {
-      Map rawData = result['success'];
-      Conversation conversation = Conversation._from(
-        id: rawData['objectId'],
-        client: this,
-        rawData: rawData,
-      );
+    final Conversation conversation = Conversation._from(
+      id: rawData['objectId'],
+      client: this,
+      rawData: rawData,
+    );
+    this.conversations[conversation.id] = conversation;
+    return conversation;
+  }
+
+  Future<Conversation> _getConversation({
+    @required String id,
+  }) async {
+    assert(id != null);
+    Conversation conversation = this.conversations[id];
+    if (conversation != null) {
       return conversation;
     }
+    var args = {
+      'clientId': this.id,
+      'conversationId': id,
+    };
+    final Map rawData = await this.call(
+      method: 'getConversation',
+      arguments: args,
+    );
+    conversation = Conversation._from(
+      id: rawData['objectId'],
+      client: this,
+      rawData: rawData,
+    );
+    this.conversations[conversation.id] = conversation;
+    return conversation;
   }
 }
 
@@ -223,4 +239,236 @@ class Conversation with _Utilities {
   })  : assert(id != null),
         assert(client != null),
         assert(rawData != null);
+
+  Future<Message> send({
+    @required Message message,
+    bool transient,
+    bool receipt,
+    bool will,
+    int priority,
+    Map pushData,
+  }) async {
+    assert(message != null);
+    var options = Map();
+    if (receipt == true) {
+      options['receipt'] = true;
+    }
+    if (will == true) {
+      options['will'] = true;
+    }
+    if (priority != null) {
+      assert([1, 2, 3].contains(priority));
+      options['priority'] = priority;
+    }
+    if (pushData != null) {
+      options['pushData'] = pushData;
+    }
+    if (transient == true) {
+      message._transient = true;
+    }
+    message._currentClientId = this.client.id;
+    var args = {
+      'message': message._toMap(),
+    };
+    if (options.isNotEmpty) {
+      args['options'] = options;
+    }
+    final Map rawData = await this.call(
+      method: 'sendMessage',
+      arguments: args,
+    );
+    message._loadMap(rawData);
+    return message;
+  }
+
+  Future<void> read() async {
+    var args = {
+      'clientId': this.client.id,
+      'conversationId': this.id,
+    };
+    await this.call(
+      method: 'readMessage',
+      arguments: args,
+    );
+  }
+
+  Future<Message> update({
+    @required Message oldMessage,
+    @required Message newMessage,
+  }) async {
+    assert(oldMessage != null && newMessage != null);
+    var args = {
+      'oldMessage': oldMessage._toMap(),
+      'newMessage': newMessage._toMap(),
+    };
+    final Map rawData = await this.call(
+      method: 'readMessage',
+      arguments: args,
+    );
+    newMessage._loadMap(rawData);
+    return newMessage;
+  }
+
+  Future<Map> getMessageReceipt() async {
+    var args = {
+      'clientId': this.client.id,
+      'conversationId': this.id,
+    };
+    return await this.call(
+      method: 'getMessageReceipt',
+      arguments: args,
+    );
+  }
+
+  Future<List<Message>> queryMessage({
+    int startTimestamp,
+    String startMessageId,
+    bool startClose,
+    int endTimestamp,
+    String endMessageId,
+    bool endClose,
+    int direction,
+    int limit,
+    int type,
+  }) async {
+    var start = Map();
+    if (startTimestamp != null) {
+      start['timestamp'] = startTimestamp;
+    }
+    if (startMessageId != null) {
+      start['id'] = startMessageId;
+    }
+    if (startClose != null) {
+      start['close'] = startClose;
+    }
+    var end = Map();
+    if (endTimestamp != null) {
+      end['timestamp'] = endTimestamp;
+    }
+    if (endMessageId != null) {
+      end['id'] = endMessageId;
+    }
+    if (endClose != null) {
+      end['close'] = endClose;
+    }
+    var args = Map();
+    if (start.isNotEmpty) {
+      args['start'] = start;
+    }
+    if (end.isNotEmpty) {
+      args['start'] = end;
+    }
+    if (direction != null) {
+      assert(direction == 1 || direction == 2);
+      args['direction'] = direction;
+    }
+    if (limit != null) {
+      assert(limit >= 1 && limit <= 100);
+      args['limit'] = limit;
+    }
+    if (type != null) {
+      args['type'] = type;
+    }
+    final List<Map> rawDatas = await this.call(
+      method: 'queryMessage',
+      arguments: args,
+    );
+    List<Message> messages = List();
+    rawDatas.forEach((item) {
+      var message = Message();
+      message._loadMap(item);
+      messages.add(message);
+    });
+    return messages;
+  }
+}
+
+class Message {
+  String _currentClientId;
+
+  String _id;
+  int _timestamp;
+  String _conversationId;
+  String _fromClientId;
+  int _patchedTimestamp;
+  bool _transient;
+
+  String get id => this._id;
+  int get sentTimestamp => this._timestamp;
+  String get conversationId => this._conversationId;
+  String get fromClientId => this._fromClientId;
+  int get patchedTimestamp => this._patchedTimestamp;
+  bool get isTransient => this._transient;
+
+  int deliveredTimestamp;
+  int readTimestamp;
+  bool mentionAll;
+  List<String> mentionMembers;
+
+  String stringContent;
+  Uint8List binaryContent;
+
+  Map<String, dynamic> _toMap() {
+    var map = Map<String, dynamic>();
+    if (this._currentClientId != null) {
+      map['clientId'] = this._currentClientId;
+    }
+    if (this._id != null) {
+      map['id'] = this._id;
+    }
+    if (this._conversationId != null) {
+      map['cid'] = this._conversationId;
+    }
+    if (this._fromClientId != null) {
+      map['from'] = this._fromClientId;
+    }
+    if (this._timestamp != null) {
+      map['timestamp'] = this._timestamp;
+    }
+    if (this._patchedTimestamp != null) {
+      map['patchTimestamp'] = this._patchedTimestamp;
+    }
+    if (this._transient != null) {
+      map['transient'] = this._transient;
+    }
+    if (this.deliveredTimestamp != null) {
+      map['ackAt'] = this.deliveredTimestamp;
+    }
+    if (this.readTimestamp != null) {
+      map['readAt'] = this.readTimestamp;
+    }
+    if (this.mentionAll != null) {
+      map['mentionAll'] = this.mentionAll;
+    }
+    if (this.mentionMembers != null) {
+      map['mentionPids'] = this.mentionMembers;
+    }
+    if (this.stringContent != null) {
+      map['msg'] = this.stringContent;
+    }
+    if (this.binaryContent != null) {
+      map['binaryMsg'] = this.binaryContent;
+    }
+    return map;
+  }
+
+  void _loadMap(Map data) {
+    this._currentClientId = data['clientId'];
+    this._conversationId = data['cid'];
+    this._id = data['id'];
+    this._fromClientId = data['from'];
+    this._timestamp = data['timestamp'];
+    this._patchedTimestamp = data['patchTimestamp'];
+    if (data['ackAt'] != null) {
+      this.deliveredTimestamp = data['ackAt'];
+    }
+    if (data['readAt'] != null) {
+      this.readTimestamp = data['readAt'];
+    }
+    this.mentionAll = data['mentionAll'];
+    this.mentionMembers = data['mentionPids'];
+    this._transient = data['transient'];
+    this.stringContent = data['msg'];
+    this.binaryContent = data['binaryMsg'];
+  }
 }
