@@ -82,12 +82,12 @@ enum SignatureAction {
 }
 
 typedef SessionOpenSignatureCallback = Future<Signature> Function({
-  String clientId,
+  Client client,
 });
 
 typedef ConversationSignatureCallback = Future<Signature> Function({
-  String clientId,
-  String conversationId,
+  Client client,
+  Conversation conversation,
   Set<String> targetIds,
   SignatureAction action,
 });
@@ -122,7 +122,7 @@ class Client with _Utilities {
     }
     if (this._signSessionOpen != null) {
       final Signature sign = await this._signSessionOpen(
-        clientId: this.id,
+        client: this,
       );
       args['sign'] = sign._toMap();
     }
@@ -174,7 +174,7 @@ class Client with _Utilities {
     }
     if (this._signConversation != null) {
       final Signature sign = await this._signConversation(
-        clientId: this.id,
+        client: this,
         targetIds: Set.from(m),
         action: SignatureAction.create,
       );
@@ -230,15 +230,17 @@ enum ConversationType {
 class Conversation with _Utilities {
   final String id;
   final Client client;
-  final Map rawData;
+  Map _rawData;
+  Map get rawData => this._rawData;
 
   Conversation._from({
     @required this.id,
     @required this.client,
-    @required this.rawData,
+    @required rawData,
   })  : assert(id != null),
         assert(client != null),
-        assert(rawData != null);
+        assert(rawData != null),
+        this._rawData = rawData;
 
   Future<Message> send({
     @required Message message,
@@ -292,7 +294,7 @@ class Conversation with _Utilities {
     );
   }
 
-  Future<Message> update({
+  Future<Message> updateMessage({
     @required Message oldMessage,
     @required Message newMessage,
   }) async {
@@ -380,6 +382,78 @@ class Conversation with _Utilities {
       messages.add(message);
     });
     return messages;
+  }
+
+  Future<Map> _updateMembers({
+    @required Set<String> members,
+    @required String op,
+  }) async {
+    assert(members.isNotEmpty);
+    assert(op == 'add' || op == 'remove');
+    var m = List<String>.from(members);
+    var args = {
+      'clientId': this.client.id,
+      'conversationId': this.id,
+      'm': m,
+      'op': op,
+    };
+    if (this.client._signConversation != null) {
+      final Signature sign = await this.client._signConversation(
+            client: this.client,
+            conversation: this,
+          );
+      args['sign'] = sign._toMap();
+    }
+    final Map result = await this.call(
+      method: 'updateMembers',
+      arguments: args,
+    );
+    this.rawData['m'] = result['m'];
+    this.rawData['updatedAt'] = result['udate'];
+    return result;
+  }
+
+  Future<void> _muteToggle({
+    @required String op,
+  }) async {
+    assert(op == 'mute' || op == 'unmute');
+    var args = {
+      'clientId': this.client.id,
+      'conversationId': this.id,
+      'op': op,
+    };
+    final Map result = await this.call(
+      method: 'muteToggle',
+      arguments: args,
+    );
+    this.rawData['mu'] = result['mu'];
+    this.rawData['updatedAt'] = result['udate'];
+  }
+
+  Future<void> update({
+    @required Map<String, dynamic> data,
+  }) async {
+    assert(data.isNotEmpty);
+    var args = {
+      'clientId': this.client.id,
+      'conversationId': this.id,
+      'data': data,
+    };
+    this._rawData = await this.call(
+      method: 'updateData',
+      arguments: args,
+    );
+  }
+
+  Future<int> getOnlineMembersCount() async {
+    var args = {
+      'clientId': this.client.id,
+      'conversationId': this.id,
+    };
+    return await this.call(
+      method: 'getOnlineMembersCount',
+      arguments: args,
+    );
   }
 }
 
