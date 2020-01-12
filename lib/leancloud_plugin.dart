@@ -4,8 +4,68 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-class _Bridge {
-  static const MethodChannel _channel = const MethodChannel('leancloud_plugin');
+class _Bridge with _Utilities {
+  static final _Bridge _singleton = _Bridge._internal();
+
+  factory _Bridge() {
+    return _Bridge._singleton;
+  }
+
+  final MethodChannel channel = const MethodChannel('leancloud_plugin');
+  final Map<String, Client> clientMap = Map();
+
+  _Bridge._internal() {
+    this.channel.setMethodCallHandler((call) {
+      final Map args = call.arguments;
+      final Client client = this.clientMap[args['clientId']];
+      if (client == null) {
+        return;
+      }
+      switch (call.method) {
+        case 'onSessionOpen':
+          if (client.onSessionOpen != null) {
+            client.onSessionOpen(
+              client: client,
+            );
+          }
+          break;
+        case 'onSessionResume':
+          if (client.onSessionResume != null) {
+            client.onSessionResume(
+              client: client,
+            );
+          }
+          break;
+        case 'onSessionDisconnect':
+          if (client.onSessionDisconnect != null) {
+            RTMException e;
+            if (this.isFailure(args)) {
+              e = this.error(args);
+            }
+            client.onSessionDisconnect(
+              client: client,
+              e: e,
+            );
+          }
+          break;
+        case 'onSessionClose':
+          if (client.onSessionClose != null) {
+            client.onSessionClose(
+              client: client,
+              e: this.error(args),
+            );
+          }
+          break;
+        case 'onConversationMembersUpdate':
+          final Conversation conversation = client.conversationMap[args['cid']];
+          conversation.membersUpdate(args: args);
+          break;
+        default:
+          assert(false, 'should not happen.');
+      }
+      return;
+    });
+  }
 }
 
 mixin _Utilities {
@@ -24,10 +84,10 @@ mixin _Utilities {
     @required Map arguments,
   }) async {
     assert(method != null && arguments != null);
-    final Map result = await _Bridge._channel.invokeMethod(
-      method,
-      arguments,
-    );
+    final Map result = await _Bridge().channel.invokeMethod(
+          method,
+          arguments,
+        );
     if (this.isFailure(result)) {
       throw this.error(result);
     }
@@ -99,7 +159,49 @@ class Client with _Utilities {
   final SessionOpenSignatureCallback _signSessionOpen;
   final ConversationSignatureCallback _signConversation;
 
-  final Map<String, Conversation> conversations = Map();
+  final Map<String, Conversation> conversationMap = Map();
+
+  Function({
+    Client client,
+  }) onSessionOpen;
+  Function({
+    Client client,
+  }) onSessionResume;
+  Function({
+    Client client,
+    RTMException e,
+  }) onSessionDisconnect;
+  Function({
+    Client client,
+    RTMException e,
+  }) onSessionClose;
+
+  Function({
+    Client client,
+    Conversation conversation,
+    String byClientId,
+    String at,
+  }) onConversationInvite;
+  Function({
+    Client client,
+    Conversation conversation,
+    String byClientId,
+    String at,
+  }) onConversationKick;
+  Function({
+    Client client,
+    Conversation conversation,
+    List<String> members,
+    String byClientId,
+    String at,
+  }) onConversationMembersJoin;
+  Function({
+    Client client,
+    Conversation conversation,
+    List<String> members,
+    String byClientId,
+    String at,
+  }) onConversationMembersLeave;
 
   Client({
     @required this.id,
@@ -113,6 +215,7 @@ class Client with _Utilities {
   Future<void> open({
     bool force = true,
   }) async {
+    _Bridge().clientMap[this.id] = this;
     var args = {
       'clientId': this.id,
       'force': force,
@@ -144,6 +247,7 @@ class Client with _Utilities {
       method: 'closeClient',
       arguments: args,
     );
+    _Bridge().clientMap.remove(this.id);
   }
 
   Future<Conversation> createConversation({
@@ -189,7 +293,7 @@ class Client with _Utilities {
       client: this,
       rawData: rawData,
     );
-    this.conversations[conversation.id] = conversation;
+    this.conversationMap[conversation.id] = conversation;
     return conversation;
   }
 
@@ -197,7 +301,7 @@ class Client with _Utilities {
     @required String id,
   }) async {
     assert(id != null);
-    Conversation conversation = this.conversations[id];
+    Conversation conversation = this.conversationMap[id];
     if (conversation != null) {
       return conversation;
     }
@@ -214,7 +318,7 @@ class Client with _Utilities {
       client: this,
       rawData: rawData,
     );
-    this.conversations[conversation.id] = conversation;
+    this.conversationMap[conversation.id] = conversation;
     return conversation;
   }
 }
@@ -454,6 +558,17 @@ class Conversation with _Utilities {
       method: 'getOnlineMembersCount',
       arguments: args,
     );
+  }
+
+  void membersUpdate({
+    @required Map args,
+  }) {
+    final String op = args['op'];
+    assert(op == 'joined' ||
+        op == 'left' ||
+        op == 'members-joined' ||
+        op == 'members-left');
+    
   }
 }
 
