@@ -57,8 +57,10 @@ class _Bridge with _Utilities {
           }
           break;
         case 'onConversationMembersUpdate':
-          final Conversation conversation = client.conversationMap[args['cid']];
-          conversation.membersUpdate(args: args);
+          client._processConversationEvent(
+            method: call.method,
+            args: args,
+          );
           break;
         default:
           assert(false, 'should not happen.');
@@ -180,27 +182,27 @@ class Client with _Utilities {
     Client client,
     Conversation conversation,
     String byClientId,
-    String at,
+    String atDate,
   }) onConversationInvite;
   Function({
     Client client,
     Conversation conversation,
     String byClientId,
-    String at,
+    String atDate,
   }) onConversationKick;
   Function({
     Client client,
     Conversation conversation,
-    List<String> members,
+    List members,
     String byClientId,
-    String at,
+    String atDate,
   }) onConversationMembersJoin;
   Function({
     Client client,
     Conversation conversation,
-    List<String> members,
+    List members,
     String byClientId,
-    String at,
+    String atDate,
   }) onConversationMembersLeave;
 
   Client({
@@ -320,6 +322,22 @@ class Client with _Utilities {
     );
     this.conversationMap[conversation.id] = conversation;
     return conversation;
+  }
+
+  Future<void> _processConversationEvent({
+    @required method,
+    @required args,
+  }) async {
+    final String conversationId = args['cid'];
+    assert(conversationId != null);
+    Conversation conversation = await this._getConversation(id: conversationId);
+    switch (method) {
+      case 'onConversationMembersUpdate':
+        conversation._membersUpdate(args: args);
+        break;
+      default:
+        break;
+    }
   }
 }
 
@@ -560,7 +578,7 @@ class Conversation with _Utilities {
     );
   }
 
-  void membersUpdate({
+  void _membersUpdate({
     @required Map args,
   }) {
     final String op = args['op'];
@@ -568,7 +586,55 @@ class Conversation with _Utilities {
         op == 'left' ||
         op == 'members-joined' ||
         op == 'members-left');
-    
+    final List m = args['m'];
+    final String by = args['initBy'];
+    final String udate = args['udate'];
+    final List members = args['members'];
+    if (members != null) {
+      this._rawData['m'] = members;
+    }
+    if (udate != null) {
+      this._rawData['updatedAt'] = udate;
+    }
+    if (op == 'joined') {
+      if (this.client.onConversationInvite != null) {
+        this.client.onConversationInvite(
+              client: this.client,
+              conversation: this,
+              byClientId: by,
+              atDate: udate,
+            );
+      }
+    } else if (op == 'left') {
+      if (this.client.onConversationKick != null) {
+        this.client.onConversationKick(
+              client: this.client,
+              conversation: this,
+              byClientId: by,
+              atDate: udate,
+            );
+      }
+    } else if (op == 'members-joined') {
+      if (this.client.onConversationMembersJoin != null) {
+        this.client.onConversationMembersJoin(
+              client: this.client,
+              conversation: this,
+              members: m,
+              byClientId: by,
+              atDate: udate,
+            );
+      }
+    } else {
+      if (this.client.onConversationMembersLeave != null) {
+        this.client.onConversationMembersLeave(
+              client: this.client,
+              conversation: this,
+              members: m,
+              byClientId: by,
+              atDate: udate,
+            );
+      }
+    }
   }
 }
 
