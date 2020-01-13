@@ -1,7 +1,18 @@
 package cn.leancloud.plugin;
 
+import android.util.Log;
+
+import java.util.Map;
+
 import androidx.annotation.NonNull;
+import cn.leancloud.im.Signature;
+import cn.leancloud.im.v2.AVIMClient;
+import cn.leancloud.im.v2.AVIMException;
+import cn.leancloud.im.v2.AVIMMessageManager;
+import cn.leancloud.im.v2.callback.AVIMClientCallback;
+import cn.leancloud.utils.StringUtil;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
+import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
@@ -9,11 +20,18 @@ import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 /** LeancloudPlugin */
-public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler {
+public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
+    ClientStatusListener, IMEventNotification {
+  private final static String TAG = LeancloudPlugin.class.getSimpleName();
+  private final static LeancloudPlugin _INSTANCE = new LeancloudPlugin();
+  private static MethodChannel _CHANNEL = null;
+
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
-    final MethodChannel channel = new MethodChannel(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "leancloud_plugin");
-    channel.setMethodCallHandler(new LeancloudPlugin());
+    Log.d(TAG, "LeancloudPlugin.onAttachedToEngine called.");
+//    final MethodChannel channel = new MethodChannel(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "leancloud_plugin");
+//    channel.setMethodCallHandler(this);
+    _initialize(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "leancloud_plugin");
   }
 
   // This static function is optional and equivalent to onAttachedToEngine. It supports the old
@@ -26,14 +44,88 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler {
   // depending on the user's project. onAttachedToEngine or registerWith must both be defined
   // in the same class.
   public static void registerWith(Registrar registrar) {
-    final MethodChannel channel = new MethodChannel(registrar.messenger(), "leancloud_plugin");
-    channel.setMethodCallHandler(new LeancloudPlugin());
+    Log.d(TAG, "LeancloudPlugin#registerWith called.");
+    _initialize(registrar.messenger(), "leancloud_plugin");
+//    final MethodChannel channel = new MethodChannel(registrar.messenger(), "leancloud_plugin");
+//    channel.setMethodCallHandler(_INSTANCE);
+
+
   }
 
+  private static void _initialize(BinaryMessenger messenger, String name) {
+    if (null == _CHANNEL) {
+      _CHANNEL = new MethodChannel(messenger, "leancloud_plugin");
+      _CHANNEL.setMethodCallHandler(_INSTANCE);
+
+      AVIMMessageManager.registerDefaultMessageHandler(new DefaultMessageHandler(_INSTANCE));
+      AVIMMessageManager.setConversationEventHandler(new DefaultConversationEventHandler(_INSTANCE));
+      AVIMClient.setClientEventHandler(new DefaultClientEventHandler(_INSTANCE));
+    }
+  }
   @Override
-  public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
+  public void onMethodCall(@NonNull MethodCall call, @NonNull final Result result) {
+    Log.d(TAG, "onMethodCall " + call.method);
+    String clientId = Common.getMethodParam(call, Common.Param_Client_Id);
+
     if (call.method.equals("getPlatformVersion")) {
       result.success("Android " + android.os.Build.VERSION.RELEASE);
+    } else if (call.method.equals(Common.Method_Close_Client)){
+      if (StringUtil.isEmpty(clientId)) {
+        result.error(Exception.ErrorCode_Invalid_Login, Exception.ErrorMsg_Invalid_Login, clientId);
+      } else {
+        AVIMClient.getInstance(clientId).close(new AVIMClientCallback() {
+          @Override
+          public void done(AVIMClient client, AVIMException e) {
+            if (null != e) {
+              result.error(String.valueOf(e.getCode()), e.getMessage(), e.getCause());
+            } else {
+              result.success(Common.wrapClient(client));
+            }
+          }
+        });
+      }
+    } else if (call.method.equals(Common.Method_Open_Client)) {
+      String tag = Common.getMethodParam(call, Common.Param_Client_Tag);
+      boolean forceFlag = Common.getParamBoolean(call, Common.Param_Force_Open);
+      Signature signature = Common.getMethodSignature(call, Common.Param_Signature);
+      if (StringUtil.isEmpty(clientId)) {
+        result.error(Exception.ErrorCode_Invalid_Login, Exception.ErrorMsg_Invalid_Login, clientId);
+      } else {
+        AVIMClient client = StringUtil.isEmpty(tag)? AVIMClient.getInstance(clientId) : AVIMClient.getInstance(clientId, tag);
+        client.open(new AVIMClientCallback() {
+          @Override
+          public void done(AVIMClient client, AVIMException e) {
+            Log.d(TAG, "client open result: " + client);
+            if (null != e) {
+              result.error(String.valueOf(e.getCode()), e.getMessage(), e.getCause());
+            } else {
+              result.success(Common.wrapClient(client));
+            }
+          }
+        });
+      }
+    } else if (call.method.equals(Common.Method_Create_Conversation)) {
+      result.notImplemented();
+    } else if (call.method.equals(Common.Method_Fetch_Conversation)) {
+      result.notImplemented();
+    } else if (call.method.equals(Common.Method_Mute_Conversation)) {
+      result.notImplemented();
+    } else if (call.method.equals(Common.Method_Update_Conversation)) {
+      result.notImplemented();
+    } else if (call.method.equals(Common.Method_Update_Members)) {
+      result.notImplemented();
+    } else if (call.method.equals(Common.Method_Get_Message_Receipt)) {
+      result.notImplemented();
+    } else if (call.method.equals(Common.Method_Online_Member_Count)) {
+      result.notImplemented();
+    } else if (call.method.equals(Common.Method_Query_Message)) {
+      result.notImplemented();
+    } else if (call.method.equals(Common.Method_Read_Message)) {
+      result.notImplemented();
+    } else if (call.method.equals(Common.Method_Send_Message)) {
+      result.notImplemented();
+    } else if (call.method.equals(Common.Method_Update_Message)) {
+      result.notImplemented();
     } else {
       result.notImplemented();
     }
@@ -41,5 +133,40 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler {
 
   @Override
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
+  }
+
+  public void notify(String method, Object param) {
+    _CHANNEL.invokeMethod(method, param);
+  }
+
+  public void notifyWithResult(String method, Object param, Result callback) {
+    _CHANNEL.invokeMethod(method, param, callback);
+  }
+
+  /**
+   * ClientStatusListener#onDisconnected
+   * @param client client instance.
+   */
+  public void onDisconnected(AVIMClient client) {
+    _CHANNEL.invokeMethod(Common.Method_Client_Disconnected, Common.wrapClient(client));
+  }
+
+  /**
+   * ClientStatusListener#onResumed
+   * @param client client instance.
+   */
+  public void onResumed(AVIMClient client) {
+    _CHANNEL.invokeMethod(Common.Method_Client_Resumed, Common.wrapClient(client));
+  }
+
+  /**
+   * ClientStatusListener#onOffline
+   * @param client client instance.
+   * @param code detail code.
+   */
+  public void onOffline(AVIMClient client, int code) {
+    Map<String, Object> param = Common.wrapClient(client);
+    param.put(Common.Param_code, code);
+    _CHANNEL.invokeMethod(Common.Method_Client_Offline, param);
   }
 }

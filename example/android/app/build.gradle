@@ -36,6 +36,7 @@ android {
         applicationId "cn.leancloud.leancloud_plugin_example"
         minSdkVersion 16
         targetSdkVersion 28
+        multiDexEnabled true
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -55,6 +56,14 @@ flutter {
 }
 
 dependencies {
+    implementation('cn.leancloud:realtime-android:6.1.9') {
+        exclude group: 'com.alibaba', module: 'fastjson'
+        exclude group: 'org.ligboy.retrofit2', module: 'converter-fastjson'
+    }
+    implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
+    implementation 'com.alibaba:fastjson:1.1.71.android'
+    implementation "org.ligboy.retrofit2:converter-fastjson-android:2.1.0"
+
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
