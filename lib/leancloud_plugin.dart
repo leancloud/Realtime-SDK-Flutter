@@ -15,11 +15,11 @@ class _Bridge with _Utilities {
   final Map<String, Client> clientMap = Map();
 
   _Bridge._internal() {
-    this.channel.setMethodCallHandler((call) {
+    this.channel.setMethodCallHandler((call) async {
       final Map args = call.arguments;
       final Client client = this.clientMap[args['clientId']];
       if (client == null) {
-        return;
+        return {};
       }
       switch (call.method) {
         case 'onSessionOpen':
@@ -57,15 +57,29 @@ class _Bridge with _Utilities {
           }
           break;
         case 'onConversationMembersUpdate':
+        case 'onConversationDataUpdate':
+        case 'onLastMessageUpdate':
+        case 'onUnreadMessageCountUpdate':
+        case 'onMessageReceive':
+        case 'onMessageUpdate':
+        case 'onMessageReceipt':
           client._processConversationEvent(
             method: call.method,
             args: args,
           );
           break;
+        case 'onSignSessionOpen':
+          if (client._signSessionOpen != null) {
+            final Signature sign = await client._signSessionOpen(
+              client: client,
+            );
+            return {'sign': sign._toMap()};
+          }
+          break;
         default:
-          assert(false, 'should not happen.');
+          break;
       }
-      return;
+      return {};
     });
   }
 }
@@ -205,6 +219,46 @@ class Client with _Utilities {
     String atDate,
   }) onConversationMembersLeave;
 
+  Function({
+    Client client,
+    Conversation conversation,
+    Map updatingAttributes,
+    Map updatedAttributes,
+    String byClientId,
+    String atDate,
+  }) onConversationDataUpdate;
+
+  Function({
+    Client client,
+    Conversation conversation,
+  }) onConversationLastMessageUpdate;
+
+  Function({
+    Client client,
+    Conversation conversation,
+  }) onConversationUnreadMessageCountUpdate;
+
+  Function({
+    Client client,
+    Conversation conversation,
+    Message message,
+  }) onMessageReceive;
+  Function({
+    Client client,
+    Conversation conversation,
+    Message message,
+    int patchCode,
+    String patchReason,
+  }) onMessageUpdate;
+  Function({
+    Client client,
+    Conversation conversation,
+    String messageId,
+    int messageTimestamp,
+    String byClientId,
+    bool isRead,
+  }) onMessageReceipt;
+
   Client({
     @required this.id,
     this.tag,
@@ -324,16 +378,86 @@ class Client with _Utilities {
     return conversation;
   }
 
+  Future<List<Conversation>> queryConversation({
+    String where,
+    String sort,
+    int limit,
+    int skip,
+    int flag,
+    List<String> temporaryConversationIds,
+  }) async {
+    Map args = {
+      'clientId': this.id,
+    };
+    if (where != null) {
+      args['where'] = where;
+    }
+    if (sort != null) {
+      args['sort'] = sort;
+    }
+    if (limit != null) {
+      args['limit'] = limit;
+    }
+    if (skip != null) {
+      args['skip'] = skip;
+    }
+    if (flag != null) {
+      args['flag'] = flag;
+    }
+    if (temporaryConversationIds != null) {
+      args['tempConvIds'] = temporaryConversationIds;
+    }
+    final List<Map> results = await this.call(
+      method: 'queryConversation',
+      arguments: args,
+    );
+    List<Conversation> conversations = List();
+    results.forEach((item) {
+      final String conversationId = item['objectId'];
+      if (conversationId != null) {
+        Conversation conversation = this.conversationMap[conversationId];
+        if (conversation == null) {
+          conversation = Conversation._from(
+            id: conversationId,
+            client: this,
+            rawData: item,
+          );
+          this.conversationMap[conversationId] = conversation;
+        } else {
+          conversation._rawData = item;
+        }
+        conversations.add(conversation);
+      }
+    });
+    return conversations;
+  }
+
   Future<void> _processConversationEvent({
     @required method,
     @required args,
   }) async {
-    final String conversationId = args['cid'];
-    assert(conversationId != null);
-    Conversation conversation = await this._getConversation(id: conversationId);
+    Conversation conversation = await this._getConversation(id: args['cid']);
     switch (method) {
       case 'onConversationMembersUpdate':
         conversation._membersUpdate(args: args);
+        break;
+      case 'onConversationDataUpdate':
+        conversation._dataUpdate(args: args);
+        break;
+      case 'onLastMessageUpdate':
+        conversation._lastMessageUpdate(args: args);
+        break;
+      case 'onUnreadMessageCountUpdate':
+        conversation._unreadMessageCountUpdate(args: args);
+        break;
+      case 'onMessageReceive':
+        conversation._messageReceive(args: args);
+        break;
+      case 'onMessageUpdate':
+        conversation._messageUpdate(args: args);
+        break;
+      case 'onMessageReceipt':
+        conversation._messageReceipt(args: args);
         break;
       default:
         break;
@@ -352,8 +476,17 @@ enum ConversationType {
 class Conversation with _Utilities {
   final String id;
   final Client client;
+
   Map _rawData;
   Map get rawData => this._rawData;
+
+  Message _lastMessage;
+  Message get lastMessage => this._lastMessage;
+
+  int _unreadMessageCount;
+  int get unreadMessageCount => this._unreadMessageCount;
+
+  bool unreadMessageContainMention;
 
   Conversation._from({
     @required this.id,
@@ -506,7 +639,7 @@ class Conversation with _Utilities {
     return messages;
   }
 
-  Future<Map> _updateMembers({
+  Future<Map> updateMembers({
     @required Set<String> members,
     @required String op,
   }) async {
@@ -535,7 +668,7 @@ class Conversation with _Utilities {
     return result;
   }
 
-  Future<void> _muteToggle({
+  Future<void> muteToggle({
     @required String op,
   }) async {
     assert(op == 'mute' || op == 'unmute');
@@ -634,6 +767,104 @@ class Conversation with _Utilities {
               atDate: udate,
             );
       }
+    }
+  }
+
+  void _dataUpdate({
+    @required Map args,
+  }) {
+    final Map rawData = args['rawData'];
+    if (rawData != null) {
+      this._rawData = rawData;
+    }
+    if (this.client.onConversationDataUpdate != null) {
+      final Map attr = args['attr'];
+      final Map attrModified = args['attrModified'];
+      final String by = args['initBy'];
+      final String udate = args['udate'];
+      this.client.onConversationDataUpdate(
+            client: this.client,
+            conversation: this,
+            updatingAttributes: attr,
+            updatedAttributes: attrModified,
+            byClientId: by,
+            atDate: udate,
+          );
+    }
+  }
+
+  void _lastMessageUpdate({
+    @required Map args,
+  }) {
+    var message = Message();
+    message._loadMap(args['message']);
+    this._lastMessage = message;
+    if (this.client.onConversationLastMessageUpdate != null) {
+      this.client.onConversationLastMessageUpdate(
+            client: this.client,
+            conversation: this,
+          );
+    }
+  }
+
+  void _unreadMessageCountUpdate({
+    @required Map args,
+  }) {
+    this._unreadMessageCount = args['count'];
+    final bool mention = args['mention'];
+    if (mention != null) {
+      this.unreadMessageContainMention = mention;
+    }
+    if (this.client.onConversationUnreadMessageCountUpdate != null) {
+      this.client.onConversationUnreadMessageCountUpdate(
+            client: this.client,
+            conversation: this,
+          );
+    }
+  }
+
+  void _messageReceive({
+    @required Map args,
+  }) {
+    if (this.client.onMessageReceive != null) {
+      var message = Message();
+      message._loadMap(args['message']);
+      this.client.onMessageReceive(
+            client: this.client,
+            conversation: this,
+            message: message,
+          );
+    }
+  }
+
+  void _messageUpdate({
+    @required Map args,
+  }) {
+    if (this.client.onMessageUpdate != null) {
+      var message = Message();
+      message._loadMap(args['message']);
+      this.client.onMessageUpdate(
+            client: this.client,
+            conversation: this,
+            message: message,
+            patchCode: args['patchCode'],
+            patchReason: args['patchReason'],
+          );
+    }
+  }
+
+  void _messageReceipt({
+    @required Map args,
+  }) {
+    if (this.client.onMessageReceipt != null) {
+      this.client.onMessageReceipt(
+            client: this.client,
+            conversation: this,
+            messageId: args['id'],
+            messageTimestamp: args['t'],
+            byClientId: args['from'],
+            isRead: args['read'],
+          );
     }
   }
 }
