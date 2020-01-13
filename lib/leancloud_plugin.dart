@@ -530,6 +530,13 @@ class Conversation with _Utilities {
     if (options.isNotEmpty) {
       args['options'] = options;
     }
+    if (message is FileMessage) {
+      final Map fileMap = Map();
+      fileMap['path'] = message._filePath;
+      fileMap['data'] = message._fileData;
+      fileMap['format'] = message._fileFormat;
+      args['file'] = fileMap;
+    }
     final Map rawData = await this.call(
       method: 'sendMessage',
       arguments: args,
@@ -558,6 +565,13 @@ class Conversation with _Utilities {
       'oldMessage': oldMessage._toMap(),
       'newMessage': newMessage._toMap(),
     };
+    if (newMessage is FileMessage) {
+      final Map fileMap = Map();
+      fileMap['path'] = newMessage._filePath;
+      fileMap['data'] = newMessage._fileData;
+      fileMap['format'] = newMessage._fileFormat;
+      args['file'] = fileMap;
+    }
     final Map rawData = await this.call(
       method: 'readMessage',
       arguments: args,
@@ -873,23 +887,27 @@ class Message {
   String _currentClientId;
 
   String _id;
-  int _timestamp;
-  String _conversationId;
-  String _fromClientId;
-  int _patchedTimestamp;
-  bool _transient;
-
   String get id => this._id;
+
+  int _timestamp;
   int get sentTimestamp => this._timestamp;
+
+  String _conversationId;
   String get conversationId => this._conversationId;
+
+  String _fromClientId;
   String get fromClientId => this._fromClientId;
+
+  int _patchedTimestamp;
   int get patchedTimestamp => this._patchedTimestamp;
+
+  bool _transient;
   bool get isTransient => this._transient;
 
   int deliveredTimestamp;
   int readTimestamp;
   bool mentionAll;
-  List<String> mentionMembers;
+  List mentionMembers;
 
   String stringContent;
   Uint8List binaryContent;
@@ -929,11 +947,14 @@ class Message {
     if (this.mentionMembers != null) {
       map['mentionPids'] = this.mentionMembers;
     }
-    if (this.stringContent != null) {
-      map['msg'] = this.stringContent;
-    }
     if (this.binaryContent != null) {
       map['binaryMsg'] = this.binaryContent;
+    } else if (this.stringContent != null) {
+      map['msg'] = this.stringContent;
+    } else if (this is TypeableMessage) {
+      final Map typeableMessageData = (this as TypeableMessage).rawData;
+      typeableMessageData['_lctype'] = (this as TypeableMessage).type;
+      map['typeMsgData'] = typeableMessageData;
     }
     return map;
   }
@@ -956,5 +977,234 @@ class Message {
     this._transient = data['transient'];
     this.stringContent = data['msg'];
     this.binaryContent = data['binaryMsg'];
+    if (this is TypeableMessage) {
+      (this as TypeableMessage)._rawData = data['typeMsgData'];
+    }
   }
+}
+
+class TypeableMessage extends Message {
+  int get type => 0;
+
+  static void register<T extends TypeableMessage>(
+    T object,
+  ) {
+    assert(object.type > 0);
+    TypeableMessage._classMap[object.type] = T;
+  }
+
+  static final Map<int, Type> _classMap = {
+    TextMessage().type: TextMessage,
+    ImageMessage._internal().type: ImageMessage,
+    AudioMessage._internal().type: AudioMessage,
+    VideoMessage._internal().type: VideoMessage,
+    LocationMessage._internal().type: LocationMessage,
+    FileMessage._internal().type: FileMessage,
+    RecalledMessage().type: RecalledMessage,
+  };
+
+  Map _rawData = Map();
+  Map get rawData => this._rawData;
+
+  String get text => this.rawData['_lctext'];
+  set text(String value) => this.rawData['_lctext'] = value;
+
+  Map get attributes => this.rawData['_lcattrs'];
+  set attributes(Map value) => this.rawData['_lcattrs'] = value;
+}
+
+class TextMessage extends TypeableMessage {
+  @override
+  int get type => -1;
+}
+
+class ImageMessage extends FileMessage {
+  @override
+  int get type => -2;
+
+  double get width {
+    final Map metaDataMap = this._metaDataMap;
+    if (metaDataMap != null) {
+      return metaDataMap['width'];
+    } else {
+      return null;
+    }
+  }
+
+  double get height {
+    final Map metaDataMap = this._metaDataMap;
+    if (metaDataMap != null) {
+      return metaDataMap['height'];
+    } else {
+      return null;
+    }
+  }
+
+  ImageMessage._internal() : super._internal();
+
+  ImageMessage.from({
+    String path,
+    Uint8List binaryData,
+    String format,
+  }) : super.from(
+          path: path,
+          binaryData: binaryData,
+          format: format,
+        );
+}
+
+class AudioMessage extends FileMessage {
+  @override
+  int get type => -3;
+
+  double get duration {
+    final Map metaDataMap = this._metaDataMap;
+    if (metaDataMap != null) {
+      return metaDataMap['duration'];
+    } else {
+      return null;
+    }
+  }
+
+  AudioMessage._internal() : super._internal();
+
+  AudioMessage.from({
+    String path,
+    Uint8List binaryData,
+    String format,
+  }) : super.from(
+          path: path,
+          binaryData: binaryData,
+          format: format,
+        );
+}
+
+class VideoMessage extends FileMessage {
+  @override
+  int get type => -4;
+
+  double get duration {
+    final Map metaDataMap = this._metaDataMap;
+    if (metaDataMap != null) {
+      return metaDataMap['duration'];
+    } else {
+      return null;
+    }
+  }
+
+  VideoMessage._internal() : super._internal();
+
+  VideoMessage.from({
+    String path,
+    Uint8List binaryData,
+    String format,
+  }) : super.from(
+          path: path,
+          binaryData: binaryData,
+          format: format,
+        );
+}
+
+class LocationMessage extends TypeableMessage {
+  @override
+  int get type => -5;
+
+  Map get _locationMap => this.rawData['_lcloc'];
+  set _locationMap(Map value) => this.rawData['_lcloc'] = value;
+
+  double get latitude {
+    final Map locationMap = this._locationMap;
+    if (locationMap != null) {
+      return locationMap['latitude'];
+    }
+    return null;
+  }
+
+  double get longitude {
+    final Map locationMap = this._locationMap;
+    if (locationMap != null) {
+      return locationMap['longitude'];
+    }
+    return null;
+  }
+
+  LocationMessage._internal();
+
+  LocationMessage.from(
+    double latitude,
+    double longitude,
+  ) {
+    assert(latitude != null && longitude != null);
+    this._locationMap = {
+      'latitude': latitude,
+      'longitude': longitude,
+    };
+  }
+}
+
+class FileMessage extends TypeableMessage {
+  @override
+  int get type => -6;
+
+  String _filePath;
+  Uint8List _fileData;
+  String _fileFormat;
+
+  Map get _fileMap {
+    return this.rawData['_lcfile'];
+  }
+
+  Map get _metaDataMap {
+    final Map fileMap = this._fileMap;
+    if (fileMap != null) {
+      return fileMap['metaData'];
+    } else {
+      return null;
+    }
+  }
+
+  String get url {
+    final Map fileMap = this._fileMap;
+    if (fileMap != null) {
+      return fileMap['url'];
+    } else {
+      return null;
+    }
+  }
+
+  String get format {
+    final Map metaDataMap = this._metaDataMap;
+    if (metaDataMap != null) {
+      return metaDataMap['format'];
+    } else {
+      return null;
+    }
+  }
+
+  double get size {
+    final Map metaDataMap = this._metaDataMap;
+    if (metaDataMap != null) {
+      return metaDataMap['size'];
+    } else {
+      return null;
+    }
+  }
+
+  FileMessage._internal();
+
+  FileMessage.from({
+    String path,
+    Uint8List binaryData,
+    String format,
+  }) {
+    assert(path != null || binaryData != null);
+    this._filePath = path;
+    this._fileData = binaryData;
+    this._fileFormat = format;
+  }
+}
+
+class RecalledMessage extends TypeableMessage {
+  @override
+  int get type => -127;
 }
