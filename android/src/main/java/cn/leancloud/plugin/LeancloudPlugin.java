@@ -8,12 +8,9 @@ import java.util.Map;
 
 import androidx.annotation.NonNull;
 import cn.leancloud.AVException;
-import cn.leancloud.AVObject;
-import cn.leancloud.im.Signature;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMClientOpenOption;
 import cn.leancloud.im.v2.AVIMConversation;
-import cn.leancloud.im.v2.AVIMConversationsQuery;
 import cn.leancloud.im.v2.AVIMException;
 import cn.leancloud.im.v2.AVIMMessage;
 import cn.leancloud.im.v2.AVIMMessageManager;
@@ -21,6 +18,7 @@ import cn.leancloud.im.v2.AVIMMessageOption;
 import cn.leancloud.im.v2.callback.AVIMClientCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationCreatedCallback;
+import cn.leancloud.im.v2.callback.AVIMConversationMemberCountCallback;
 import cn.leancloud.im.v2.callback.AVIMMessageUpdatedCallback;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
@@ -137,7 +135,10 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           if (null != e) {
             result.error(String.valueOf(e.getAppCode()), e.getMessage(), e.getCause());
           } else {
-            result.success(Common.wrapConversation(conversation));
+            Log.d(TAG, "succeed create conv:" + conversation);
+            Map<String, Object> operationResult = new HashMap<>();
+            operationResult.put("success", Common.wrapConversation(conversation));
+            result.success(operationResult);
           }
         }
       };
@@ -231,8 +232,20 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           }
         }
       });
-    } else if (call.method.equals(Common.Method_Online_Member_Count)) {
-      result.notImplemented();
+    } else if (call.method.equals(Common.Method_Query_Member_Count)) {
+      String conversationId = Common.getMethodParam(call, Common.Param_Conv_Id);
+      avimClient.getConversation(conversationId).getMemberCount(new AVIMConversationMemberCountCallback() {
+        @Override
+        public void done(Integer memberCount, AVIMException e) {
+          if (null != e) {
+            result.error(String.valueOf(e.getAppCode()), e.getMessage(), e.getCause());
+          } else {
+            Map<String, Object> operationResult = new HashMap<>();
+            operationResult.put("success", memberCount);
+            result.success(operationResult);
+          }
+        }
+      });
     } else if (call.method.equals(Common.Method_Query_Message)) {
       result.notImplemented();
     } else if (call.method.equals(Common.Method_Read_Message)) {
@@ -245,13 +258,16 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       Map<String, Object> optionData = Common.getMethodParam(call, Common.Param_Message_Options);
       final AVIMMessage message = Common.parseMessage(msgData);
       AVIMMessageOption option = Common.parseMessageOption(optionData);
+      Log.d(TAG, "send message from conv:" + message.getConversationId());
       avimClient.getConversation(message.getConversationId()).sendMessage(message, option,
           new AVIMConversationCallback() {
             @Override
             public void done(AVIMException e) {
               if (null != e) {
+                Log.d(TAG, "send failed. cause: " + e.getMessage());
                 result.error(String.valueOf(e.getAppCode()), e.getMessage(), e.getCause());
               } else {
+                Log.d(TAG, "send finished. message: " + message);
                 Map<String, Object> sendResult = new HashMap<>();
                 sendResult.put("success", Common.wrapMessage(message));
                 result.success(sendResult);

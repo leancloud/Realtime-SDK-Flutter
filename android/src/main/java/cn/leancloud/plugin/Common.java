@@ -35,7 +35,7 @@ public class Common {
   public static final String Method_Update_Members = "updateMembers";
   public static final String Method_Mute_Conversation = "muteToggle";
   public static final String Method_Update_Conversation = "updateData";
-  public static final String Method_Online_Member_Count = "getOnlineMembersCount";
+  public static final String Method_Query_Member_Count = "getMembersCount";
 
   public static final String Method_Client_Offline = "";
   public static final String Method_Client_Disconnected = "";
@@ -229,19 +229,77 @@ public class Common {
   }
 
   public static AVIMMessage parseMessage(Map<String, Object> rawData) {
-    return null;
+    if (null == rawData) {
+      return null;
+    }
+    AVIMMessage message;
+    if (rawData.containsKey("typeMsgData")) {
+      message = new AVIMTypedMessage();
+    } else if (rawData.containsKey("binaryMsg")) {
+      message = new AVIMBinaryMessage();
+      ((AVIMBinaryMessage)message).setBytes((byte[]) rawData.get("binaryMsg"));
+    } else  {
+      message = new AVIMMessage();
+      if (rawData.containsKey("msg")) {
+        String content = (String) rawData.get("msg");
+        message.setContent(content);
+      }
+    }
+    if (rawData.containsKey("cid")) {
+      message.setConversationId((String) rawData.get("cid"));
+    }
+    if (rawData.containsKey("from")) {
+      message.setFrom((String) rawData.get("from"));
+    }
+    if (rawData.containsKey("mentionAll")) {
+      message.setMentionAll((boolean) rawData.get("mentionAll"));
+    }
+    if (rawData.containsKey("mentionPids")) {
+      message.setMentionList((List<String>) rawData.get("mentionPids"));
+    }
+    if (rawData.containsKey("id")) {
+      message.setMessageId((String) rawData.get("id"));
+    }
+    if (rawData.containsKey("timestamp")) {
+      message.setTimestamp((long) rawData.get("timestamp"));
+    }
+    if (rawData.containsKey("ackAt")) {
+      message.setReceiptTimestamp((long)rawData.get("ackAt"));
+    }
+    if (rawData.containsKey("readAt")) {
+      message.setReadAt((long) rawData.get("readAt"));
+    }
+
+    return message;
   }
 
   public static AVIMMessageOption parseMessageOption(Map<String, Object> data) {
-    return null;
+    if (null == data || data.isEmpty()) {
+      return null;
+    }
+    AVIMMessageOption option = new AVIMMessageOption();
+    if (data.containsKey("will")) {
+      option.setWill((boolean) data.get("will"));
+    }
+    if (data.containsKey("receipt")) {
+      option.setReceipt((boolean) data.get("receipt"));
+    }
+    if (data.containsKey("priority")) {
+      int priority = (int)data.get("priority");
+      option.setPriority(AVIMMessageOption.MessagePriority.getProiority(priority));
+    }
+    if (data.containsKey("pushData")) {
+      option.setPushDataEx((Map<String, Object>)data.get("pushData"));
+    }
+    return option;
   }
 
   public static Map<String, Object> wrapConversation(AVIMConversation conversation) {
     HashMap<String, Object> result = new HashMap<>();
-    String convId = conversation.getConversationId();
+    String conversationId = conversation.getConversationId();
     String creator = conversation.getCreator();
-    result.put("id", convId);
-    result.put("client", creator);
+    result.put("objectId", conversationId);
+    result.put("c", creator);
     return result;
   }
 }

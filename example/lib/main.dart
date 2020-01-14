@@ -181,6 +181,30 @@ class _MyAppState extends State<MyApp> {
           // close
           await client.close();
         }),
+    UnitTestCaseCard(
+      title: 'Create Conversation',
+      callback: () async {
+        String clientId = randomString();
+        LC.Client client = LC.Client(id: clientId);
+        await client.open();
+        await client.createConversation(members: [clientId], name: clientId );
+        await client.close();
+      },
+    ),
+    UnitTestCaseCard(
+      title: 'Send Message',
+      callback: () async {
+        String clientId = randomString();
+        LC.Client client = LC.Client(id: clientId);
+        await client.open();
+        LC.Conversation conversation =
+          await client.createConversation(members: [clientId], name: clientId );
+        LC.Message msg = LC.Message();
+        msg.stringContent = "test from Dart";
+        await conversation.send(message: msg);
+        await client.close();
+      },
+    ),
   ];
 
   @override
