@@ -338,12 +338,18 @@ class Client with _Utilities {
       method: 'createConversation',
       arguments: args,
     );
-    final Conversation conversation = Conversation._from(
-      id: rawData['objectId'],
-      client: this,
-      rawData: rawData,
-    );
-    this.conversationMap[conversation.id] = conversation;
+    final String conversationId = rawData['objectId'];
+    Conversation conversation = this.conversationMap[conversationId];
+    if (conversation == null) {
+      conversation = Conversation._from(
+        id: conversationId,
+        client: this,
+        rawData: rawData,
+      );
+      this.conversationMap[conversationId] = conversation;
+    } else {
+      conversation._rawData = rawData;
+    }
     return conversation;
   }
 
@@ -701,13 +707,13 @@ class Conversation with _Utilities {
     );
   }
 
-  Future<int> getOnlineMembersCount() async {
+  Future<int> countMembers() async {
     var args = {
       'clientId': this.client.id,
       'conversationId': this.id,
     };
     return await this.call(
-      method: 'getOnlineMembersCount',
+      method: 'countMembers',
       arguments: args,
     );
   }
@@ -889,7 +895,6 @@ class Message {
   int get patchedTimestamp => this._patchedTimestamp;
 
   bool _transient;
-  bool get isTransient => this._transient;
 
   int deliveredTimestamp;
   int readTimestamp;
