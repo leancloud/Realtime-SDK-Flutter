@@ -182,6 +182,16 @@ class _MyAppState extends State<MyApp> {
           await client.close();
         }),
     UnitTestCaseCard(
+      title: 'Case: Create Conversation',
+      callback: () async {
+        String clientId = randomString();
+        Client client = Client(id: clientId);
+        await client.open();
+        await client.createConversation(members: [clientId], name: clientId );
+        await client.close();
+      },
+    ),
+    UnitTestCaseCard(
       title: 'Case: Send Message',
       callback: () async {
         String clientId = randomString();
