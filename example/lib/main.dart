@@ -185,7 +185,7 @@ class _MyAppState extends State<MyApp> {
       title: 'Case: Create Conversation',
       callback: () async {
         String clientId = randomString();
-        LC.Client client = LC.Client(id: clientId);
+        Client client = Client(id: clientId);
         await client.open();
         await client.createConversation(members: [clientId], name: clientId );
         await client.close();
@@ -195,11 +195,11 @@ class _MyAppState extends State<MyApp> {
       title: 'Case: Send Message',
       callback: () async {
         String clientId = randomString();
-        LC.Client client = LC.Client(id: clientId);
+        Client client = Client(id: clientId);
         await client.open();
-        LC.Conversation conversation =
+        Conversation conversation =
           await client.createConversation(members: [clientId], name: clientId );
-        LC.Message msg = LC.Message();
+        Message msg = Message();
         msg.stringContent = "test from Dart";
         await conversation.send(message: msg);
         await client.close();
