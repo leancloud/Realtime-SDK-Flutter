@@ -895,7 +895,6 @@ class Message {
   int get patchedTimestamp => this._patchedTimestamp;
 
   bool _transient;
-  bool get isTransient => this._transient;
 
   int deliveredTimestamp;
   int readTimestamp;
