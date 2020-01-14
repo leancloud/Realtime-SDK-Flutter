@@ -23,34 +23,34 @@ class _Bridge with _Utilities {
       }
       switch (call.method) {
         case 'onSessionOpen':
-          if (client.onSessionOpen != null) {
-            client.onSessionOpen(
+          if (client.onOpen != null) {
+            client.onOpen(
               client: client,
             );
           }
           break;
         case 'onSessionResume':
-          if (client.onSessionResume != null) {
-            client.onSessionResume(
+          if (client.onResume != null) {
+            client.onResume(
               client: client,
             );
           }
           break;
         case 'onSessionDisconnect':
-          if (client.onSessionDisconnect != null) {
+          if (client.onDisconnect != null) {
             RTMException e;
             if (this.isFailure(args)) {
               e = this.error(args);
             }
-            client.onSessionDisconnect(
+            client.onDisconnect(
               client: client,
               e: e,
             );
           }
           break;
         case 'onSessionClose':
-          if (client.onSessionClose != null) {
-            client.onSessionClose(
+          if (client.onClose != null) {
+            client.onClose(
               client: client,
               e: this.error(args),
             );
@@ -72,6 +72,20 @@ class _Bridge with _Utilities {
           if (client._signSessionOpen != null) {
             final Signature sign = await client._signSessionOpen(
               client: client,
+            );
+            return {'sign': sign._toMap()};
+          }
+          break;
+        case 'onSignConversation':
+          if (client._signConversation != null) {
+            final Conversation conversation = await client._getConversation(
+              id: args['conversationId'],
+            );
+            final Signature sign = await client._signConversation(
+              client: client,
+              conversation: conversation,
+              targetIds: args['targetIds'],
+              action: args['action'],
             );
             return {'sign': sign._toMap()};
           }
@@ -151,12 +165,6 @@ class Signature {
       };
 }
 
-enum SignatureAction {
-  create,
-  invite,
-  kick,
-}
-
 typedef SessionOpenSignatureCallback = Future<Signature> Function({
   Client client,
 });
@@ -164,8 +172,8 @@ typedef SessionOpenSignatureCallback = Future<Signature> Function({
 typedef ConversationSignatureCallback = Future<Signature> Function({
   Client client,
   Conversation conversation,
-  Set<String> targetIds,
-  SignatureAction action,
+  Set targetIds,
+  String action,
 });
 
 class Client with _Utilities {
@@ -179,18 +187,18 @@ class Client with _Utilities {
 
   Function({
     Client client,
-  }) onSessionOpen;
+  }) onOpen;
   Function({
     Client client,
-  }) onSessionResume;
-  Function({
-    Client client,
-    RTMException e,
-  }) onSessionDisconnect;
+  }) onResume;
   Function({
     Client client,
     RTMException e,
-  }) onSessionClose;
+  }) onDisconnect;
+  Function({
+    Client client,
+    RTMException e,
+  }) onClose;
 
   Function({
     Client client,
@@ -279,12 +287,6 @@ class Client with _Utilities {
     if (this.tag != null) {
       args['tag'] = this.tag;
     }
-    if (this._signSessionOpen != null) {
-      final Signature sign = await this._signSessionOpen(
-        client: this,
-      );
-      args['sign'] = sign._toMap();
-    }
     args['signRegistry'] = {
       'sessionOpen': (this._signSessionOpen != null),
       'conversation': (this._signConversation != null),
@@ -331,14 +333,6 @@ class Client with _Utilities {
     }
     if (ttl != null) {
       args['ttl'] = ttl;
-    }
-    if (this._signConversation != null) {
-      final Signature sign = await this._signConversation(
-        client: this,
-        targetIds: Set.from(m),
-        action: SignatureAction.create,
-      );
-      args['sign'] = sign._toMap();
     }
     final Map rawData = await this.call(
       method: 'createConversation',
@@ -666,13 +660,6 @@ class Conversation with _Utilities {
       'm': m,
       'op': op,
     };
-    if (this.client._signConversation != null) {
-      final Signature sign = await this.client._signConversation(
-            client: this.client,
-            conversation: this,
-          );
-      args['sign'] = sign._toMap();
-    }
     final Map result = await this.call(
       method: 'updateMembers',
       arguments: args,
