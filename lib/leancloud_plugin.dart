@@ -158,7 +158,7 @@ class Signature {
   String toString() =>
       'LeanCloud.Signature(s: $signature, t: $timestamp, n: $nonce)';
 
-  Map<String, dynamic> _toMap() => {
+  Map _toMap() => {
         's': this.signature,
         't': this.timestamp,
         'n': this.nonce,
@@ -172,7 +172,7 @@ typedef SessionOpenSignatureCallback = Future<Signature> Function({
 typedef ConversationSignatureCallback = Future<Signature> Function({
   Client client,
   Conversation conversation,
-  Set targetIds,
+  List targetIds,
   String action,
 });
 
@@ -277,12 +277,12 @@ class Client with _Utilities {
         this._signConversation = signConversation;
 
   Future<void> open({
-    bool force = true,
+    bool reconnect = false,
   }) async {
     _Bridge().clientMap[this.id] = this;
     var args = {
       'clientId': this.id,
-      'force': force,
+      'r': reconnect,
     };
     if (this.tag != null) {
       args['tag'] = this.tag;
@@ -310,20 +310,20 @@ class Client with _Utilities {
 
   Future<Conversation> createConversation({
     ConversationType type = ConversationType.normalUnique,
-    Set<String> members,
+    List<String> members,
     String name,
     Map attributes,
     int ttl,
   }) async {
     assert(type != null && type != ConversationType.system);
 
-    Set<String> m = (members != null) ? Set.from(members) : Set();
-    m.add(this.id);
+    final Set memberSet = (members != null) ? Set.from(members) : Set();
+    memberSet.add(this.id);
 
     var args = {
       'clientId': this.id,
       'conv_type': ConversationType.values.indexOf(type),
-      'm': m,
+      'm': List.from(memberSet),
     };
     if (name != null) {
       args['name'] = name;
@@ -407,7 +407,7 @@ class Client with _Utilities {
     if (temporaryConversationIds != null) {
       args['tempConvIds'] = temporaryConversationIds;
     }
-    final List<Map> results = await this.call(
+    final List results = await this.call(
       method: 'queryConversation',
       arguments: args,
     );
@@ -640,7 +640,7 @@ class Conversation with _Utilities {
     if (type != null) {
       args['type'] = type;
     }
-    final List<Map> rawDatas = await this.call(
+    final List rawDatas = await this.call(
       method: 'queryMessage',
       arguments: args,
     );
@@ -654,16 +654,15 @@ class Conversation with _Utilities {
   }
 
   Future<Map> updateMembers({
-    @required Set<String> members,
+    @required List<String> members,
     @required String op,
   }) async {
     assert(members.isNotEmpty);
     assert(op == 'add' || op == 'remove');
-    var m = List<String>.from(members);
     var args = {
       'clientId': this.client.id,
       'conversationId': this.id,
-      'm': m,
+      'm': List.from(members),
       'op': op,
     };
     final Map result = await this.call(
@@ -904,7 +903,7 @@ class Message {
   String stringContent;
   Uint8List binaryContent;
 
-  Map<String, dynamic> _toMap() {
+  Map _toMap() {
     var map = Map<String, dynamic>();
     if (this._currentClientId != null) {
       map['clientId'] = this._currentClientId;

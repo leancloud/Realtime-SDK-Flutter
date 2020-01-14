@@ -42,7 +42,7 @@ class _MyAppState extends State<MyApp> {
           // create unique conversation
           Conversation conversation1 = await client.createConversation(
             type: ConversationType.normalUnique,
-            members: Set.from([id1, id2]),
+            members: [id1, id2],
           );
           final Map rawData1 = conversation1.rawData;
           assert(rawData1['conv_type'] == 1);
@@ -66,7 +66,7 @@ class _MyAppState extends State<MyApp> {
           final String attrValue = randomString();
           Conversation conversation2 = await client.createConversation(
             type: ConversationType.normalUnique,
-            members: Set.from([id1, id2]),
+            members: [id1, id2],
             name: name,
             attributes: {attrKey: attrValue},
           );
@@ -103,7 +103,7 @@ class _MyAppState extends State<MyApp> {
           final String attrValue = randomString();
           Conversation conversation = await client.createConversation(
             type: ConversationType.normal,
-            members: Set.from([id1, id2]),
+            members: [id1, id2],
             name: name,
             attributes: {attrKey: attrValue},
           );
@@ -151,6 +151,33 @@ class _MyAppState extends State<MyApp> {
           assert(attr[attrKey] == attrValue);
           assert(rawData['c'] == client.id);
           assert(rawData['createdAt'] is String);
+          // close
+          await client.close();
+        }),
+    UnitTestCaseCard(
+        title: 'Case: Create Temporary Conversation',
+        callback: () async {
+          String id1 = randomString();
+          String id2 = randomString();
+          Client client = Client(id: id1);
+          // open
+          await client.open();
+          // create temporary conversation
+          Conversation conversation = await client.createConversation(
+            type: ConversationType.temporary,
+            members: [id1, id2],
+            ttl: 3600,
+          );
+          final Map rawData = conversation.rawData;
+          assert(rawData['conv_type'] == 4);
+          String objectId = rawData['objectId'];
+          assert(objectId.startsWith('_tmp:'));
+          List members = rawData['m'];
+          assert(members.length == 2);
+          assert(members.contains(id1));
+          assert(members.contains(id2));
+          assert(rawData['temp'] == true);
+          assert(rawData['ttl'] == 3600);
           // close
           await client.close();
         }),
