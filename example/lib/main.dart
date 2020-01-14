@@ -1,7 +1,7 @@
 import 'dart:core';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:leancloud_plugin/leancloud_plugin.dart' as LC;
+import 'package:leancloud_plugin/leancloud_plugin.dart';
 
 const __chars = "abcdefghijklmnopqrstuvwxyz";
 String randomString({int strlen = 32}) {
@@ -25,8 +25,133 @@ class _MyAppState extends State<MyApp> {
     UnitTestCaseCard(
         title: 'Case: Client Open then Close',
         callback: () async {
-          LC.Client client = LC.Client(id: randomString());
+          Client client = Client(id: randomString());
           await client.open();
+          assert(client.id != null);
+          assert(client.tag == null);
+          await client.close();
+        }),
+    UnitTestCaseCard(
+        title: 'Case: Create Unique Conversation',
+        callback: () async {
+          String id1 = randomString();
+          String id2 = randomString();
+          Client client = Client(id: id1);
+          // open
+          await client.open();
+          // create unique conversation
+          Conversation conversation1 = await client.createConversation(
+            type: ConversationType.normalUnique,
+            members: Set.from([id1, id2]),
+          );
+          final Map rawData1 = conversation1.rawData;
+          assert(rawData1['conv_type'] == 1);
+          final String objectId = rawData1['objectId'];
+          assert(objectId != null);
+          final String uniqueId = rawData1['uniqueId'];
+          assert(uniqueId != null);
+          List members1 = rawData1['m'];
+          assert(members1.length == 2);
+          assert(members1.contains(id1));
+          assert(members1.contains(id2));
+          assert(rawData1['unique'] == true);
+          assert(rawData1['name'] == null);
+          assert(rawData1['attr'] == null);
+          assert(rawData1['c'] == id1);
+          final String createdAt = rawData1['createdAt'];
+          assert(createdAt != null);
+          // query unique conversation from creation
+          final String name = randomString();
+          final String attrKey = randomString();
+          final String attrValue = randomString();
+          Conversation conversation2 = await client.createConversation(
+            type: ConversationType.normalUnique,
+            members: Set.from([id1, id2]),
+            name: name,
+            attributes: {attrKey: attrValue},
+          );
+          assert(conversation2 == conversation1);
+          final Map rawData2 = conversation2.rawData;
+          assert(rawData2['conv_type'] == 1);
+          assert(rawData2['objectId'] == objectId);
+          assert(rawData2['uniqueId'] == uniqueId);
+          List members2 = rawData2['m'];
+          assert(members2.length == 2);
+          assert(members2.contains(id1));
+          assert(members2.contains(id2));
+          assert(rawData2['unique'] == true);
+          assert(rawData2['name'] == name);
+          final Map attr = rawData2['attr'];
+          assert(attr.length == 1);
+          assert(attr[attrKey] == attrValue);
+          assert(rawData2['c'] == id1);
+          assert(rawData2['createdAt'] == createdAt);
+          // close
+          await client.close();
+        }),
+    UnitTestCaseCard(
+        title: 'Case: Create Non-Unique Conversation',
+        callback: () async {
+          String id1 = randomString();
+          String id2 = randomString();
+          Client client = Client(id: id1);
+          // open
+          await client.open();
+          // create non-unique conversation
+          final String name = randomString();
+          final String attrKey = randomString();
+          final String attrValue = randomString();
+          Conversation conversation = await client.createConversation(
+            type: ConversationType.normal,
+            members: Set.from([id1, id2]),
+            name: name,
+            attributes: {attrKey: attrValue},
+          );
+          final Map rawData = conversation.rawData;
+          assert(rawData['conv_type'] == 1);
+          assert(rawData['objectId'] is String);
+          assert(rawData['uniqueId'] is String);
+          List members = rawData['m'];
+          assert(members.length == 2);
+          assert(members.contains(id1));
+          assert(members.contains(id2));
+          final bool unique = rawData['unique'];
+          assert(unique == null || unique == false);
+          assert(rawData['name'] == name);
+          final Map attr = rawData['attr'];
+          assert(attr.length == 1);
+          assert(attr[attrKey] == attrValue);
+          assert(rawData['c'] == id1);
+          assert(rawData['createdAt'] is String);
+          // close
+          await client.close();
+        }),
+    UnitTestCaseCard(
+        title: 'Case: Create Transient Conversation',
+        callback: () async {
+          Client client = Client(id: randomString());
+          // open
+          await client.open();
+          // create transient conversation
+          final String name = randomString();
+          final String attrKey = randomString();
+          final String attrValue = randomString();
+          Conversation conversation = await client.createConversation(
+            type: ConversationType.transient,
+            name: name,
+            attributes: {attrKey: attrValue},
+          );
+          final Map rawData = conversation.rawData;
+          assert(rawData['conv_type'] == 2);
+          assert(rawData['objectId'] is String);
+          assert(rawData['tr'] == true);
+          assert(rawData['name'] == name);
+          final Map attr = rawData['attr'];
+          assert(attr.length == 1);
+          assert(attr[attrKey] == attrValue);
+          assert(rawData['c'] == client.id);
+          assert(rawData['createdAt'] is String);
+          // close
           await client.close();
         }),
   ];
@@ -88,7 +213,7 @@ class UnitTestCaseState extends State<UnitTestCaseCard> {
     try {
       await this.callback();
       success = 1;
-    } on LC.RTMException catch (e) {
+    } on RTMException catch (e) {
       print(e);
       success = -1;
     }

@@ -338,12 +338,18 @@ class Client with _Utilities {
       method: 'createConversation',
       arguments: args,
     );
-    final Conversation conversation = Conversation._from(
-      id: rawData['objectId'],
-      client: this,
-      rawData: rawData,
-    );
-    this.conversationMap[conversation.id] = conversation;
+    final String conversationId = rawData['objectId'];
+    Conversation conversation = this.conversationMap[conversationId];
+    if (conversation == null) {
+      conversation = Conversation._from(
+        id: conversationId,
+        client: this,
+        rawData: rawData,
+      );
+      this.conversationMap[conversationId] = conversation;
+    } else {
+      conversation._rawData = rawData;
+    }
     return conversation;
   }
 
