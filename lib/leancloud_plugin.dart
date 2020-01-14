@@ -707,13 +707,13 @@ class Conversation with _Utilities {
     );
   }
 
-  Future<int> getOnlineMembersCount() async {
+  Future<int> countMembers() async {
     var args = {
       'clientId': this.client.id,
       'conversationId': this.id,
     };
     return await this.call(
-      method: 'getOnlineMembersCount',
+      method: 'countMembers',
       arguments: args,
     );
   }
