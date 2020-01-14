@@ -254,12 +254,13 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       Map<String, Object> sendResult = new HashMap<>();
       result.success(sendResult);
     } else if (call.method.equals(Common.Method_Send_Message)) {
+      String conversationId = Common.getMethodParam(call, Common.Param_Conv_Id);
       Map<String, Object> msgData = Common.getMethodParam(call, Common.Param_Message_Raw);
       Map<String, Object> optionData = Common.getMethodParam(call, Common.Param_Message_Options);
       final AVIMMessage message = Common.parseMessage(msgData);
       AVIMMessageOption option = Common.parseMessageOption(optionData);
       Log.d(TAG, "send message from conv:" + message.getConversationId());
-      avimClient.getConversation(message.getConversationId()).sendMessage(message, option,
+      avimClient.getConversation(conversationId).sendMessage(message, option,
           new AVIMConversationCallback() {
             @Override
             public void done(AVIMException e) {
