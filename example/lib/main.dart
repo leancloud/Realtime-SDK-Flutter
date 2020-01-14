@@ -182,7 +182,7 @@ class _MyAppState extends State<MyApp> {
           await client.close();
         }),
     UnitTestCaseCard(
-      title: 'Create Conversation',
+      title: 'Case: Create Conversation',
       callback: () async {
         String clientId = randomString();
         LC.Client client = LC.Client(id: clientId);
@@ -192,7 +192,7 @@ class _MyAppState extends State<MyApp> {
       },
     ),
     UnitTestCaseCard(
-      title: 'Send Message',
+      title: 'Case: Send Message',
       callback: () async {
         String clientId = randomString();
         LC.Client client = LC.Client(id: clientId);
