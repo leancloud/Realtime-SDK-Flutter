@@ -12,6 +12,7 @@ import cn.leancloud.im.v2.AVIMBinaryMessage;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMConversation;
 import cn.leancloud.im.v2.AVIMMessage;
+import cn.leancloud.im.v2.AVIMMessageOption;
 import cn.leancloud.im.v2.AVIMTypedMessage;
 import cn.leancloud.im.v2.messages.AVIMFileMessage;
 import cn.leancloud.im.v2.messages.AVIMLocationMessage;
@@ -25,6 +26,7 @@ public class Common {
   public static final String Method_Open_Client = "openClient";
   public static final String Method_Create_Conversation = "createConversation";
   public static final String Method_Fetch_Conversation = "getConversation";
+  public static final String Method_Query_Conversation = "queryConversation";
   public static final String Method_Send_Message = "sendMessage";
   public static final String Method_Read_Message = "readMessage";
   public static final String Method_Update_Message = "updateMessage";
@@ -52,6 +54,21 @@ public class Common {
   public static final String Param_Conv_Name = "name";
   public static final String Param_Conv_Attributes = "attr";
   public static final String Param_Conv_TTL = "ttl";
+  public static final String Param_Conv_Id = "conversationId";
+
+  public static final String Param_Conv_Operation = "op";
+  public static final String Param_Conv_Data = "data";
+
+  public static final String Param_Query_Where = "where";
+  public static final String Param_Query_Sort = "sort";
+  public static final String Param_Query_Limit = "limit";
+  public static final String Param_Query_Skip = "skip";
+
+  public static final String Param_Message_Old = "oldMessage";
+  public static final String Param_Message_New = "newMessage";
+  public static final String Param_Message_Raw = "message";
+  public static final String Param_Message_Options = "options";
+  public static final String Param_Message_File = "file";
 
   public static final String Param_code = "code";
 
@@ -59,6 +76,9 @@ public class Common {
   public static final int Conv_Type_Common = 1;
   public static final int Conv_Type_Transient = 2;
   public static final int Conv_Type_Temporary = 4;
+
+  public static final String Conv_Operation_Mute = "mute";
+  public static final String Conv_Operation_Unmute = "unmute";
 
   public static JSONObject wrapException(AVException ex) {
     JSONObject result = new JSONObject();
@@ -206,6 +226,14 @@ public class Common {
     }
 
     return result;
+  }
+
+  public static AVIMMessage parseMessage(Map<String, Object> rawData) {
+    return null;
+  }
+
+  public static AVIMMessageOption parseMessageOption(Map<String, Object> data) {
+    return null;
   }
 
   public static Map<String, Object> wrapConversation(AVIMConversation conversation) {
