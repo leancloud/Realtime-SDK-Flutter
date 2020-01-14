@@ -6,10 +6,17 @@ import java.util.List;
 import java.util.Map;
 
 import cn.leancloud.AVException;
+import cn.leancloud.AVFile;
 import cn.leancloud.im.Signature;
+import cn.leancloud.im.v2.AVIMBinaryMessage;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMConversation;
 import cn.leancloud.im.v2.AVIMMessage;
+import cn.leancloud.im.v2.AVIMTypedMessage;
+import cn.leancloud.im.v2.messages.AVIMFileMessage;
+import cn.leancloud.im.v2.messages.AVIMLocationMessage;
+import cn.leancloud.im.v2.messages.AVIMTextMessage;
+import cn.leancloud.types.AVGeoPoint;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.plugin.common.MethodCall;
 
@@ -41,8 +48,17 @@ public class Common {
   public static final String Param_Client_Tag = "tag";
   public static final String Param_Signature = "sign";
   public static final String Param_Conv_Type = "conv_type";
+  public static final String Param_Conv_Members = "m";
+  public static final String Param_Conv_Name = "name";
+  public static final String Param_Conv_Attributes = "attr";
+  public static final String Param_Conv_TTL = "ttl";
 
   public static final String Param_code = "code";
+
+  public static final int Conv_Type_Unique = 0;
+  public static final int Conv_Type_Common = 1;
+  public static final int Conv_Type_Transient = 2;
+  public static final int Conv_Type_Temporary = 4;
 
   public static JSONObject wrapException(AVException ex) {
     JSONObject result = new JSONObject();
@@ -90,6 +106,55 @@ public class Common {
     return result;
   }
 
+  public static Map<String, Object> wrapTypedMessage(AVIMTypedMessage message) {
+    HashMap<String, Object> result = new HashMap<>();
+    result.put("_lctype", message.getMessageType());
+
+    String text = null;
+    Map<String, Object> attributes = null;
+    Map<String, Object> fileInstance = null;
+    Map<String, Object> locationInstance = null;
+    if (message instanceof AVIMTextMessage) {
+      text = ((AVIMTextMessage)message).getText();
+      attributes = ((AVIMTextMessage)message).getAttrs();
+    } else if (message instanceof AVIMFileMessage) {
+      text = ((AVIMFileMessage) message).getText();
+      attributes = ((AVIMFileMessage) message).getAttrs();
+      AVFile avFile = ((AVIMFileMessage) message).getAVFile();
+
+      fileInstance = new HashMap<String, Object>();
+      if (null != avFile) {
+        fileInstance.put("objId", avFile.getObjectId());
+        fileInstance.put("url", avFile.getUrl());
+      }
+      fileInstance.put("metaData", ((AVIMFileMessage) message).getFileMetaData());
+    } else if (message instanceof AVIMLocationMessage) {
+      text = ((AVIMLocationMessage) message).getText();
+      attributes = ((AVIMLocationMessage) message).getAttrs();
+      AVGeoPoint geoPoint = ((AVIMLocationMessage) message).getLocation();
+      if (null != geoPoint) {
+        locationInstance = new HashMap<>();
+        locationInstance.put("latitude", geoPoint.getLatitude());
+        locationInstance.put("longitude", geoPoint.getLongitude());
+      }
+    } else {
+      text = message.getContent();
+    }
+    if (!StringUtil.isEmpty(text)) {
+      result.put("_lctext", text);
+    }
+    if (null != attributes) {
+      result.put("_lcattrs", attributes);
+    }
+    if (null != fileInstance) {
+      result.put("_lcfile", fileInstance);
+    }
+    if (null != locationInstance) {
+      result.put("_lcloc", locationInstance);
+    }
+    return result;
+  }
+
   public static Map<String, Object> wrapMessage(AVIMMessage message) {
     Map<String, Object> result = new HashMap<>();
     if (!StringUtil.isEmpty(message.getMessageId())) {
@@ -127,9 +192,17 @@ public class Common {
     if (null != mentionList && mentionList.size() > 0) {
       result.put("mentionPids", mentionList);
     }
-    String content = message.getContent();
-    if (null != content) {
-      result.put("msg", content);
+    if (message instanceof AVIMTypedMessage) {
+      AVIMTypedMessage typedMessage = (AVIMTypedMessage) message;
+      result.put("typeMsgData", wrapTypedMessage(typedMessage));
+    } else if (message instanceof AVIMBinaryMessage) {
+      AVIMBinaryMessage binaryMessage = (AVIMBinaryMessage) message;
+      result.put("binaryMsg", binaryMessage.getBytes());
+    } else {
+      String content = message.getContent();
+      if (null != content) {
+        result.put("msg", content);
+      }
     }
 
     return result;

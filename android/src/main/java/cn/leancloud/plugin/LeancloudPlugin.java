@@ -2,14 +2,18 @@ package cn.leancloud.plugin;
 
 import android.util.Log;
 
+import java.util.List;
 import java.util.Map;
 
 import androidx.annotation.NonNull;
 import cn.leancloud.im.Signature;
 import cn.leancloud.im.v2.AVIMClient;
+import cn.leancloud.im.v2.AVIMClientOpenOption;
+import cn.leancloud.im.v2.AVIMConversation;
 import cn.leancloud.im.v2.AVIMException;
 import cn.leancloud.im.v2.AVIMMessageManager;
 import cn.leancloud.im.v2.callback.AVIMClientCallback;
+import cn.leancloud.im.v2.callback.AVIMConversationCreatedCallback;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -48,8 +52,6 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     _initialize(registrar.messenger(), "leancloud_plugin");
 //    final MethodChannel channel = new MethodChannel(registrar.messenger(), "leancloud_plugin");
 //    channel.setMethodCallHandler(_INSTANCE);
-
-
   }
 
   private static void _initialize(BinaryMessenger messenger, String name) {
@@ -62,50 +64,89 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       AVIMClient.setClientEventHandler(new DefaultClientEventHandler(_INSTANCE));
     }
   }
+
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull final Result result) {
     Log.d(TAG, "onMethodCall " + call.method);
-    String clientId = Common.getMethodParam(call, Common.Param_Client_Id);
 
     if (call.method.equals("getPlatformVersion")) {
       result.success("Android " + android.os.Build.VERSION.RELEASE);
-    } else if (call.method.equals(Common.Method_Close_Client)){
-      if (StringUtil.isEmpty(clientId)) {
-        result.error(Exception.ErrorCode_Invalid_Login, Exception.ErrorMsg_Invalid_Login, clientId);
-      } else {
-        AVIMClient.getInstance(clientId).close(new AVIMClientCallback() {
-          @Override
-          public void done(AVIMClient client, AVIMException e) {
-            if (null != e) {
-              result.error(String.valueOf(e.getCode()), e.getMessage(), e.getCause());
-            } else {
-              result.success(Common.wrapClient(client));
-            }
-          }
-        });
-      }
-    } else if (call.method.equals(Common.Method_Open_Client)) {
+      return;
+    }
+
+    String clientId = Common.getMethodParam(call, Common.Param_Client_Id);
+    if (StringUtil.isEmpty(clientId)) {
+      result.error(Exception.ErrorCode_Invalid_Login, Exception.ErrorMsg_Invalid_Login, clientId);
+      return;
+    }
+
+    if (call.method.equals(Common.Method_Open_Client)) {
       String tag = Common.getMethodParam(call, Common.Param_Client_Tag);
       boolean forceFlag = Common.getParamBoolean(call, Common.Param_Force_Open);
-      Signature signature = Common.getMethodSignature(call, Common.Param_Signature);
-      if (StringUtil.isEmpty(clientId)) {
-        result.error(Exception.ErrorCode_Invalid_Login, Exception.ErrorMsg_Invalid_Login, clientId);
-      } else {
-        AVIMClient client = StringUtil.isEmpty(tag)? AVIMClient.getInstance(clientId) : AVIMClient.getInstance(clientId, tag);
-        client.open(new AVIMClientCallback() {
-          @Override
-          public void done(AVIMClient client, AVIMException e) {
-            Log.d(TAG, "client open result: " + client);
-            if (null != e) {
-              result.error(String.valueOf(e.getCode()), e.getMessage(), e.getCause());
-            } else {
-              result.success(Common.wrapClient(client));
-            }
-          }
-        });
+//      Signature signature = Common.getMethodSignature(call, Common.Param_Signature);
+      AVIMClientOpenOption openOption = new AVIMClientOpenOption();
+      if (forceFlag) {
+        openOption.setReconnect(false);
       }
+      AVIMClient client = StringUtil.isEmpty(tag)?
+          AVIMClient.getInstance(clientId) : AVIMClient.getInstance(clientId, tag);
+      client.open(openOption, new AVIMClientCallback() {
+        @Override
+        public void done(AVIMClient client, AVIMException e) {
+          Log.d(TAG, "client open result: " + client);
+          if (null != e) {
+            result.error(String.valueOf(e.getCode()), e.getMessage(), e.getCause());
+          } else {
+            result.success(Common.wrapClient(client));
+          }
+        }
+      });
+      return;
+    }
+
+    AVIMClient avimClient = AVIMClient.getInstance(clientId);
+    if (call.method.equals(Common.Method_Close_Client)){
+      avimClient.close(new AVIMClientCallback() {
+        @Override
+        public void done(AVIMClient client, AVIMException e) {
+          if (null != e) {
+            result.error(String.valueOf(e.getCode()), e.getMessage(), e.getCause());
+          } else {
+            result.success(Common.wrapClient(client));
+          }
+        }
+      });
     } else if (call.method.equals(Common.Method_Create_Conversation)) {
-      result.notImplemented();
+      int convType = Common.getParamInt(call, Common.Param_Conv_Type);
+      List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
+      String name = Common.getMethodParam(call, Common.Param_Conv_Name);
+      Map<String, Object> attr = Common.getMethodParam(call, Common.Param_Conv_Attributes);
+      int ttl = Common.getParamInt(call, Common.Param_Conv_TTL);
+      AVIMConversationCreatedCallback callback = new AVIMConversationCreatedCallback() {
+        @Override
+        public void done(AVIMConversation conversation, AVIMException e) {
+          if (null != e) {
+            result.error(String.valueOf(e.getAppCode()), e.getMessage(), e.getCause());
+          } else {
+            result.success(Common.wrapConversation(conversation));
+          }
+        }
+      };
+      switch (convType) {
+        case Common.Conv_Type_Unique:
+          avimClient.createConversation(members, name, attr, false, true, callback);
+          break;
+        case Common.Conv_Type_Temporary:
+          avimClient.createTemporaryConversation(members, ttl, callback);
+          break;
+        case Common.Conv_Type_Transient:
+          avimClient.createConversation(members, name, attr, true, callback);
+          break;
+        case Common.Conv_Type_Common:
+        default:
+          avimClient.createConversation(members, name, attr, callback);
+          break;
+      }
     } else if (call.method.equals(Common.Method_Fetch_Conversation)) {
       result.notImplemented();
     } else if (call.method.equals(Common.Method_Mute_Conversation)) {
