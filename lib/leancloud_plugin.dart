@@ -436,7 +436,9 @@ class Client with _Utilities {
     @required method,
     @required args,
   }) async {
-    Conversation conversation = await this._getConversation(id: args['cid']);
+    Conversation conversation = await this._getConversation(
+      id: args['conversationId'],
+    );
     switch (method) {
       case 'onConversationMembersUpdate':
         conversation._membersUpdate(args: args);
@@ -525,6 +527,8 @@ class Conversation with _Utilities {
     }
     message._currentClientId = this.client.id;
     var args = {
+      'clientId': this.client.id,
+      'conversationId': this.id,
       'message': message._toMap(),
     };
     if (options.isNotEmpty) {
@@ -562,6 +566,8 @@ class Conversation with _Utilities {
   }) async {
     assert(oldMessage != null && newMessage != null);
     var args = {
+      'clientId': this.client.id,
+      'conversationId': this.id,
       'oldMessage': oldMessage._toMap(),
       'newMessage': newMessage._toMap(),
     };
@@ -622,7 +628,10 @@ class Conversation with _Utilities {
     if (endClose != null) {
       end['close'] = endClose;
     }
-    var args = Map();
+    Map args = {
+      'clientId': this.client.id,
+      'conversationId': this.id,
+    };
     if (start.isNotEmpty) {
       args['start'] = start;
     }
@@ -908,11 +917,11 @@ class Message {
     if (this._currentClientId != null) {
       map['clientId'] = this._currentClientId;
     }
+    if (this._conversationId != null) {
+      map['conversationId'] = this._conversationId;
+    }
     if (this._id != null) {
       map['id'] = this._id;
-    }
-    if (this._conversationId != null) {
-      map['cid'] = this._conversationId;
     }
     if (this._fromClientId != null) {
       map['from'] = this._fromClientId;
@@ -952,7 +961,7 @@ class Message {
 
   void _loadMap(Map data) {
     this._currentClientId = data['clientId'];
-    this._conversationId = data['cid'];
+    this._conversationId = data['conversationId'];
     this._id = data['id'];
     this._fromClientId = data['from'];
     this._timestamp = data['timestamp'];
