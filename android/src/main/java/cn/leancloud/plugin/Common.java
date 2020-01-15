@@ -87,6 +87,8 @@ public class Common {
 
   public static final String Conv_Operation_Mute = "mute";
   public static final String Conv_Operation_Unmute = "unmute";
+  public static final String Conv_Operation_Add = "add";
+  public static final String Conv_Operation_Remove = "remove";
 
   public static <T> T getMethodParam(MethodCall call, String key) {
     if (call.hasArgument(key)) {

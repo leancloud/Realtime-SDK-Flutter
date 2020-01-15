@@ -213,7 +213,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Update_Conversation)) {
       Map<String, Object> updateData = Common.getMethodParam(call, Common.Param_Conv_Data);
       if (null == updateData || updateData.isEmpty()) {
-        result.success(Common.wrapException(AVException.INVALID_PARAMETER, "update data is empty."));
+        result.success(Common.wrapException(AVException.INVALID_PARAMETER, "update attributes is empty."));
       } else {
         for (Map.Entry<String, Object> entry: updateData.entrySet()) {
           String key = entry.getKey();
@@ -232,7 +232,27 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         });
       }
     } else if (call.method.equals(Common.Method_Update_Members)) {
-      result.notImplemented();
+      String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
+      List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
+      AVIMConversationCallback callback = new AVIMConversationCallback() {
+        @Override
+        public void done(AVIMException e) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            result.success(Common.wrapSuccessResponse(Common.wrapConversation(conversation)));
+          }
+        }
+      };
+      if (null == members || members.isEmpty()) {
+        result.success(Common.wrapException(AVException.INVALID_PARAMETER, "member list is empty."));
+      } else if (Common.Conv_Operation_Add.equalsIgnoreCase(operation)) {
+        conversation.addMembers(members, callback);
+      } else if (Common.Conv_Operation_Remove.equalsIgnoreCase(operation)) {
+        conversation.kickMembers(members, callback);
+      } else {
+        result.notImplemented();
+      }
     } else if (call.method.equals(Common.Method_Get_Message_Receipt)) {
       conversation.fetchReceiptTimestamps(new AVIMConversationCallback() {
         @Override
