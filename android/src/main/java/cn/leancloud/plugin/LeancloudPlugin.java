@@ -2,6 +2,9 @@ package cn.leancloud.plugin;
 
 import android.util.Log;
 
+import com.alibaba.fastjson.JSONObject;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,15 +14,21 @@ import cn.leancloud.AVException;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMClientOpenOption;
 import cn.leancloud.im.v2.AVIMConversation;
+import cn.leancloud.im.v2.AVIMConversationsQuery;
 import cn.leancloud.im.v2.AVIMException;
 import cn.leancloud.im.v2.AVIMMessage;
+import cn.leancloud.im.v2.AVIMMessageInterval;
+import cn.leancloud.im.v2.AVIMMessageInterval.AVIMMessageIntervalBound;
 import cn.leancloud.im.v2.AVIMMessageManager;
 import cn.leancloud.im.v2.AVIMMessageOption;
+import cn.leancloud.im.v2.AVIMMessageQueryDirection;
 import cn.leancloud.im.v2.callback.AVIMClientCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationCreatedCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationMemberCountCallback;
+import cn.leancloud.im.v2.callback.AVIMConversationQueryCallback;
 import cn.leancloud.im.v2.callback.AVIMMessageUpdatedCallback;
+import cn.leancloud.im.v2.callback.AVIMMessagesQueryCallback;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -39,8 +48,6 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
     Log.d(TAG, "LeancloudPlugin.onAttachedToEngine called.");
-//    final MethodChannel channel = new MethodChannel(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "leancloud_plugin");
-//    channel.setMethodCallHandler(this);
     _initialize(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "leancloud_plugin");
   }
 
@@ -56,8 +63,6 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
   public static void registerWith(Registrar registrar) {
     Log.d(TAG, "LeancloudPlugin#registerWith called.");
     _initialize(registrar.messenger(), "leancloud_plugin");
-//    final MethodChannel channel = new MethodChannel(registrar.messenger(), "leancloud_plugin");
-//    channel.setMethodCallHandler(_INSTANCE);
   }
 
   private static void _initialize(BinaryMessenger messenger, String name) {
@@ -71,6 +76,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     }
   }
 
+  // TODO: support signature on other way.
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull final Result result) {
     Log.d(TAG, "onMethodCall " + call.method);
@@ -82,18 +88,17 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
     String clientId = Common.getMethodParam(call, Common.Param_Client_Id);
     if (StringUtil.isEmpty(clientId)) {
-      result.error(Exception.ErrorCode_Invalid_Login, Exception.ErrorMsg_Invalid_Login, clientId);
+      result.success(Common.wrapException(Exception.ErrorCode_Invalid_Parameter,
+          Exception.ErrorMsg_Invalid_ClientId));
       return;
     }
 
     if (call.method.equals(Common.Method_Open_Client)) {
       String tag = Common.getMethodParam(call, Common.Param_Client_Tag);
-      boolean forceFlag = Common.getParamBoolean(call, Common.Param_Force_Open);
-      // TODO: support signature on other way.
-//      Signature signature = Common.getMethodSignature(call, Common.Param_Signature);
+      boolean reconnectFlag = Common.getParamBoolean(call, Common.Param_ReOpen);
       AVIMClientOpenOption openOption = new AVIMClientOpenOption();
-      if (forceFlag) {
-        openOption.setReconnect(false);
+      if (reconnectFlag) {
+        openOption.setReconnect(true);
       }
       AVIMClient client = StringUtil.isEmpty(tag) ?
           AVIMClient.getInstance(clientId) : AVIMClient.getInstance(clientId, tag);
@@ -102,9 +107,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         public void done(AVIMClient client, AVIMException e) {
           Log.d(TAG, "client open result: " + client);
           if (null != e) {
-            result.error(String.valueOf(e.getCode()), e.getMessage(), e.getCause());
+            result.success(Common.wrapException(e));
           } else {
-            result.success(Common.wrapClient(client));
+            result.success(Common.wrapSuccessResponse(Common.wrapClient(client)));
           }
         }
       });
@@ -112,18 +117,22 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     }
 
     AVIMClient avimClient = AVIMClient.getInstance(clientId);
+
     if (call.method.equals(Common.Method_Close_Client)) {
       avimClient.close(new AVIMClientCallback() {
         @Override
         public void done(AVIMClient client, AVIMException e) {
           if (null != e) {
-            result.error(String.valueOf(e.getCode()), e.getMessage(), e.getCause());
+            result.success(Common.wrapException(e));
           } else {
-            result.success(Common.wrapClient(client));
+            result.success(Common.wrapSuccessResponse(Common.wrapClient(client)));
           }
         }
       });
-    } else if (call.method.equals(Common.Method_Create_Conversation)) {
+      return;
+    }
+
+    if (call.method.equals(Common.Method_Create_Conversation)) {
       int convType = Common.getParamInt(call, Common.Param_Conv_Type);
       List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
       String name = Common.getMethodParam(call, Common.Param_Conv_Name);
@@ -133,12 +142,11 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         @Override
         public void done(AVIMConversation conversation, AVIMException e) {
           if (null != e) {
-            result.error(String.valueOf(e.getAppCode()), e.getMessage(), e.getCause());
+            result.success(Common.wrapException(e));
           } else {
-            Log.d(TAG, "succeed create conv:" + conversation);
-            Map<String, Object> operationResult = new HashMap<>();
-            operationResult.put("success", Common.wrapConversation(conversation));
-            result.success(operationResult);
+            Map<String, Object> convData = Common.wrapConversation(conversation);
+            Log.d(TAG, "succeed create conv:" + new JSONObject(convData).toJSONString());
+            result.success(Common.wrapSuccessResponse(convData));
           }
         }
       };
@@ -157,30 +165,64 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           avimClient.createConversation(members, name, attr, callback);
           break;
       }
-    } else if (call.method.equals(Common.Method_Fetch_Conversation)) {
-      String conversationId = Common.getMethodParam(call, Common.Param_Conv_Id);
-      AVIMConversation conversation = avimClient.getConversation(conversationId);
-      result.success(Common.wrapConversation(conversation));
-    } else if (call.method.equals(Common.Method_Query_Conversation)) {
+      return;
+    }
+
+    if (call.method.equals(Common.Method_Query_Conversation)) {
       String where = Common.getMethodParam(call, Common.Param_Query_Where);
       String sort = Common.getMethodParam(call, Common.Param_Query_Sort);
       int limit = Common.getParamInt(call, Common.Param_Query_Limit);
       int skip = Common.getParamInt(call, Common.Param_Query_Skip);
-      result.notImplemented();
-    } else if (call.method.equals(Common.Method_Mute_Conversation)) {
-      String conversationId = Common.getMethodParam(call, Common.Param_Conv_Id);
+      int flag = Common.getParamInt(call, Common.Param_Query_Flag);
+      List<String> tempConvIds = Common.getMethodParam(call, Common.Param_Query_Temp_List);
+      AVIMConversationQueryCallback callback = new AVIMConversationQueryCallback() {
+        @Override
+        public void done(List<AVIMConversation> conversations, AVIMException e) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            List<Map<String, Object>> queryResult = new ArrayList<>();
+            for (AVIMConversation conv: conversations) {
+              queryResult.add(Common.wrapConversation(conv));
+            }
+            result.success(Common.wrapSuccessResponse(queryResult));
+          }
+        }
+      };
+      AVIMConversationsQuery query = avimClient.getConversationsQuery();
+      if (null == tempConvIds || tempConvIds.isEmpty()) {
+        query.directFindInBackground(where, sort, skip, limit, flag, callback);
+      } else {
+        query.findTempConversationsInBackground(tempConvIds, callback);
+      }
+      return;
+    }
+
+    String conversationId = Common.getMethodParam(call, Common.Param_Conv_Id);
+    final AVIMConversation conversation = avimClient.getConversation(conversationId);
+    if (call.method.equals(Common.Method_Fetch_Conversation)) {
+      result.success(Common.wrapSuccessResponse(Common.wrapConversation(conversation)));
+      return;
+    }
+
+    if (null == conversation) {
+      result.success(Common.wrapException(Exception.ErrorCode_Invalid_Parameter,
+          Exception.ErrorMsg_Invalid_ConversationId));
+      return;
+    }
+
+    if (call.method.equals(Common.Method_Mute_Conversation)) {
       String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
-      final AVIMConversation conversation = avimClient.getConversation(conversationId);
       AVIMConversationCallback callback = new AVIMConversationCallback() {
         @Override
         public void done(AVIMException e) {
           if (null != e) {
-            result.error(String.valueOf(e.getAppCode()), e.getMessage(), e.getCause());
+            result.success(Common.wrapException(e));
           } else {
             // TODO: modify return data.
             Map<String, Object> operationResult = new HashMap<>();
             operationResult.put("update", conversation.getUpdatedAt());
-            result.success(operationResult);
+            result.success(Common.wrapSuccessResponse(operationResult));
           }
         }
       };
@@ -192,103 +234,151 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         result.notImplemented();
       }
     } else if (call.method.equals(Common.Method_Update_Conversation)) {
-      String conversationId = Common.getMethodParam(call, Common.Param_Conv_Id);
       Map<String, Object> updateData = Common.getMethodParam(call, Common.Param_Conv_Data);
       if (null == updateData || updateData.isEmpty()) {
-        result.error(String.valueOf(AVException.INVALID_PARAMETER),
-            "update data is empty.",
-            "update data is empty.");
+        result.success(Common.wrapException(AVException.INVALID_PARAMETER, "update attributes is empty."));
       } else {
-        final AVIMConversation conversation = avimClient.getConversation(conversationId);
-        // TODO: update conversation attribute.
+        for (Map.Entry<String, Object> entry: updateData.entrySet()) {
+          String key = entry.getKey();
+          Object val = entry.getValue();
+          conversation.setAttribute(key, val);
+        }
         conversation.updateInfoInBackground(new AVIMConversationCallback() {
           @Override
           public void done(AVIMException e) {
             if (null != e) {
-              result.error(String.valueOf(e.getAppCode()), e.getMessage(), e.getCause());
+              result.success(Common.wrapException(e));
             } else {
-              result.success(Common.wrapConversation(conversation));
+              result.success(Common.wrapSuccessResponse(Common.wrapConversation(conversation)));
             }
           }
         });
       }
     } else if (call.method.equals(Common.Method_Update_Members)) {
-      result.notImplemented();
+      String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
+      List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
+      AVIMConversationCallback callback = new AVIMConversationCallback() {
+        @Override
+        public void done(AVIMException e) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            result.success(Common.wrapSuccessResponse(Common.wrapConversation(conversation)));
+          }
+        }
+      };
+      if (null == members || members.isEmpty()) {
+        result.success(Common.wrapException(AVException.INVALID_PARAMETER, "member list is empty."));
+      } else if (Common.Conv_Operation_Add.equalsIgnoreCase(operation)) {
+        conversation.addMembers(members, callback);
+      } else if (Common.Conv_Operation_Remove.equalsIgnoreCase(operation)) {
+        conversation.kickMembers(members, callback);
+      } else {
+        result.notImplemented();
+      }
     } else if (call.method.equals(Common.Method_Get_Message_Receipt)) {
-      String conversationId = Common.getMethodParam(call, Common.Param_Conv_Id);
-      final AVIMConversation conversation = avimClient.getConversation(conversationId);
       conversation.fetchReceiptTimestamps(new AVIMConversationCallback() {
         @Override
         public void done(AVIMException e) {
           if (null != e) {
-            result.error(String.valueOf(e.getAppCode()), e.getMessage(), e.getCause());
+            result.success(Common.wrapException(e));
           } else {
             Map<String, Object> tsMap = new HashMap<>();
             tsMap.put("maxReadTimestamp", conversation.getLastReadAt());
             tsMap.put("maxDeliveredTimestamp", conversation.getLastDeliveredAt());
-            Map<String, Object> operationResult = new HashMap<>();
-            operationResult.put("success", tsMap);
-            result.success(operationResult);
+            result.success(Common.wrapSuccessResponse(tsMap));
           }
         }
       });
     } else if (call.method.equals(Common.Method_Query_Member_Count)) {
-      String conversationId = Common.getMethodParam(call, Common.Param_Conv_Id);
-      avimClient.getConversation(conversationId).getMemberCount(new AVIMConversationMemberCountCallback() {
+      conversation.getMemberCount(new AVIMConversationMemberCountCallback() {
         @Override
         public void done(Integer memberCount, AVIMException e) {
           if (null != e) {
-            result.error(String.valueOf(e.getAppCode()), e.getMessage(), e.getCause());
+            result.success(Common.wrapException(e));
           } else {
-            Map<String, Object> operationResult = new HashMap<>();
-            operationResult.put("success", memberCount);
-            result.success(operationResult);
+            result.success(Common.wrapSuccessResponse(memberCount));
           }
         }
       });
     } else if (call.method.equals(Common.Method_Query_Message)) {
-      result.notImplemented();
+      Map<String, Object> startData = Common.getMethodParam(call, Common.Param_Query_Start);
+      Map<String, Object> endData = Common.getMethodParam(call, Common.Param_Query_End);
+      int direction = Common.getParamInt(call, Common.Param_Query_Direction);
+      int limit = Common.getParamInt(call, Common.Param_Query_Limit);
+      int type = Common.getParamInt(call, Common.Param_Query_MsgType);
+      AVIMMessageIntervalBound start = Common.parseMessageIntervalBound(startData);
+      AVIMMessageIntervalBound end = Common.parseMessageIntervalBound(endData);
+      AVIMMessageInterval interval = new AVIMMessageInterval(start, end);
+      AVIMMessagesQueryCallback callback = new AVIMMessagesQueryCallback() {
+        @Override
+        public void done(List<AVIMMessage> messages, AVIMException e) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            List<Map<String, Object>> opResult = new ArrayList<>();
+            for (AVIMMessage msg: messages) {
+              opResult.add(Common.wrapMessage(msg));
+            }
+            result.success(Common.wrapSuccessResponse(opResult));
+          }
+        }
+      };
+      if (0 == limit) {
+        limit = 50;
+      }
+
+      if (0 != type) {
+        // ignore direction and end.
+        String messageId = null;
+        long startTimestamp = 0;
+        if (null != start) {
+          messageId = start.messageId;
+          startTimestamp = start.timestamp;
+        }
+        conversation.queryMessagesByType(type, messageId, startTimestamp, limit, callback);
+      } else {
+        AVIMMessageQueryDirection direct = AVIMMessageQueryDirection.AVIMMessageQueryDirectionFromNewToOld;
+        if (2 == direction) {
+          direct = AVIMMessageQueryDirection.AVIMMessageQueryDirectionFromOldToNew;
+        }
+        conversation.queryMessages(interval, direct, limit, callback);
+      }
     } else if (call.method.equals(Common.Method_Read_Message)) {
-      String conversationId = Common.getMethodParam(call, Common.Param_Conv_Id);
-      avimClient.getConversation(conversationId).read();
-      Map<String, Object> sendResult = new HashMap<>();
-      result.success(sendResult);
+      conversation.read();
+      result.success(Common.wrapSuccessResponse(new HashMap<String, Object>()));
     } else if (call.method.equals(Common.Method_Send_Message)) {
       Map<String, Object> msgData = Common.getMethodParam(call, Common.Param_Message_Raw);
       Map<String, Object> optionData = Common.getMethodParam(call, Common.Param_Message_Options);
       final AVIMMessage message = Common.parseMessage(msgData);
       AVIMMessageOption option = Common.parseMessageOption(optionData);
       Log.d(TAG, "send message from conv:" + message.getConversationId());
-      avimClient.getConversation(message.getConversationId()).sendMessage(message, option,
+      conversation.sendMessage(message, option,
           new AVIMConversationCallback() {
             @Override
             public void done(AVIMException e) {
               if (null != e) {
                 Log.d(TAG, "send failed. cause: " + e.getMessage());
-                result.error(String.valueOf(e.getAppCode()), e.getMessage(), e.getCause());
+                result.success(Common.wrapException(e));
               } else {
                 Log.d(TAG, "send finished. message: " + message);
-                Map<String, Object> sendResult = new HashMap<>();
-                sendResult.put("success", Common.wrapMessage(message));
-                result.success(sendResult);
+                result.success(Common.wrapSuccessResponse(Common.wrapMessage(message)));
               }
             }
           });
     } else if (call.method.equals(Common.Method_Update_Message)) {
+      // TODO: support additional file data.
       Map<String, Object> oldMsgData = Common.getMethodParam(call, Common.Param_Message_Old);
       Map<String, Object> newMsgData = Common.getMethodParam(call, Common.Param_Message_New);
       AVIMMessage oldMessage = Common.parseMessage(oldMsgData);
       AVIMMessage newMessage = Common.parseMessage(newMsgData);
-      avimClient.getConversation(oldMessage.getConversationId())
-          .updateMessage(oldMessage, newMessage, new AVIMMessageUpdatedCallback() {
+      conversation.updateMessage(oldMessage, newMessage, new AVIMMessageUpdatedCallback() {
             @Override
             public void done(AVIMMessage message, AVException e) {
               if (null != e) {
-                result.error(String.valueOf(e.getCode()), e.getMessage(), e.getCause());
+                result.success(Common.wrapException(e));
               } else {
-                Map<String, Object> operationResult = new HashMap<>();
-                operationResult.put("success", Common.wrapMessage(message));
-                result.success(operationResult);
+                result.success(Common.wrapSuccessResponse(Common.wrapMessage(message)));
               }
             }
           });
