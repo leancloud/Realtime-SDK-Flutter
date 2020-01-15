@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.alibaba.fastjson.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,13 +16,17 @@ import cn.leancloud.im.v2.AVIMClientOpenOption;
 import cn.leancloud.im.v2.AVIMConversation;
 import cn.leancloud.im.v2.AVIMException;
 import cn.leancloud.im.v2.AVIMMessage;
+import cn.leancloud.im.v2.AVIMMessageInterval;
+import cn.leancloud.im.v2.AVIMMessageInterval.AVIMMessageIntervalBound;
 import cn.leancloud.im.v2.AVIMMessageManager;
 import cn.leancloud.im.v2.AVIMMessageOption;
+import cn.leancloud.im.v2.AVIMMessageQueryDirection;
 import cn.leancloud.im.v2.callback.AVIMClientCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationCreatedCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationMemberCountCallback;
 import cn.leancloud.im.v2.callback.AVIMMessageUpdatedCallback;
+import cn.leancloud.im.v2.callback.AVIMMessagesQueryCallback;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -254,11 +259,51 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         }
       });
     } else if (call.method.equals(Common.Method_Query_Message)) {
-      result.notImplemented();
+      Map<String, Object> startData = Common.getMethodParam(call, Common.Param_Query_Start);
+      Map<String, Object> endData = Common.getMethodParam(call, Common.Param_Query_End);
+      int direction = Common.getParamInt(call, Common.Param_Query_Direction);
+      int limit = Common.getParamInt(call, Common.Param_Query_Limit);
+      int type = Common.getParamInt(call, Common.Param_Query_MsgType);
+      AVIMMessageIntervalBound start = Common.parseMessageIntervalBound(startData);
+      AVIMMessageIntervalBound end = Common.parseMessageIntervalBound(endData);
+      AVIMMessageInterval interval = new AVIMMessageInterval(start, end);
+      AVIMMessagesQueryCallback callback = new AVIMMessagesQueryCallback() {
+        @Override
+        public void done(List<AVIMMessage> messages, AVIMException e) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            List<Map<String, Object>> opResult = new ArrayList<>();
+            for (AVIMMessage msg: messages) {
+              opResult.add(Common.wrapMessage(msg));
+            }
+            result.success(Common.wrapSuccessResponse(opResult));
+          }
+        }
+      };
+      if (0 == limit) {
+        limit = 50;
+      }
+
+      if (0 != type) {
+        // ignore direction and end.
+        String messageId = null;
+        long startTimestamp = 0;
+        if (null != start) {
+          messageId = start.messageId;
+          startTimestamp = start.timestamp;
+        }
+        conversation.queryMessagesByType(type, messageId, startTimestamp, limit, callback);
+      } else {
+        AVIMMessageQueryDirection direct = AVIMMessageQueryDirection.AVIMMessageQueryDirectionFromNewToOld;
+        if (2 == direction) {
+          direct = AVIMMessageQueryDirection.AVIMMessageQueryDirectionFromOldToNew;
+        }
+        conversation.queryMessages(interval, direct, limit, callback);
+      }
     } else if (call.method.equals(Common.Method_Read_Message)) {
       conversation.read();
-      Map<String, Object> opResult = new HashMap<>();
-      result.success(Common.wrapSuccessResponse(opResult));
+      result.success(Common.wrapSuccessResponse(new HashMap<String, Object>()));
     } else if (call.method.equals(Common.Method_Send_Message)) {
       Map<String, Object> msgData = Common.getMethodParam(call, Common.Param_Message_Raw);
       Map<String, Object> optionData = Common.getMethodParam(call, Common.Param_Message_Options);
@@ -279,6 +324,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
             }
           });
     } else if (call.method.equals(Common.Method_Update_Message)) {
+      // TODO: support additional file data.
       Map<String, Object> oldMsgData = Common.getMethodParam(call, Common.Param_Message_Old);
       Map<String, Object> newMsgData = Common.getMethodParam(call, Common.Param_Message_New);
       AVIMMessage oldMessage = Common.parseMessage(oldMsgData);

@@ -13,11 +13,13 @@ import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMConversation;
 import cn.leancloud.im.v2.AVIMException;
 import cn.leancloud.im.v2.AVIMMessage;
+import cn.leancloud.im.v2.AVIMMessageInterval;
 import cn.leancloud.im.v2.AVIMMessageOption;
 import cn.leancloud.im.v2.AVIMTypedMessage;
 import cn.leancloud.im.v2.messages.AVIMFileMessage;
 import cn.leancloud.im.v2.messages.AVIMLocationMessage;
 import cn.leancloud.im.v2.messages.AVIMTextMessage;
+import cn.leancloud.im.v2.AVIMMessageInterval.AVIMMessageIntervalBound;
 import cn.leancloud.types.AVGeoPoint;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.plugin.common.MethodCall;
@@ -64,6 +66,11 @@ public class Common {
   public static final String Param_Query_Sort = "sort";
   public static final String Param_Query_Limit = "limit";
   public static final String Param_Query_Skip = "skip";
+
+  public static final String Param_Query_Start = "start";
+  public static final String Param_Query_End = "end";
+  public static final String Param_Query_Direction = "direction";
+  public static final String Param_Query_MsgType = "type";
 
   public static final String Param_Message_Old = "oldMessage";
   public static final String Param_Message_New = "newMessage";
@@ -142,6 +149,14 @@ public class Common {
     Map<String, Object> response = new HashMap<>();
     if (null != result) {
       response.put("success", result);
+    }
+    return response;
+  }
+
+  public static Map<String, Object> wrapSuccessResponse(List<Map<String, Object>> resultList) {
+    Map<String, Object> response = new HashMap<>();
+    if (null != resultList) {
+      response.put("success", resultList);
     }
     return response;
   }
@@ -334,6 +349,16 @@ public class Common {
       option.setPushDataEx((Map<String, Object>)data.get("pushData"));
     }
     return option;
+  }
+
+  public static AVIMMessageIntervalBound parseMessageIntervalBound(Map<String, Object> data) {
+    if (null == data) {
+      return null;
+    }
+    String messageId = (String) data.get("id");
+    long timestamp = (long) data.get("timestamp");
+    boolean closed = (boolean) data.get("close");
+    return AVIMMessageInterval.createBound(messageId, timestamp, closed);
   }
 
   public static Map<String, Object> wrapConversation(AVIMConversation conversation) {
