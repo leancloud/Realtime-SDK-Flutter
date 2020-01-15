@@ -655,9 +655,9 @@ class Conversation with _Utilities {
     );
     List<Message> messages = List();
     rawDatas.forEach((item) {
-      var message = Message();
-      message._loadMap(item);
-      messages.add(message);
+      messages.add(
+        Message._instanceFrom(item),
+      );
     });
     return messages;
   }
@@ -811,9 +811,9 @@ class Conversation with _Utilities {
   void _lastMessageUpdate({
     @required Map args,
   }) {
-    var message = Message();
-    message._loadMap(args['message']);
-    this._lastMessage = message;
+    this._lastMessage = Message._instanceFrom(
+      args['message'],
+    );
     if (this.client.onConversationLastMessageUpdate != null) {
       this.client.onConversationLastMessageUpdate(
             client: this.client,
@@ -842,12 +842,12 @@ class Conversation with _Utilities {
     @required Map args,
   }) {
     if (this.client.onMessageReceive != null) {
-      var message = Message();
-      message._loadMap(args['message']);
       this.client.onMessageReceive(
             client: this.client,
             conversation: this,
-            message: message,
+            message: Message._instanceFrom(
+              args['message'],
+            ),
           );
     }
   }
@@ -856,12 +856,12 @@ class Conversation with _Utilities {
     @required Map args,
   }) {
     if (this.client.onMessageUpdate != null) {
-      var message = Message();
-      message._loadMap(args['message']);
       this.client.onMessageUpdate(
             client: this.client,
             conversation: this,
-            message: message,
+            message: Message._instanceFrom(
+              args['message'],
+            ),
             patchCode: args['patchCode'],
             patchReason: args['patchReason'],
           );
@@ -911,6 +911,24 @@ class Message {
 
   String stringContent;
   Uint8List binaryContent;
+
+  Message();
+
+  static Message _instanceFrom(
+    Map rawData,
+  ) {
+    Message message;
+    final Map typeMsgData = rawData['typeMsgData'];
+    if (typeMsgData != null) {
+      TypeableMessage Function() constructor =
+          TypeableMessage._classMap[typeMsgData['_lctype']];
+      message = constructor();
+    } else {
+      message = Message();
+    }
+    message._loadMap(rawData);
+    return message;
+  }
 
   Map _toMap() {
     var map = Map<String, dynamic>();
@@ -987,21 +1005,24 @@ class TypeableMessage extends Message {
   int get type => 0;
 
   static void register<T extends TypeableMessage>(
-    T object,
+    T Function<T extends TypeableMessage>() constructor,
   ) {
-    assert(object.type > 0);
-    TypeableMessage._classMap[object.type] = T;
+    var instance = constructor();
+    assert(instance.type > 0);
+    TypeableMessage._classMap[instance.type] = constructor;
   }
 
-  static final Map<int, Type> _classMap = {
-    TextMessage().type: TextMessage,
-    ImageMessage._internal().type: ImageMessage,
-    AudioMessage._internal().type: AudioMessage,
-    VideoMessage._internal().type: VideoMessage,
-    LocationMessage._internal().type: LocationMessage,
-    FileMessage._internal().type: FileMessage,
-    RecalledMessage().type: RecalledMessage,
+  static final Map<int, TypeableMessage Function()> _classMap = {
+    TextMessage().type: () => TextMessage(),
+    ImageMessage().type: () => ImageMessage(),
+    AudioMessage().type: () => AudioMessage(),
+    VideoMessage().type: () => VideoMessage(),
+    LocationMessage().type: () => LocationMessage(),
+    FileMessage().type: () => FileMessage(),
+    RecalledMessage().type: () => RecalledMessage(),
   };
+
+  TypeableMessage() : super();
 
   Map _rawData = Map();
   Map get rawData => this._rawData;
@@ -1016,6 +1037,8 @@ class TypeableMessage extends Message {
 class TextMessage extends TypeableMessage {
   @override
   int get type => -1;
+
+  TextMessage() : super();
 }
 
 class ImageMessage extends FileMessage {
@@ -1040,7 +1063,7 @@ class ImageMessage extends FileMessage {
     }
   }
 
-  ImageMessage._internal() : super._internal();
+  ImageMessage() : super();
 
   ImageMessage.from({
     String path,
@@ -1066,7 +1089,7 @@ class AudioMessage extends FileMessage {
     }
   }
 
-  AudioMessage._internal() : super._internal();
+  AudioMessage() : super();
 
   AudioMessage.from({
     String path,
@@ -1092,7 +1115,7 @@ class VideoMessage extends FileMessage {
     }
   }
 
-  VideoMessage._internal() : super._internal();
+  VideoMessage() : super();
 
   VideoMessage.from({
     String path,
@@ -1128,7 +1151,7 @@ class LocationMessage extends TypeableMessage {
     return null;
   }
 
-  LocationMessage._internal();
+  LocationMessage() : super();
 
   LocationMessage.from(
     double latitude,
@@ -1190,7 +1213,7 @@ class FileMessage extends TypeableMessage {
     }
   }
 
-  FileMessage._internal();
+  FileMessage() : super();
 
   FileMessage.from({
     String path,
@@ -1207,4 +1230,6 @@ class FileMessage extends TypeableMessage {
 class RecalledMessage extends TypeableMessage {
   @override
   int get type => -127;
+
+  RecalledMessage() : super();
 }
