@@ -2,6 +2,8 @@ package cn.leancloud.plugin;
 
 import android.util.Log;
 
+import com.alibaba.fastjson.JSONObject;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,9 +137,10 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           if (null != e) {
             result.error(String.valueOf(e.getAppCode()), e.getMessage(), e.getCause());
           } else {
-            Log.d(TAG, "succeed create conv:" + conversation);
+            Map<String, Object> convData = Common.wrapConversation(conversation);
+            Log.d(TAG, "succeed create conv:" + new JSONObject(convData).toJSONString());
             Map<String, Object> operationResult = new HashMap<>();
-            operationResult.put("success", Common.wrapConversation(conversation));
+            operationResult.put("success", convData);
             result.success(operationResult);
           }
         }

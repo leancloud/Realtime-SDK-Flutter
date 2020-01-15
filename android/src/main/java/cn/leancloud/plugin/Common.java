@@ -1,6 +1,8 @@
 package cn.leancloud.plugin;
+
 import com.alibaba.fastjson.JSONObject;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -298,8 +300,53 @@ public class Common {
     HashMap<String, Object> result = new HashMap<>();
     String conversationId = conversation.getConversationId();
     String creator = conversation.getCreator();
+    Map<String, Object> attr = conversation.getAttributes();
+    String name = conversation.getName();
+    Date createdAt = conversation.getCreatedAt();
+    Date updatedAt = conversation.getUpdatedAt();
+    List<String> members = conversation.getMembers();
+    boolean isSystem = conversation.isSystem();
+    boolean isTemporary = conversation.isTemporary();
+    boolean isTransient = conversation.isTransient();
+    int type = conversation.getType();
+    AVIMMessage lastMsg = conversation.getLastMessage();
+    String uniqueId = conversation.getUniqueId();
+
     result.put("objectId", conversationId);
     result.put("c", creator);
+    if (!StringUtil.isEmpty(name)) {
+      result.put("name", name);
+    }
+    if (!StringUtil.isEmpty(uniqueId)) {
+      result.put("uniqueId", uniqueId);
+      result.put("unique", true);
+    } else {
+      result.put("unique", false);
+    }
+
+    if (null != attr && !attr.isEmpty()) {
+      result.put("attr", attr);
+    }
+    if (null != createdAt) {
+      result.put("createdAt", StringUtil.stringFromDate(createdAt));
+    }
+    if (null != updatedAt) {
+      result.put("updatedAt", StringUtil.stringFromDate(updatedAt));
+    }
+    result.put("conv_type", type);
+    result.put("tr", isTransient);
+    result.put("sys", isSystem);
+    result.put("temp", isTemporary);
+    if (isTemporary) {
+      result.put("ttl", conversation.getTemporaryExpiredat());
+    }
+    if (null != members) {
+      result.put("m", members);
+    }
+
+    if (null != lastMsg) {
+      result.put("lm", wrapMessage(lastMsg));
+    }
     return result;
   }
 }
