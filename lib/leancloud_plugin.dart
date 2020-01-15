@@ -411,6 +411,7 @@ class Client with _Utilities {
       method: 'queryConversation',
       arguments: args,
     );
+    bool needLastMessage = (flag & 2) == 2;
     List<Conversation> conversations = List();
     results.forEach((item) {
       final String conversationId = item['objectId'];
@@ -427,6 +428,14 @@ class Client with _Utilities {
           conversation._rawData = item;
         }
         conversations.add(conversation);
+        if (needLastMessage) {
+          final Map msgRawData = item['msg'];
+          if (msgRawData != null) {
+            conversation._lastMessage = Message._instanceFrom(
+              msgRawData,
+            );
+          }
+        }
       }
     });
     return conversations;
@@ -1004,8 +1013,8 @@ class Message {
 class TypeableMessage extends Message {
   int get type => 0;
 
-  static void register<T extends TypeableMessage>(
-    T Function<T extends TypeableMessage>() constructor,
+  static void register(
+    TypeableMessage Function() constructor,
   ) {
     var instance = constructor();
     assert(instance.type > 0);
