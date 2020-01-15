@@ -66,6 +66,8 @@ public class Common {
   public static final String Param_Query_Sort = "sort";
   public static final String Param_Query_Limit = "limit";
   public static final String Param_Query_Skip = "skip";
+  public static final String Param_Query_Flag = "flag";
+  public static final String Param_Query_Temp_List = "tempConvIds";
 
   public static final String Param_Query_Start = "start";
   public static final String Param_Query_End = "end";

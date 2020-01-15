@@ -14,6 +14,7 @@ import cn.leancloud.AVException;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMClientOpenOption;
 import cn.leancloud.im.v2.AVIMConversation;
+import cn.leancloud.im.v2.AVIMConversationsQuery;
 import cn.leancloud.im.v2.AVIMException;
 import cn.leancloud.im.v2.AVIMMessage;
 import cn.leancloud.im.v2.AVIMMessageInterval;
@@ -25,6 +26,7 @@ import cn.leancloud.im.v2.callback.AVIMClientCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationCreatedCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationMemberCountCallback;
+import cn.leancloud.im.v2.callback.AVIMConversationQueryCallback;
 import cn.leancloud.im.v2.callback.AVIMMessageUpdatedCallback;
 import cn.leancloud.im.v2.callback.AVIMMessagesQueryCallback;
 import cn.leancloud.utils.StringUtil;
@@ -171,7 +173,28 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       String sort = Common.getMethodParam(call, Common.Param_Query_Sort);
       int limit = Common.getParamInt(call, Common.Param_Query_Limit);
       int skip = Common.getParamInt(call, Common.Param_Query_Skip);
-      result.notImplemented();
+      int flag = Common.getParamInt(call, Common.Param_Query_Flag);
+      List<String> tempConvIds = Common.getMethodParam(call, Common.Param_Query_Temp_List);
+      AVIMConversationQueryCallback callback = new AVIMConversationQueryCallback() {
+        @Override
+        public void done(List<AVIMConversation> conversations, AVIMException e) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            List<Map<String, Object>> queryResult = new ArrayList<>();
+            for (AVIMConversation conv: conversations) {
+              queryResult.add(Common.wrapConversation(conv));
+            }
+            result.success(Common.wrapSuccessResponse(queryResult));
+          }
+        }
+      };
+      AVIMConversationsQuery query = avimClient.getConversationsQuery();
+      if (null == tempConvIds || tempConvIds.isEmpty()) {
+        query.directFindInBackground(where, sort, skip, limit, flag, callback);
+      } else {
+        query.findTempConversationsInBackground(tempConvIds, callback);
+      }
       return;
     }
 
