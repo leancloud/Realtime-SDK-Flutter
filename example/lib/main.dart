@@ -3,15 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:leancloud_plugin/leancloud_plugin.dart';
 
-const __chars = "abcdefghijklmnopqrstuvwxyz";
-String randomString({int strlen = 32}) {
-  Random rnd = new Random(new DateTime.now().millisecondsSinceEpoch);
-  String result = "";
-  for (var i = 0; i < strlen; i++) {
-    result += __chars[rnd.nextInt(__chars.length)];
-  }
-  return result;
-}
+String uuid() => Uuid().generateV4();
 
 void main() => runApp(MyApp());
 
@@ -24,18 +16,21 @@ class _MyAppState extends State<MyApp> {
   List<UnitTestCaseCard> cases = [
     UnitTestCaseCard(
         title: 'Case: Client Open then Close',
-        callback: () async {
-          Client client = Client(id: randomString());
+        testCaseFunc: (decrease) async {
+          Client client = Client(id: uuid());
+          // open
           await client.open();
           assert(client.id != null);
           assert(client.tag == null);
+          // close
           await client.close();
+          return [];
         }),
     UnitTestCaseCard(
         title: 'Case: Create Unique Conversation',
-        callback: () async {
-          String id1 = randomString();
-          String id2 = randomString();
+        testCaseFunc: (decrease) async {
+          String id1 = uuid();
+          String id2 = uuid();
           Client client = Client(id: id1);
           // open
           await client.open();
@@ -61,9 +56,9 @@ class _MyAppState extends State<MyApp> {
           final String createdAt = rawData1['createdAt'];
           assert(createdAt != null);
           // query unique conversation from creation
-          final String name = randomString();
-          final String attrKey = randomString();
-          final String attrValue = randomString();
+          final String name = uuid();
+          final String attrKey = uuid();
+          final String attrValue = uuid();
           Conversation conversation2 = await client.createConversation(
             type: ConversationType.normalUnique,
             members: [id1, id2],
@@ -86,21 +81,21 @@ class _MyAppState extends State<MyApp> {
           assert(attr[attrKey] == attrValue);
           assert(rawData2['c'] == id1);
           assert(rawData2['createdAt'] == createdAt);
-          // close
-          await client.close();
+          // recycle
+          return [client];
         }),
     UnitTestCaseCard(
         title: 'Case: Create Non-Unique Conversation',
-        callback: () async {
-          String id1 = randomString();
-          String id2 = randomString();
+        testCaseFunc: (decrease) async {
+          String id1 = uuid();
+          String id2 = uuid();
           Client client = Client(id: id1);
           // open
           await client.open();
           // create non-unique conversation
-          final String name = randomString();
-          final String attrKey = randomString();
-          final String attrValue = randomString();
+          final String name = uuid();
+          final String attrKey = uuid();
+          final String attrValue = uuid();
           Conversation conversation = await client.createConversation(
             type: ConversationType.normal,
             members: [id1, id2],
@@ -123,19 +118,19 @@ class _MyAppState extends State<MyApp> {
           assert(attr[attrKey] == attrValue);
           assert(rawData['c'] == id1);
           assert(rawData['createdAt'] is String);
-          // close
-          await client.close();
+          // recycle
+          return [client];
         }),
     UnitTestCaseCard(
         title: 'Case: Create Transient Conversation',
-        callback: () async {
-          Client client = Client(id: randomString());
+        testCaseFunc: (decrease) async {
+          Client client = Client(id: uuid());
           // open
           await client.open();
           // create transient conversation
-          final String name = randomString();
-          final String attrKey = randomString();
-          final String attrValue = randomString();
+          final String name = uuid();
+          final String attrKey = uuid();
+          final String attrValue = uuid();
           Conversation conversation = await client.createConversation(
             type: ConversationType.transient,
             name: name,
@@ -151,14 +146,14 @@ class _MyAppState extends State<MyApp> {
           assert(attr[attrKey] == attrValue);
           assert(rawData['c'] == client.id);
           assert(rawData['createdAt'] is String);
-          // close
-          await client.close();
+          // recycle
+          return [client];
         }),
     UnitTestCaseCard(
         title: 'Case: Create Temporary Conversation',
-        callback: () async {
-          String id1 = randomString();
-          String id2 = randomString();
+        testCaseFunc: (decrease) async {
+          String id1 = uuid();
+          String id2 = uuid();
           Client client = Client(id: id1);
           // open
           await client.open();
@@ -178,21 +173,25 @@ class _MyAppState extends State<MyApp> {
           assert(members.contains(id2));
           assert(rawData['temp'] == true);
           assert(rawData['ttl'] == 3600);
-          // close
-          await client.close();
+          // recycle
+          return [client];
         }),
     UnitTestCaseCard(
       title: 'Case: Send Message',
-      callback: () async {
-        String clientId = randomString();
+      testCaseFunc: (decrease) async {
+        String clientId = uuid();
         Client client = Client(id: clientId);
+        // open
         await client.open();
+        // create
         Conversation conversation = await client
             .createConversation(members: [clientId], name: clientId);
         Message msg = Message();
         msg.stringContent = "test from Dart";
+        // send
         await conversation.send(message: msg);
-        await client.close();
+        // recycle
+        return [client];
       },
     ),
   ];
@@ -214,10 +213,13 @@ class _MyAppState extends State<MyApp> {
             children: [
                   UnitTestCaseCard(
                       title: 'Run All Cases',
-                      callback: () async {
+                      extraExpectedCount: this.cases.length,
+                      testCaseFunc: (decrease) async {
                         for (var i = 0; i < this.cases.length; i++) {
                           await this.cases[i].state.run();
+                          decrease(1);
                         }
+                        return [];
                       }),
                 ] +
                 this.cases),
@@ -232,8 +234,13 @@ class UnitTestCaseCard extends StatefulWidget {
 
   UnitTestCaseCard({
     @required this.title,
-    @required Future<void> Function() callback,
-  }) : this.state = UnitTestCaseState(title: title, callback: callback);
+    int extraExpectedCount = 0,
+    @required Future<List<Client>> Function(void Function(int)) testCaseFunc,
+  }) : this.state = UnitTestCaseState(
+          title: title,
+          extraExpectedCount: extraExpectedCount,
+          testCaseFunc: testCaseFunc,
+        );
 
   @override
   UnitTestCaseState createState() => this.state;
@@ -241,39 +248,84 @@ class UnitTestCaseCard extends StatefulWidget {
 
 class UnitTestCaseState extends State<UnitTestCaseCard> {
   String title;
-  int state = 0;
-  Future<void> Function() callback;
+  int expectedCount;
+  int state;
+  Future<List<Client>> Function(void Function(int)) testCaseFunc;
+  void Function(int) decreaseExpectedCountFunc;
+
+  List<Client> clients = List();
 
   UnitTestCaseState({
     @required this.title,
-    @required this.callback,
-  }) : assert(title != null);
+    int extraExpectedCount = 0,
+    @required this.testCaseFunc,
+  }) : assert(title != null) {
+    this.expectedCount = (extraExpectedCount + 1);
+    this.state = this.expectedCount;
+    this.decreaseExpectedCountFunc = (int count) {
+      if (count > 0) {
+        setState(() {
+          this.state -= count;
+        });
+      } else {
+        setState(() {
+          this.state = -1;
+        });
+      }
+      if (this.state <= 0) {
+        this.clients.forEach((item) {
+          item.close();
+        });
+      }
+    };
+  }
 
   Future<void> run() async {
-    int success = 0;
+    setState(() {
+      this.state = this.expectedCount;
+    });
+    bool hasException = false;
     try {
-      await this.callback();
-      success = 1;
+      this.clients = await this.testCaseFunc(
+        this.decreaseExpectedCountFunc,
+      );
     } on RTMException catch (e) {
       print(e);
-      success = -1;
+      hasException = true;
     }
-    setState(() {
-      this.state = success;
-    });
+    if (hasException) {
+      setState(() {
+        this.state = -1;
+      });
+    } else {
+      setState(() {
+        this.state -= 1;
+      });
+    }
+    if (this.state <= 0) {
+      this.clients.forEach((item) {
+        item.close();
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     ListTile child = ListTile(
         title: Text(
-            this.state == 0
+            (this.state == this.expectedCount)
                 ? this.title
-                : (this.state == 1 ? '✅ ' + this.title : '❌ ' + this.title),
+                : ((this.state == 0)
+                    ? '✅ ' + this.title
+                    : ((this.state == -1)
+                        ? '❌ ' + this.title
+                        : '💤 ' + this.title)),
             style: TextStyle(
-                color: this.state == 0
+                color: (this.state == this.expectedCount)
                     ? Colors.black
-                    : (this.state == 1 ? Colors.green : Colors.red),
+                    : ((this.state == 0)
+                        ? Colors.green
+                        : ((this.state == -1) ? Colors.red : Colors.blue)),
                 fontSize: 16.0,
                 fontWeight: FontWeight.bold)),
         onTap: () async {
@@ -281,4 +333,29 @@ class UnitTestCaseState extends State<UnitTestCaseCard> {
         });
     return Card(child: child);
   }
+}
+
+class Uuid {
+  final Random _random = Random();
+
+  /// Generate a version 4 (random) uuid. This is a uuid scheme that only uses
+  /// random numbers as the source of the generated uuid.
+  String generateV4() {
+    // Generate xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx / 8-4-4-4-12.
+    var special = 8 + _random.nextInt(4);
+
+    return '${_bitsDigits(16, 4)}${_bitsDigits(16, 4)}-'
+        '${_bitsDigits(16, 4)}-'
+        '4${_bitsDigits(12, 3)}-'
+        '${_printDigits(special, 1)}${_bitsDigits(12, 3)}-'
+        '${_bitsDigits(16, 4)}${_bitsDigits(16, 4)}${_bitsDigits(16, 4)}';
+  }
+
+  String _bitsDigits(int bitCount, int digitCount) =>
+      _printDigits(_generateBits(bitCount), digitCount);
+
+  int _generateBits(int bitCount) => _random.nextInt(1 << bitCount);
+
+  String _printDigits(int value, int count) =>
+      value.toRadixString(16).padLeft(count, '0');
 }
