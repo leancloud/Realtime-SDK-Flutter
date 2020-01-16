@@ -1,6 +1,6 @@
 package cn.leancloud.plugin;
-import com.alibaba.fastjson.JSONObject;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,12 +11,15 @@ import cn.leancloud.im.Signature;
 import cn.leancloud.im.v2.AVIMBinaryMessage;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMConversation;
+import cn.leancloud.im.v2.AVIMException;
 import cn.leancloud.im.v2.AVIMMessage;
+import cn.leancloud.im.v2.AVIMMessageInterval;
 import cn.leancloud.im.v2.AVIMMessageOption;
 import cn.leancloud.im.v2.AVIMTypedMessage;
 import cn.leancloud.im.v2.messages.AVIMFileMessage;
 import cn.leancloud.im.v2.messages.AVIMLocationMessage;
 import cn.leancloud.im.v2.messages.AVIMTextMessage;
+import cn.leancloud.im.v2.AVIMMessageInterval.AVIMMessageIntervalBound;
 import cn.leancloud.types.AVGeoPoint;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.plugin.common.MethodCall;
@@ -46,7 +49,7 @@ public class Common {
   public static final String Method_Message_updated = "onMessageUpdate";
 
   public static final String Param_Client_Id = "clientId";
-  public static final String Param_Force_Open = "force";
+  public static final String Param_ReOpen = "r";
   public static final String Param_Client_Tag = "tag";
   public static final String Param_Signature = "sign";
   public static final String Param_Conv_Type = "conv_type";
@@ -63,6 +66,13 @@ public class Common {
   public static final String Param_Query_Sort = "sort";
   public static final String Param_Query_Limit = "limit";
   public static final String Param_Query_Skip = "skip";
+  public static final String Param_Query_Flag = "flag";
+  public static final String Param_Query_Temp_List = "tempConvIds";
+
+  public static final String Param_Query_Start = "start";
+  public static final String Param_Query_End = "end";
+  public static final String Param_Query_Direction = "direction";
+  public static final String Param_Query_MsgType = "type";
 
   public static final String Param_Message_Old = "oldMessage";
   public static final String Param_Message_New = "newMessage";
@@ -79,13 +89,8 @@ public class Common {
 
   public static final String Conv_Operation_Mute = "mute";
   public static final String Conv_Operation_Unmute = "unmute";
-
-  public static JSONObject wrapException(AVException ex) {
-    JSONObject result = new JSONObject();
-    result.put("code", ex.getCode());
-    result.put("message", ex.getMessage());
-    return result;
-  }
+  public static final String Conv_Operation_Add = "add";
+  public static final String Conv_Operation_Remove = "remove";
 
   public static <T> T getMethodParam(MethodCall call, String key) {
     if (call.hasArgument(key)) {
@@ -120,14 +125,66 @@ public class Common {
     return result;
   }
 
+  public static Map<String, Object> wrapException(int errorCode, String message) {
+    AVException exception = new AVException(errorCode, message);
+    return wrapException(exception);
+  }
+
+  public static Map<String, Object> wrapException(AVException ex) {
+    if (null == ex) {
+      return new HashMap<>();
+    }
+    Map<String, Object> error = new HashMap<>();
+    if (ex instanceof AVIMException) {
+      error.put("code", String.valueOf(((AVIMException)ex).getAppCode()));
+    } else {
+      error.put("code", String.valueOf(ex.getCode()));
+    }
+    error.put("message", ex.getMessage());
+    if (null != ex.getCause()) {
+      error.put("details", ex.getCause());
+    }
+    Map<String, Object> result = new HashMap<>();
+    result.put("error", error);
+    return result;
+  }
+
+  public static Map<String, Object> wrapSuccessResponse(Map<String, Object> result) {
+    Map<String, Object> response = new HashMap<>();
+    if (null != result) {
+      response.put("success", result);
+    }
+    return response;
+  }
+
+  public static Map<String, Object> wrapSuccessResponse(List<Map<String, Object>> resultList) {
+    Map<String, Object> response = new HashMap<>();
+    if (null != resultList) {
+      response.put("success", resultList);
+    }
+    return response;
+  }
+
+  public static Map<String, Object> wrapSuccessResponse(int result) {
+    Map<String, Object> response = new HashMap<>();
+    response.put("success", result);
+    return response;
+  }
+
   public static Map<String, Object> wrapClient(AVIMClient client) {
     HashMap<String, Object> result = new HashMap<>();
-    result.put("clientId", client.getClientId());
+    if (null != client) {
+      result.put("clientId", client.getClientId());
+    }
     return result;
   }
 
   public static Map<String, Object> wrapTypedMessage(AVIMTypedMessage message) {
     HashMap<String, Object> result = new HashMap<>();
+    if (null == message) {
+      return result;
+    }
+
     result.put("_lctype", message.getMessageType());
 
     String text = null;
@@ -177,6 +234,10 @@ public class Common {
 
   public static Map<String, Object> wrapMessage(AVIMMessage message) {
     Map<String, Object> result = new HashMap<>();
+    if (null == message) {
+      return result;
+    }
+
     if (!StringUtil.isEmpty(message.getMessageId())) {
       result.put("id", message.getMessageId());
     }
@@ -294,12 +355,70 @@ public class Common {
     return option;
   }
 
+  public static AVIMMessageIntervalBound parseMessageIntervalBound(Map<String, Object> data) {
+    if (null == data) {
+      return null;
+    }
+    String messageId = (String) data.get("id");
+    long timestamp = (long) data.get("timestamp");
+    boolean closed = (boolean) data.get("close");
+    return AVIMMessageInterval.createBound(messageId, timestamp, closed);
+  }
+
   public static Map<String, Object> wrapConversation(AVIMConversation conversation) {
     HashMap<String, Object> result = new HashMap<>();
+    if (null == conversation) {
+      return result;
+    }
     String conversationId = conversation.getConversationId();
     String creator = conversation.getCreator();
+    Map<String, Object> attr = conversation.getAttributes();
+    String name = conversation.getName();
+    Date createdAt = conversation.getCreatedAt();
+    Date updatedAt = conversation.getUpdatedAt();
+    List<String> members = conversation.getMembers();
+    boolean isSystem = conversation.isSystem();
+    boolean isTemporary = conversation.isTemporary();
+    boolean isTransient = conversation.isTransient();
+    int type = conversation.getType();
+    AVIMMessage lastMsg = conversation.getLastMessage();
+    String uniqueId = conversation.getUniqueId();
+
     result.put("objectId", conversationId);
     result.put("c", creator);
+    if (!StringUtil.isEmpty(name)) {
+      result.put("name", name);
+    }
+    if (!StringUtil.isEmpty(uniqueId)) {
+      result.put("uniqueId", uniqueId);
+      result.put("unique", true);
+    } else {
+      result.put("unique", false);
+    }
+
+    if (null != attr && !attr.isEmpty()) {
+      result.put("attr", attr);
+    }
+    if (null != createdAt) {
+      result.put("createdAt", StringUtil.stringFromDate(createdAt));
+    }
+    if (null != updatedAt) {
+      result.put("updatedAt", StringUtil.stringFromDate(updatedAt));
+    }
+    result.put("conv_type", type);
+    result.put("tr", isTransient);
+    result.put("sys", isSystem);
+    result.put("temp", isTemporary);
+    if (isTemporary) {
+      result.put("ttl", conversation.getTemporaryExpiredat());
+    }
+    if (null != members) {
+      result.put("m", members);
+    }
+
+    if (null != lastMsg) {
+      result.put("lm", wrapMessage(lastMsg));
+    }
     return result;
   }
 }
