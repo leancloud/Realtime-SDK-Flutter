@@ -34,7 +34,11 @@ android {
 }
 
 dependencies {
-    implementation('cn.leancloud:realtime-android:6.1.9') {
+    implementation('cn.leancloud:realtime-android:6.2.0@aar') {
+        exclude group: 'com.alibaba', module: 'fastjson'
+        exclude group: 'org.ligboy.retrofit2', module: 'converter-fastjson'
+    }
+    implementation('cn.leancloud:realtime-core:6.2.0') {
         exclude group: 'com.alibaba', module: 'fastjson'
         exclude group: 'org.ligboy.retrofit2', module: 'converter-fastjson'
     }
