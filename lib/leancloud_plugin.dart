@@ -185,41 +185,41 @@ class Client with _Utilities {
 
   final Map<String, Conversation> conversationMap = Map();
 
-  Function({
+  void Function({
     Client client,
   }) onOpen;
-  Function({
+  void Function({
     Client client,
   }) onResume;
-  Function({
+  void Function({
     Client client,
     RTMException e,
   }) onDisconnect;
-  Function({
+  void Function({
     Client client,
     RTMException e,
   }) onClose;
 
-  Function({
+  void Function({
     Client client,
     Conversation conversation,
     String byClientId,
     String atDate,
   }) onConversationInvite;
-  Function({
+  void Function({
     Client client,
     Conversation conversation,
     String byClientId,
     String atDate,
   }) onConversationKick;
-  Function({
+  void Function({
     Client client,
     Conversation conversation,
     List members,
     String byClientId,
     String atDate,
   }) onConversationMembersJoin;
-  Function({
+  void Function({
     Client client,
     Conversation conversation,
     List members,
@@ -227,7 +227,7 @@ class Client with _Utilities {
     String atDate,
   }) onConversationMembersLeave;
 
-  Function({
+  void Function({
     Client client,
     Conversation conversation,
     Map updatingAttributes,
@@ -236,29 +236,29 @@ class Client with _Utilities {
     String atDate,
   }) onConversationDataUpdate;
 
-  Function({
+  void Function({
     Client client,
     Conversation conversation,
   }) onConversationLastMessageUpdate;
 
-  Function({
+  void Function({
     Client client,
     Conversation conversation,
   }) onConversationUnreadMessageCountUpdate;
 
-  Function({
+  void Function({
     Client client,
     Conversation conversation,
     Message message,
   }) onMessageReceive;
-  Function({
+  void Function({
     Client client,
     Conversation conversation,
     Message message,
     int patchCode,
     String patchReason,
   }) onMessageUpdate;
-  Function({
+  void Function({
     Client client,
     Conversation conversation,
     String messageId,
