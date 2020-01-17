@@ -11,6 +11,7 @@ import java.util.Map;
 
 import androidx.annotation.NonNull;
 import cn.leancloud.AVException;
+import cn.leancloud.im.AVIMOptions;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMClientOpenOption;
 import cn.leancloud.im.v2.AVIMConversation;
@@ -73,6 +74,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       AVIMMessageManager.registerDefaultMessageHandler(new DefaultMessageHandler(_INSTANCE));
       AVIMMessageManager.setConversationEventHandler(new DefaultConversationEventHandler(_INSTANCE));
       AVIMClient.setClientEventHandler(new DefaultClientEventHandler(_INSTANCE));
+      AVIMOptions.getGlobalOptions().setSignatureFactory(new DefaultSignatureFactory());
     }
   }
 
@@ -422,7 +424,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
    */
   public void onOffline(AVIMClient client, int code) {
     Map<String, Object> param = Common.wrapClient(client);
-    param.put(Common.Param_code, code);
+    Map<String, Object> error = new HashMap<>();
+    error.put(Common.Param_Code, code);
+    param.put(Common.Param_Error, error);
     _CHANNEL.invokeMethod(Common.Method_Client_Offline, param);
   }
 }
