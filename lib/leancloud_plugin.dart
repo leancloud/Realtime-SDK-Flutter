@@ -1162,10 +1162,10 @@ class LocationMessage extends TypeableMessage {
 
   LocationMessage() : super();
 
-  LocationMessage.from(
-    double latitude,
-    double longitude,
-  ) {
+  LocationMessage.from({
+    @required double latitude,
+    @required double longitude,
+  }) {
     assert(latitude != null && longitude != null);
     this._locationMap = {
       'latitude': latitude,

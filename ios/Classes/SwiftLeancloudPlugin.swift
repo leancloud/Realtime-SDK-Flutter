@@ -248,6 +248,43 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             }
         }
     }
+    
+    func sendMessage(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            do {
+                switch result {
+                case .success(value: let conversation):
+                    let message: IMMessage
+                    let rawData = parameters["message"] as? [String: Any]
+                    if let msg = rawData?["msg"] as? String {
+                        message = IMMessage()
+                        try message.set(content: .string(msg))
+                    } else if let binaryMsg = rawData?["msg"] as? FlutterStandardTypedData {
+                        message = IMMessage()
+                        try message.set(content: .data(binaryMsg.data))
+                    } else if let typeMsgData = rawData?["typeMsgData"] as? [String: Any] {
+                        fatalError()
+                    } else {
+                        message = IMMessage()
+                    }
+                    try conversation.send(message: message) { (result) in
+                        switch result {
+                        case .success:
+                            break
+                        case .failure(error: let error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                case .failure(error: let error):
+                    self.mainAsync(self.error(error), callback)
+                }
+            } catch {
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
 }
 
 extension IMClientDelegator: IMClientDelegate {

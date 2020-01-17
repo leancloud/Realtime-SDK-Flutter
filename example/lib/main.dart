@@ -1,6 +1,8 @@
 import 'dart:core';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:leancloud_plugin/leancloud_plugin.dart';
 
 String uuid() => Uuid().generateV4();
@@ -366,20 +368,174 @@ UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
 
 UnitTestCaseCard sendMessage = UnitTestCaseCard(
     title: 'Case: Send Message',
+    extraExpectedCount: 8,
     testCaseFunc: (decrease) async {
-      String clientId = uuid();
-      Client client = Client(id: clientId);
+      int client2MessageReceivedCount = 8;
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+      String stringContent = uuid();
+      Uint8List binaryContent = Uint8List.fromList(uuid().codeUnits);
+      String text = uuid();
+      void Function(
+        Message,
+        Conversation,
+      ) assertMessage = (
+        Message message,
+        Conversation conversation,
+      ) {
+        assert(message.id != null);
+        assert(message.sentTimestamp != null);
+        assert(message.conversationId == conversation.id);
+        assert(message.fromClientId == client1.id);
+      };
+      void Function(
+        FileMessage,
+      ) assertFileMessage = (
+        FileMessage fileMessage,
+      ) {
+        assert(fileMessage.url != null);
+        assert(fileMessage.format != null);
+        assert(fileMessage.size != null);
+      };
+      // event
+      client2.onMessageReceive = ({
+        Client client,
+        Conversation conversation,
+        Message message,
+      }) {
+        assert(client != null);
+        assert(conversation != null);
+        assertMessage(message, conversation);
+        client2MessageReceivedCount -= 1;
+        if (client2MessageReceivedCount <= 0) {
+          client2.onMessageReceive = null;
+        }
+        // receive string
+        if (message.stringContent != null) {
+          assert(message.stringContent == stringContent);
+          decrease(1);
+        }
+        // receive binary
+        if (message.binaryContent != null) {
+          int index = 0;
+          message.binaryContent.forEach((item) {
+            assert(item == binaryContent[index]);
+            index += 1;
+          });
+          decrease(1);
+        }
+        // receive text
+        if (message is TextMessage) {
+          assert(message.text == text);
+          decrease(1);
+        }
+        // receive image
+        if (message is ImageMessage) {
+          assertFileMessage(message);
+          assert(message.width != null);
+          assert(message.height != null);
+          decrease(1);
+        }
+        // receive audio
+        if (message is AudioMessage) {
+          assertFileMessage(message);
+          assert(message.duration != null);
+          decrease(1);
+        }
+        // receive video
+        if (message is VideoMessage) {
+          assertFileMessage(message);
+          assert(message.duration != null);
+          decrease(1);
+        }
+        // receive location
+        if (message is LocationMessage) {
+          assert(message.latitude == 22);
+          assert(message.longitude == 33);
+          decrease(1);
+        }
+        // receive file
+        if (message is FileMessage) {
+          assertFileMessage(message);
+          decrease(1);
+        }
+      };
       // open
-      await client.open();
+      await client1.open();
+      await client2.open();
       // create
-      Conversation conversation =
-          await client.createConversation(members: [clientId], name: clientId);
-      Message msg = Message();
-      msg.stringContent = "test from Dart";
-      // send
-      await conversation.send(message: msg);
+      Conversation conversation = await client1.createConversation(
+        members: [client1.id, client2.id],
+      );
+      // send string
+      Message stringMessage = Message();
+      stringMessage.stringContent = stringContent;
+      await conversation.send(message: stringMessage);
+      assertMessage(stringMessage, conversation);
+      assert(stringMessage.stringContent != null);
+      // send binary
+      Message binaryMessage = Message();
+      binaryMessage.binaryContent = binaryContent;
+      await conversation.send(message: binaryMessage);
+      assertMessage(binaryMessage, conversation);
+      assert(binaryMessage.binaryContent != null);
+      // send text
+      TextMessage textMessage = TextMessage();
+      textMessage.text = text;
+      await conversation.send(message: textMessage);
+      assertMessage(textMessage, conversation);
+      assert(textMessage.text != null);
+      // send image
+      ByteData imageData = await rootBundle.load('assets/test.png');
+      ImageMessage imageMessage = ImageMessage.from(
+        binaryData: imageData.buffer.asUint8List(),
+        format: 'png',
+      );
+      await conversation.send(message: imageMessage);
+      assertMessage(imageMessage, conversation);
+      assertFileMessage(imageMessage);
+      assert(imageMessage.width != null);
+      assert(imageMessage.height != null);
+      // send audio
+      ByteData audioData = await rootBundle.load('assets/test.mp3');
+      AudioMessage audioMessage = AudioMessage.from(
+        binaryData: audioData.buffer.asUint8List(),
+        format: 'mp3',
+      );
+      await conversation.send(message: audioMessage);
+      assertMessage(audioMessage, conversation);
+      assertFileMessage(audioMessage);
+      assert(audioMessage.duration != null);
+      // send video
+      ByteData videoData = await rootBundle.load('assets/test.mp4');
+      VideoMessage videoMessage = VideoMessage.from(
+        binaryData: videoData.buffer.asUint8List(),
+        format: 'mp3',
+      );
+      await conversation.send(message: videoMessage);
+      assertMessage(videoMessage, conversation);
+      assertFileMessage(videoMessage);
+      assert(videoMessage.duration != null);
+      // send location
+      LocationMessage locationMessage = LocationMessage.from(
+        latitude: 22,
+        longitude: 33,
+      );
+      await conversation.send(message: locationMessage);
+      assertMessage(locationMessage, conversation);
+      assert(locationMessage.latitude == 22);
+      assert(locationMessage.longitude == 33);
+      // send file
+      ByteData fileData = await rootBundle.load('assets/test.zip');
+      FileMessage fileMessage = FileMessage.from(
+        binaryData: fileData.buffer.asUint8List(),
+        format: 'zip',
+      );
+      await conversation.send(message: fileMessage);
+      assertMessage(locationMessage, conversation);
+      assertFileMessage(fileMessage);
       // recycle
-      return [client];
+      return [client1, client2];
     });
 
 class _MyAppState extends State<MyApp> {
