@@ -56,7 +56,7 @@ flutter {
 }
 
 dependencies {
-    implementation('cn.leancloud:realtime-android:6.2.0@aar') {
+    implementation('cn.leancloud:realtime-android:6.2.1') {
         exclude group: 'com.alibaba', module: 'fastjson'
         exclude group: 'org.ligboy.retrofit2', module: 'converter-fastjson'
     }

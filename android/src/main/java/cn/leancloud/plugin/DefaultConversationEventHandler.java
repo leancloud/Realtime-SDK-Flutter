@@ -89,7 +89,6 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    * @param kickedBy 踢出你的人
    * @since 3.0
    */
-
   public void onKicked(AVIMClient client, AVIMConversation conversation, String kickedBy) {
     LOGGER.d("Notification --- " + " you are kicked from conversation:"
         + conversation.getConversationId() + " by " + kickedBy);
