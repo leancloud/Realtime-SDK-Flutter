@@ -410,52 +410,46 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
         if (client2MessageReceivedCount <= 0) {
           client2.onMessageReceive = null;
         }
-        // receive string
         if (message.stringContent != null) {
+          // receive string
           assert(message.stringContent == stringContent);
           decrease(1);
-        }
-        // receive binary
-        if (message.binaryContent != null) {
+          print('receive string');
+        } else if (message.binaryContent != null) {
+          // receive binary
           int index = 0;
           message.binaryContent.forEach((item) {
             assert(item == binaryContent[index]);
             index += 1;
           });
           decrease(1);
-        }
-        // receive text
-        if (message is TextMessage) {
+        } else if (message is TextMessage) {
+          // receive text
           assert(message.text == text);
           decrease(1);
-        }
-        // receive image
-        if (message is ImageMessage) {
+        } else if (message is ImageMessage) {
+          // receive image
           assertFileMessage(message);
           assert(message.width != null);
           assert(message.height != null);
           decrease(1);
-        }
-        // receive audio
-        if (message is AudioMessage) {
+        } else if (message is AudioMessage) {
+          // receive audio
           assertFileMessage(message);
           assert(message.duration != null);
           decrease(1);
-        }
-        // receive video
-        if (message is VideoMessage) {
+        } else if (message is VideoMessage) {
+          // receive video
           assertFileMessage(message);
           assert(message.duration != null);
           decrease(1);
-        }
-        // receive location
-        if (message is LocationMessage) {
+        } else if (message is LocationMessage) {
+          // receive location
           assert(message.latitude == 22);
           assert(message.longitude == 33);
           decrease(1);
-        }
-        // receive file
-        if (message is FileMessage) {
+        } else if (message is FileMessage) {
+          // receive file
           assertFileMessage(message);
           decrease(1);
         }
@@ -692,7 +686,7 @@ class UnitTestCaseState extends State<UnitTestCaseCard> {
                 ? this.title
                 : ((this.state == 0)
                     ? '✅ ' + this.title
-                    : ((this.state == -1)
+                    : ((this.state <= -1)
                         ? '❌ ' + this.title
                         : '💤 ' + this.title)),
             style: TextStyle(
@@ -700,7 +694,7 @@ class UnitTestCaseState extends State<UnitTestCaseCard> {
                     ? Colors.black
                     : ((this.state == 0)
                         ? Colors.green
-                        : ((this.state == -1) ? Colors.red : Colors.blue)),
+                        : ((this.state <= -1) ? Colors.red : Colors.blue)),
                 fontSize: 16.0,
                 fontWeight: FontWeight.bold)),
         onTap: () async {
