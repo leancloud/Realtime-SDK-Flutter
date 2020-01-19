@@ -2,7 +2,11 @@ package cn.leancloud.plugin;
 
 import com.alibaba.fastjson.JSONObject;
 
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMConversation;
@@ -12,6 +16,11 @@ import cn.leancloud.im.v2.conversation.AVIMConversationMemberInfo;
 import cn.leancloud.utils.StringUtil;
 
 public class DefaultConversationEventHandler extends AVIMConversationEventHandler {
+  private static final String Member_Event_Self_Joined = "joined";
+  private static final String Member_Event_Self_Left = "left";
+  private static final String Member_Event_Other_Joined = "members-joined";
+  private static final String Member_Event_Other_Left = "members-left";
+
   private IMEventNotification listener;
 
   public DefaultConversationEventHandler(IMEventNotification listener) {
@@ -30,7 +39,19 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
 
   public void onMemberLeft(AVIMClient client, AVIMConversation conversation,
                            List<String> members, String kickedBy) {
-
+    LOGGER.d("Notification --- memberLeft. conversation:" + conversation.getConversationId());
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Other_Left);
+      param.put(Common.Param_Conv_Members, members);
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, kickedBy);
+      // TODO: change udate.
+      param.put(Common.Param_Update_Time, new Date().toString());
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
@@ -45,7 +66,19 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
 
   public void onMemberJoined(AVIMClient client, AVIMConversation conversation,
                              List<String> members, String invitedBy) {
-
+    LOGGER.d("Notification --- memberJoined. conversation:" + conversation.getConversationId());
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Other_Joined);
+      param.put(Common.Param_Conv_Members, members);
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, invitedBy);
+      // TODO: change udate.
+      param.put(Common.Param_Update_Time, new Date().toString());
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
@@ -56,9 +89,21 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    * @param kickedBy 踢出你的人
    * @since 3.0
    */
-
   public void onKicked(AVIMClient client, AVIMConversation conversation, String kickedBy) {
-
+    LOGGER.d("Notification --- " + " you are kicked from conversation:"
+        + conversation.getConversationId() + " by " + kickedBy);
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Self_Left);
+      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, kickedBy);
+      // TODO: change udate.
+      param.put(Common.Param_Update_Time, new Date().toString());
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
@@ -70,7 +115,20 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    * @since 3.0
    */
   public void onInvited(AVIMClient client, AVIMConversation conversation, String operator) {
-
+    LOGGER.d("Notification --- " + " you are invited to conversation:"
+        + conversation.getConversationId() + " by " + operator);
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Self_Joined);
+      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, operator);
+      // TODO: change udate.
+      param.put(Common.Param_Update_Time, new Date().toString());
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
@@ -165,17 +223,31 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    * @param client
    * @param conversation
    */
-  public void onUnreadMessagesCountUpdated(AVIMClient client, AVIMConversation conversation) {}
+  public void onUnreadMessagesCountUpdated(AVIMClient client, AVIMConversation conversation) {
+    LOGGER.d("Notification --- unReadCount was updated. conversationId: " + conversation.getConversationId());
+    if (null != this.listener) {
+      HashMap<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Count, conversation.getUnreadMessagesCount());
+      param.put(Common.Param_Mention, conversation.unreadMessagesMentioned());
+      this.listener.notify(Common.Method_Conv_UnreadCount_Updated, param);
+    }
+  }
 
   /**
    * 实现本地方法来处理对方已经接收消息的通知
    */
-  public void onLastDeliveredAtUpdated(AVIMClient client, AVIMConversation conversation) {}
+  public void onLastDeliveredAtUpdated(AVIMClient client, AVIMConversation conversation) {
+    LOGGER.d("Notification --- lastDeliveredAt was updated. conversationId: " + conversation.getConversationId());
+  }
 
   /**
    * 实现本地方法来处理对方已经阅读消息的通知
    */
-  public void onLastReadAtUpdated(AVIMClient client, AVIMConversation conversation) {}
+  public void onLastReadAtUpdated(AVIMClient client, AVIMConversation conversation) {
+    LOGGER.d("Notification --- lastReadAt was updated. conversationId: " + conversation.getConversationId());
+  }
 
   /**
    * 实现本地方法来处理消息的更新事件
@@ -184,7 +256,15 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    * @param message
    */
   public void onMessageUpdated(AVIMClient client, AVIMConversation conversation, AVIMMessage message) {
-    ;
+    LOGGER.d("Notification --- message was updated. messageId: " + message.getMessageId());
+    if (null != this.listener) {
+      HashMap<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Message_Raw, Common.wrapMessage(message));
+      //TODO: add patchCode and patchReason.
+      this.listener.notify(Common.Method_Message_Updated, param);
+    }
   }
 
   /**
@@ -194,7 +274,7 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    * @param message
    */
   public void onMessageRecalled(AVIMClient client, AVIMConversation conversation, AVIMMessage message) {
-    ;
+    LOGGER.d("Notification --- message was recalled. messageId: " + message.getMessageId());
   }
 
   /**
@@ -222,5 +302,15 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
   public void onInfoChanged(AVIMClient client, AVIMConversation conversation, JSONObject attr,
                             String operator) {
     LOGGER.d("Notification --- " + operator + " by member: " + operator + ", changedTo: " + attr.toJSONString());
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Operator, operator);
+      param.put(Common.Param_Conv_Attributes, attr);
+      param.put(Common.Param_RawData, Common.wrapConversation(conversation));
+      param.put(Common.Param_Update_Time, new Date().toString());
+      this.listener.notify(Common.Method_Conv_Updated, param);
+    }
   }
 }

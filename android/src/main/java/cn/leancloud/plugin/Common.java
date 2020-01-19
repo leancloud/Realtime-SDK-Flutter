@@ -20,6 +20,7 @@ import cn.leancloud.im.v2.messages.AVIMFileMessage;
 import cn.leancloud.im.v2.messages.AVIMLocationMessage;
 import cn.leancloud.im.v2.messages.AVIMTextMessage;
 import cn.leancloud.im.v2.AVIMMessageInterval.AVIMMessageIntervalBound;
+import cn.leancloud.ops.Utils;
 import cn.leancloud.types.AVGeoPoint;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.plugin.common.MethodCall;
@@ -40,13 +41,17 @@ public class Common {
   public static final String Method_Update_Conversation = "updateData";
   public static final String Method_Query_Member_Count = "getMembersCount";
 
-  public static final String Method_Client_Offline = "";
-  public static final String Method_Client_Disconnected = "";
-  public static final String Method_Client_Resumed = "";
+  public static final String Method_Client_Offline = "onSessionClose";
+  public static final String Method_Client_Disconnected = "onSessionDisconnect";
+  public static final String Method_Client_Resumed = "onSessionResume";
 
   public static final String Method_Message_Received = "onMessageReceive";
   public static final String Method_Message_Receipted = "onMessageReceipt";
-  public static final String Method_Message_updated = "onMessageUpdate";
+  public static final String Method_Message_Updated = "onMessageUpdate";
+
+  public static final String Method_Conv_Member_Updated = "onConversationMembersUpdate";
+  public static final String Method_Conv_Updated = "onConversationDataUpdate";
+  public static final String Method_Conv_UnreadCount_Updated = "onUnreadMessageCountUpdate";
 
   public static final String Param_Client_Id = "clientId";
   public static final String Param_ReOpen = "r";
@@ -61,6 +66,17 @@ public class Common {
 
   public static final String Param_Conv_Operation = "op";
   public static final String Param_Conv_Data = "data";
+  public static final String Param_RawData = "rawData";
+  public static final String Param_Count = "count";
+  public static final String Param_Mention = "mention";
+
+  public static final String Param_Timestamp = "t";
+  public static final String Param_Flag_Read = "read";
+  public static final String Param_Patch_Code = "patchCode";
+  public static final String Param_Patch_Reason = "patchReason";
+  public static final String Param_Members = "members";
+  public static final String Param_Operator = "initBy";
+  public static final String Param_Update_Time = "udate";
 
   public static final String Param_Query_Where = "where";
   public static final String Param_Query_Sort = "sort";
@@ -79,8 +95,10 @@ public class Common {
   public static final String Param_Message_Raw = "message";
   public static final String Param_Message_Options = "options";
   public static final String Param_Message_File = "file";
+  public static final String Param_Message_Id = "id";
 
-  public static final String Param_code = "code";
+  public static final String Param_Code = "code";
+  public static final String Param_Error = "error";
 
   public static final int Conv_Type_Unique = 0;
   public static final int Conv_Type_Common = 1;
@@ -383,6 +401,7 @@ public class Common {
     int type = conversation.getType();
     AVIMMessage lastMsg = conversation.getLastMessage();
     String uniqueId = conversation.getUniqueId();
+    Date lastMsgAt = conversation.getLastMessageAt();
 
     result.put("objectId", conversationId);
     result.put("c", creator);
@@ -416,9 +435,14 @@ public class Common {
       result.put("m", members);
     }
 
-    if (null != lastMsg) {
-      result.put("lm", wrapMessage(lastMsg));
+    if (null != lastMsgAt) {
+      result.put("lm", Utils.mapFromDate(lastMsgAt));
     }
+
+    if (null != lastMsg) {
+      result.put("msg", lastMsg.getContent());
+    }
+
     return result;
   }
 }

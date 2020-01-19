@@ -26,9 +26,9 @@ public class DefaultMessageHandler extends AVIMMessageHandler {
   public void onMessage(AVIMMessage message, AVIMConversation conversation, AVIMClient client) {
     if (null != this.listener) {
       HashMap<String, Object> param = new HashMap<>();
-      param.put("clientId", client.getClientId());
-      param.put("cid", conversation.getConversationId());
-      param.put("message", Common.wrapMessage(message));
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Message_Raw, Common.wrapMessage(message));
       this.listener.notify(Common.Method_Message_Received, param);
     }
   }
@@ -44,11 +44,11 @@ public class DefaultMessageHandler extends AVIMMessageHandler {
   public void onMessageReceipt(AVIMMessage message, AVIMConversation conversation, AVIMClient client) {
     if (null != this.listener) {
       HashMap<String, Object> param = new HashMap<>();
-      param.put("clientId", client.getClientId());
-      param.put("cid", conversation.getConversationId());
-      param.put("id", message.getMessageId());
-      param.put("t", message.getDeliveredAt());
-      param.put("read", false);
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Message_Id, message.getMessageId());
+      param.put(Common.Param_Timestamp, message.getDeliveredAt());
+      param.put(Common.Param_Flag_Read, false);
       this.listener.notify(Common.Method_Message_Receipted, param);
     }
   }
