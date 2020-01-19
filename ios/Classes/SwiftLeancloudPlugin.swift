@@ -346,6 +346,19 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                                     typeableMessage = IMFileMessage(filePath: path, format: fileFormat)
                                 default: fatalError()
                                 }
+                            } else if let urlString = fileData?["url"] as? String,
+                                let url = URL(string: urlString) {
+                                switch msgType {
+                                case -2:
+                                    typeableMessage = IMImageMessage(url: url, format: fileFormat)
+                                case -3:
+                                    typeableMessage = IMAudioMessage(url: url, format: fileFormat)
+                                case -4:
+                                    typeableMessage = IMVideoMessage(url: url, format: fileFormat)
+                                case -6:
+                                    typeableMessage = IMFileMessage(url: url, format: fileFormat)
+                                default: fatalError()
+                                }
                             } else {
                                 switch msgType {
                                 case -2:
@@ -358,6 +371,9 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                                     typeableMessage = IMFileMessage()
                                 default: fatalError()
                                 }
+                            }
+                            if let name = fileData?["name"] as? String {
+                                typeableMessage.file?.name = LCString(name)
                             }
                         case -5:
                             typeableMessage = IMLocationMessage()
@@ -408,21 +424,53 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                             priority = .low
                         }
                     }
-                    try conversation.send(
-                        message: message,
-                        options: sendOptions,
-                        priority: priority,
-                        pushData: options?["pushData"] as? [String: Any])
-                    { (result) in
-                        switch result {
-                        case .success:
-                            let messageData: [String: Any] = self.encodingMessage(
-                                clientID: self.client.ID,
-                                conversationID: conversation.ID,
-                                message: message)
-                            self.mainAsync(["success": messageData], callback)
-                        case .failure(error: let error):
-                            self.mainAsync(self.error(error), callback)
+                    if let file = (message as? IMCategorizedMessage)?.file,
+                        let _ = file.name {
+                        file.save(options: .keepFileName) { result in
+                            switch result {
+                            case .success:
+                                do {
+                                    try conversation.send(
+                                        message: message,
+                                        options: sendOptions,
+                                        priority: priority,
+                                        pushData: options?["pushData"] as? [String: Any])
+                                    { (result) in
+                                        switch result {
+                                        case .success:
+                                            let messageData: [String: Any] = self.encodingMessage(
+                                                clientID: self.client.ID,
+                                                conversationID: conversation.ID,
+                                                message: message)
+                                            self.mainAsync(["success": messageData], callback)
+                                        case .failure(error: let error):
+                                            self.mainAsync(self.error(error), callback)
+                                        }
+                                    }
+                                } catch {
+                                    self.mainAsync(self.error(error), callback)
+                                }
+                            case .failure(error: let error):
+                                self.mainAsync(self.error(error), callback)
+                            }
+                        }
+                    } else {
+                        try conversation.send(
+                            message: message,
+                            options: sendOptions,
+                            priority: priority,
+                            pushData: options?["pushData"] as? [String: Any])
+                        { (result) in
+                            switch result {
+                            case .success:
+                                let messageData: [String: Any] = self.encodingMessage(
+                                    clientID: self.client.ID,
+                                    conversationID: conversation.ID,
+                                    message: message)
+                                self.mainAsync(["success": messageData], callback)
+                            case .failure(error: let error):
+                                self.mainAsync(self.error(error), callback)
+                            }
                         }
                     }
                 case .failure(error: let error):
