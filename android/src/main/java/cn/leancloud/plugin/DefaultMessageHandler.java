@@ -1,6 +1,7 @@
 package cn.leancloud.plugin;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMConversation;
@@ -28,7 +29,10 @@ public class DefaultMessageHandler extends AVIMMessageHandler {
       HashMap<String, Object> param = new HashMap<>();
       param.put(Common.Param_Client_Id, client.getClientId());
       param.put(Common.Param_Conv_Id, conversation.getConversationId());
-      param.put(Common.Param_Message_Raw, Common.wrapMessage(message));
+      Map<String, Object> msgData = Common.wrapMessage(message);
+      msgData.put(Common.Param_Client_Id, client.getClientId());
+      msgData.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Message_Raw, msgData);
       this.listener.notify(Common.Method_Message_Received, param);
     }
   }
