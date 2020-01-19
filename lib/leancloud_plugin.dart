@@ -547,7 +547,9 @@ class Conversation with _Utilities {
       final Map fileMap = Map();
       fileMap['path'] = message._filePath;
       fileMap['data'] = message._fileData;
+      fileMap['url'] = message._fileUrl;
       fileMap['format'] = message._fileFormat;
+      fileMap['name'] = message._fileName;
       args['file'] = fileMap;
     }
     final Map rawData = await this.call(
@@ -584,7 +586,9 @@ class Conversation with _Utilities {
       final Map fileMap = Map();
       fileMap['path'] = newMessage._filePath;
       fileMap['data'] = newMessage._fileData;
+      fileMap['url'] = newMessage._fileUrl;
       fileMap['format'] = newMessage._fileFormat;
+      fileMap['name'] = newMessage._fileName;
       args['file'] = fileMap;
     }
     final Map rawData = await this.call(
@@ -1079,11 +1083,15 @@ class ImageMessage extends FileMessage {
   ImageMessage.from({
     String path,
     Uint8List binaryData,
+    String url,
     String format,
+    String name,
   }) : super.from(
           path: path,
           binaryData: binaryData,
+          url: url,
           format: format,
+          name: name,
         );
 }
 
@@ -1106,11 +1114,15 @@ class AudioMessage extends FileMessage {
   AudioMessage.from({
     String path,
     Uint8List binaryData,
+    String url,
     String format,
+    String name,
   }) : super.from(
           path: path,
           binaryData: binaryData,
+          url: url,
           format: format,
+          name: name,
         );
 }
 
@@ -1133,11 +1145,15 @@ class VideoMessage extends FileMessage {
   VideoMessage.from({
     String path,
     Uint8List binaryData,
+    String url,
     String format,
+    String name,
   }) : super.from(
           path: path,
           binaryData: binaryData,
+          url: url,
           format: format,
+          name: name,
         );
 }
 
@@ -1187,6 +1203,8 @@ class FileMessage extends TypeableMessage {
   String _filePath;
   Uint8List _fileData;
   String _fileFormat;
+  String _fileUrl;
+  String _fileName;
 
   Map get _fileMap {
     return this.rawData['_lcfile'];
@@ -1234,12 +1252,16 @@ class FileMessage extends TypeableMessage {
   FileMessage.from({
     String path,
     Uint8List binaryData,
+    String url,
     String format,
+    String name,
   }) {
-    assert(path != null || binaryData != null);
+    assert(path != null || binaryData != null || url != null);
     this._filePath = path;
     this._fileData = binaryData;
+    this._fileUrl = url;
     this._fileFormat = format;
+    this._fileName = name;
   }
 }
 

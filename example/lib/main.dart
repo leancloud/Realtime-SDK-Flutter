@@ -430,6 +430,7 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
         } else if (message is ImageMessage) {
           // receive image
           assertFileMessage(message);
+          assert(message.url.endsWith('/image.png'));
           assert(message.width != null);
           assert(message.height != null);
           decrease(1);
@@ -484,6 +485,7 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
       ImageMessage imageMessage = ImageMessage.from(
         binaryData: imageData.buffer.asUint8List(),
         format: 'png',
+        name: 'image.png',
       );
       await conversation.send(message: imageMessage);
       assertMessage(imageMessage, conversation);
