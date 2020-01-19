@@ -1057,7 +1057,8 @@ class ImageMessage extends FileMessage {
   double get width {
     final Map metaDataMap = this._metaDataMap;
     if (metaDataMap != null) {
-      return metaDataMap['width'];
+      var width = metaDataMap['width'];
+      return width.toDouble();
     } else {
       return null;
     }
@@ -1066,7 +1067,8 @@ class ImageMessage extends FileMessage {
   double get height {
     final Map metaDataMap = this._metaDataMap;
     if (metaDataMap != null) {
-      return metaDataMap['height'];
+      var height = metaDataMap['height'];
+      return height.toDouble();
     } else {
       return null;
     }
@@ -1092,7 +1094,8 @@ class AudioMessage extends FileMessage {
   double get duration {
     final Map metaDataMap = this._metaDataMap;
     if (metaDataMap != null) {
-      return metaDataMap['duration'];
+      var duration = metaDataMap['duration'];
+      return duration.toDouble();
     } else {
       return null;
     }
@@ -1118,7 +1121,8 @@ class VideoMessage extends FileMessage {
   double get duration {
     final Map metaDataMap = this._metaDataMap;
     if (metaDataMap != null) {
-      return metaDataMap['duration'];
+      var duration = metaDataMap['duration'];
+      return duration.toDouble();
     } else {
       return null;
     }
@@ -1147,7 +1151,8 @@ class LocationMessage extends TypeableMessage {
   double get latitude {
     final Map locationMap = this._locationMap;
     if (locationMap != null) {
-      return locationMap['latitude'];
+      var latitude = locationMap['latitude'];
+      return latitude.toDouble();
     }
     return null;
   }
@@ -1155,17 +1160,18 @@ class LocationMessage extends TypeableMessage {
   double get longitude {
     final Map locationMap = this._locationMap;
     if (locationMap != null) {
-      return locationMap['longitude'];
+      var longitude = locationMap['longitude'];
+      return longitude.toDouble();
     }
     return null;
   }
 
   LocationMessage() : super();
 
-  LocationMessage.from(
-    double latitude,
-    double longitude,
-  ) {
+  LocationMessage.from({
+    @required double latitude,
+    @required double longitude,
+  }) {
     assert(latitude != null && longitude != null);
     this._locationMap = {
       'latitude': latitude,
@@ -1216,7 +1222,8 @@ class FileMessage extends TypeableMessage {
   double get size {
     final Map metaDataMap = this._metaDataMap;
     if (metaDataMap != null) {
-      return metaDataMap['size'];
+      var size = metaDataMap['size'];
+      return size.toDouble();
     } else {
       return null;
     }

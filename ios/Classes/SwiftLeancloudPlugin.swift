@@ -37,9 +37,8 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                 }
             }
         } else {
-            guard let delegator  = SwiftLeancloudPlugin.delegatorMap[clientId] else {
-                result(LCError.clientNotFound(
-                    ID: clientId))
+            guard let delegator = SwiftLeancloudPlugin.delegatorMap[clientId] else {
+                result(LCError.clientNotFound(ID: clientId))
                 return
             }
             switch call.method {
@@ -51,6 +50,10 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                     callback: result)
             case "getConversation":
                 delegator.getConversation(
+                    parameters: arguments,
+                    callback: result)
+            case "sendMessage":
+                delegator.sendMessage(
                     parameters: arguments,
                     callback: result)
             default:
@@ -248,6 +251,188 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             }
         }
     }
+    
+    func encodingMessage(
+        clientID: String,
+        conversationID: String,
+        message: IMMessage)
+        -> [String: Any]
+    {
+        var messageData: [String: Any] = [
+            "clientId": clientID,
+            "conversationId": conversationID]
+        if let messageID: String = message.ID {
+            messageData["id"] = messageID
+        }
+        if let from: String = message.fromClientID {
+            messageData["from"] = from
+        }
+        if let timestamp: Int64 = message.sentTimestamp {
+            messageData["timestamp"] = Int(timestamp)
+        }
+        if let patchTimestamp: Int64 = message.patchedTimestamp {
+            messageData["patchTimestamp"] = Int(patchTimestamp)
+        }
+        if let ackAt: Int64 = message.deliveredTimestamp {
+            messageData["ackAt"] = Int(ackAt)
+        }
+        if let readAt: Int64 = message.readTimestamp {
+            messageData["readAt"] = Int(readAt)
+        }
+        if let mentionPids: [String] = message.mentionedMembers {
+            messageData["mentionPids"] = mentionPids
+        }
+        if let mentionAll: Bool = message.isAllMembersMentioned {
+            messageData["mentionAll"] = mentionAll
+        }
+        if message.isTransient {
+            messageData["transient"] = message.isTransient
+        }
+        if message is IMCategorizedMessage {
+            messageData["typeMsgData"] = (message as? IMCategorizedMessage)?.rawData
+        } else if let data: Data = message.content?.data {
+            messageData["binaryMsg"] = FlutterStandardTypedData(bytes: data)
+        } else if let msg: String = message.content?.string {
+            messageData["msg"] = msg
+        }
+        return messageData
+    }
+    
+    func sendMessage(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            do {
+                switch result {
+                case .success(value: let conversation):
+                    let message: IMMessage
+                    let messageRawData = parameters["message"] as? [String: Any]
+                    if let msg = messageRawData?["msg"] as? String {
+                        message = IMMessage()
+                        try message.set(content: .string(msg))
+                    } else if let binaryMsg = messageRawData?["binaryMsg"] as? FlutterStandardTypedData {
+                        message = IMMessage()
+                        try message.set(content: .data(binaryMsg.data))
+                    } else if let typeMsgData = messageRawData?["typeMsgData"] as? [String: Any] {
+                        let typeableMessage: IMCategorizedMessage
+                        let msgType = typeMsgData["_lctype"] as! Int
+                        switch msgType {
+                        case -1:
+                            typeableMessage = IMTextMessage()
+                        case -2, -3, -4, -6:
+                            let fileData = parameters["file"] as? [String: Any]
+                            let fileFormat = fileData?["format"] as? String
+                            if let data = fileData?["data"] as? FlutterStandardTypedData {
+                                switch msgType {
+                                case -2:
+                                    typeableMessage = IMImageMessage(data: data.data, format: fileFormat)
+                                case -3:
+                                    typeableMessage = IMAudioMessage(data: data.data, format: fileFormat)
+                                case -4:
+                                    typeableMessage = IMVideoMessage(data: data.data, format: fileFormat)
+                                case -6:
+                                    typeableMessage = IMFileMessage(data: data.data, format: fileFormat)
+                                default: fatalError()
+                                }
+                            } else if let path = fileData?["path"] as? String {
+                                switch msgType {
+                                case -2:
+                                    typeableMessage = IMImageMessage(filePath: path, format: fileFormat)
+                                case -3:
+                                    typeableMessage = IMAudioMessage(filePath: path, format: fileFormat)
+                                case -4:
+                                    typeableMessage = IMVideoMessage(filePath: path, format: fileFormat)
+                                case -6:
+                                    typeableMessage = IMFileMessage(filePath: path, format: fileFormat)
+                                default: fatalError()
+                                }
+                            } else {
+                                switch msgType {
+                                case -2:
+                                    typeableMessage = IMImageMessage()
+                                case -3:
+                                    typeableMessage = IMAudioMessage()
+                                case -4:
+                                    typeableMessage = IMVideoMessage()
+                                case -6:
+                                    typeableMessage = IMFileMessage()
+                                default: fatalError()
+                                }
+                            }
+                        case -5:
+                            typeableMessage = IMLocationMessage()
+                        case -127:
+                            typeableMessage = IMRecalledMessage()
+                        default: fatalError()
+                        }
+                        typeMsgData.forEach { (key, value) in
+                            if key == "_lctext" {
+                                typeableMessage.text = value as? String
+                            } else if key == "_lcattrs"  {
+                                typeableMessage.attributes = value as? [String: Any]
+                            } else if key == "_lcloc" {
+                                if let location = value as? [String: Any],
+                                    let latitude = location["latitude"] as? Double,
+                                    let longitude = location["longitude"] as? Double {
+                                    typeableMessage.location = LCGeoPoint(latitude: latitude, longitude: longitude)
+                                }
+                            } else {
+                                typeableMessage[key] = value
+                            }
+                        }
+                        message = typeableMessage
+                    } else {
+                        message = IMMessage()
+                    }
+                    let options = parameters["options"] as? [String: Any]
+                    var sendOptions: IMConversation.MessageSendOptions = []
+                    if let receipt = options?["receipt"] as? Bool,
+                        receipt {
+                        sendOptions.insert(.needReceipt)
+                    }
+                    if let will = options?["will"] as? Bool,
+                        will {
+                        sendOptions.insert(.isAutoDeliveringWhenOffline)
+                    }
+                    if let transient = messageRawData?["transient"] as? Bool,
+                        transient {
+                        sendOptions.insert(.isTransient)
+                    }
+                    var priority: IMChatRoom.MessagePriority?
+                    if let priorityValue = options?["priority"] as? Int {
+                        if priorityValue == 1 {
+                            priority = .high
+                        } else if priorityValue == 2 {
+                            priority = .normal
+                        } else if priorityValue == 3 {
+                            priority = .low
+                        }
+                    }
+                    try conversation.send(
+                        message: message,
+                        options: sendOptions,
+                        priority: priority,
+                        pushData: options?["pushData"] as? [String: Any])
+                    { (result) in
+                        switch result {
+                        case .success:
+                            let messageData: [String: Any] = self.encodingMessage(
+                                clientID: self.client.ID,
+                                conversationID: conversation.ID,
+                                message: message)
+                            self.mainAsync(["success": messageData], callback)
+                        case .failure(error: let error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                case .failure(error: let error):
+                    self.mainAsync(self.error(error), callback)
+                }
+            } catch {
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
 }
 
 extension IMClientDelegator: IMClientDelegate {
@@ -259,8 +444,7 @@ extension IMClientDelegator: IMClientDelegate {
     func client(_ client: IMClient, conversation: IMConversation, event: IMConversationEvent) {
         var args: [String: Any] = [
             "clientId": client.ID,
-            "conversationId": conversation.ID,
-        ]
+            "conversationId": conversation.ID]
         switch event {
         case let .joined(byClientID: byClientID, at: at):
             args["op"] = "joined"
@@ -296,6 +480,18 @@ extension IMClientDelegator: IMClientDelegate {
                 args["udate"] = (LCDate(at).jsonValue as? [String: String])?["iso"]
             }
             self.invoke("onConversationMembersUpdate", args)
+        case let .message(event: messageEvent):
+            switch messageEvent {
+            case let .received(message: message):
+                let messageRawData: [String: Any] = self.encodingMessage(
+                    clientID: client.ID,
+                    conversationID: conversation.ID,
+                    message: message)
+                args["message"] = messageRawData
+                self.invoke("onMessageReceive", args)
+            default:
+                break
+            }
         default:
             break
         }
