@@ -1,5 +1,6 @@
 package cn.leancloud.plugin;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
 import java.nio.ByteBuffer;
@@ -99,6 +100,12 @@ public class Common {
   public static final String Param_Message_Options = "options";
   public static final String Param_Message_File = "file";
   public static final String Param_Message_Id = "id";
+
+  public static final String Param_File_Path = "path";
+  public static final String Param_File_Data = "data";
+  public static final String Param_File_Url = "url";
+  public static final String Param_File_Format = "format";
+  public static final String Param_File_Name = "name";
 
   public static final String Param_Code = "code";
   public static final String Param_Error = "error";
@@ -206,7 +213,15 @@ public class Common {
       return result;
     }
 
-    return message.dumpRawData();
+    result = message.dumpRawData();
+    if (result.containsKey("typeMsgData")) {
+      Object val = result.get("typeMsgData");
+      if (val instanceof String) {
+        result.put("typeMsgData", JSON.parse((String) val));
+      }
+    }
+
+    return result;
   }
 
   public static AVIMMessage parseMessage(Map<String, Object> rawData) {

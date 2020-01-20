@@ -5,6 +5,7 @@ import android.util.Log;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Map;
 
 import androidx.annotation.NonNull;
 import cn.leancloud.AVException;
+import cn.leancloud.AVFile;
 import cn.leancloud.im.AVIMOptions;
 import cn.leancloud.im.v2.AVIMBinaryMessage;
 import cn.leancloud.im.v2.AVIMClient;
@@ -34,6 +36,7 @@ import cn.leancloud.im.v2.callback.AVIMMessageUpdatedCallback;
 import cn.leancloud.im.v2.callback.AVIMMessagesQueryCallback;
 import cn.leancloud.im.v2.callback.AVIMOperationFailure;
 import cn.leancloud.im.v2.callback.AVIMOperationPartiallySucceededCallback;
+import cn.leancloud.im.v2.messages.AVIMFileMessage;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -356,9 +359,50 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Send_Message)) {
       Map<String, Object> msgData = Common.getMethodParam(call, Common.Param_Message_Raw);
       Map<String, Object> optionData = Common.getMethodParam(call, Common.Param_Message_Options);
+      Map<String, Object> fileData = Common.getMethodParam(call, Common.Param_Message_File);
       Log.d(TAG, "send message from conv:" + conversationId
-          + ", message:" + JSON.toJSONString(msgData) + ", option:" + JSON.toJSONString(optionData));
+          + ", message:" + JSON.toJSONString(msgData)
+          + ", file:" + JSON.toJSONString(fileData)
+          + ", option:" + JSON.toJSONString(optionData));
       final AVIMMessage message = Common.parseMessage(msgData);
+      if (message instanceof AVIMFileMessage && null != fileData) {
+        byte[] byteArray = null;
+        if (fileData.containsKey(Common.Param_File_Data)) {
+          byteArray = (byte[]) fileData.get(Common.Param_File_Data);
+        }
+        String localPath = null;
+        if (fileData.containsKey(Common.Param_File_Path)) {
+          localPath = (String) fileData.get(Common.Param_File_Path);
+        }
+        String url = null;
+        if (fileData.containsKey(Common.Param_File_Url)) {
+          url = (String) fileData.get(Common.Param_File_Url);
+        }
+        String format = null;
+        if (fileData.containsKey(Common.Param_File_Format)) {
+          format = (String) fileData.get(Common.Param_File_Format);
+        }
+        String name = null;
+        if (fileData.containsKey(Common.Param_File_Name)) {
+          name = (String) fileData.get(Common.Param_File_Name);
+        }
+        AVFile avFile = null;
+        if (null != byteArray) {
+          avFile = new AVFile(name, byteArray);
+        } else if (!StringUtil.isEmpty(localPath)) {
+          avFile = new AVFile(name, new File(localPath));
+        } else if (!StringUtil.isEmpty(url)) {
+          avFile = new AVFile(name, url);
+        }
+        if (null != avFile) {
+          if (!StringUtil.isEmpty(format)) {
+            avFile.setMimeType(format);
+          }
+          ((AVIMFileMessage) message).attachAVFile(avFile);
+        } else {
+          Log.d(TAG, "invalid file param!!");
+        }
+      }
       AVIMMessageOption option = Common.parseMessageOption(optionData);
       conversation.sendMessage(message, option,
           new AVIMConversationCallback() {
