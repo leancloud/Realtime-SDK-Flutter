@@ -497,7 +497,14 @@ class Conversation with _Utilities {
   int _unreadMessageCount;
   int get unreadMessageCount => this._unreadMessageCount;
 
-  bool unreadMessageContainMention;
+  bool _unreadMessageContainMention;
+  bool get unreadMessageContainMention => this._unreadMessageContainMention;
+  set unreadMessageContainMention(bool value) {
+    this._unreadMessageContainMention = value;
+    this._updateStatus(args: {
+      'unreadMessageMention': value,
+    });
+  }
 
   Conversation._from({
     @required this.id,
@@ -737,6 +744,21 @@ class Conversation with _Utilities {
       method: 'countMembers',
       arguments: args,
     );
+  }
+
+  Future<void> _updateStatus({
+    @required Map args,
+  }) async {
+    args['clientId'] = this.client.id;
+    args['conversationId'] = this.id;
+    try {
+      await this.call(
+        method: 'updateStatus',
+        arguments: args,
+      );
+    } catch (e) {
+      print(e);
+    }
   }
 
   void _membersUpdate({
