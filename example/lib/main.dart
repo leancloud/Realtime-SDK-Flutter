@@ -672,6 +672,78 @@ UnitTestCaseCard updateMessage = UnitTestCaseCard(
       return [client1, client2];
     });
 
+UnitTestCaseCard messageReceipt = UnitTestCaseCard(
+    title: 'Case: Message Receipt',
+    extraExpectedCount: 4,
+    testCaseFunc: (decrease) async {
+      // client
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+      // message
+      Message message = Message();
+      message.stringContent = uuid();
+      // event
+      int client1OnMessageReceipt = 2;
+      int maxReadTimestamp;
+      int maxDeliveredTimestamp;
+      client1.onMessageReceipt = ({
+        Client client,
+        Conversation conversation,
+        String messageId,
+        int timestamp,
+        String byClientId,
+        bool isRead,
+      }) async {
+        client1OnMessageReceipt -= 1;
+        if (client1OnMessageReceipt <= 0) {
+          client1.onMessageReceipt = null;
+        }
+        assert(client != null);
+        assert(conversation != null);
+        assert(messageId == message.id);
+        assert(timestamp >= message.sentTimestamp);
+        assert(byClientId == client2.id);
+        if (isRead) {
+          maxReadTimestamp = timestamp;
+        } else {
+          maxDeliveredTimestamp = timestamp;
+        }
+        decrease(1);
+        if (client1OnMessageReceipt == 0) {
+          Map rcp = await conversation.getMessageReceipt();
+          assert(maxReadTimestamp != null);
+          assert(maxDeliveredTimestamp != null);
+          assert(rcp['maxReadTimestamp'] is int);
+          assert(rcp['maxDeliveredTimestamp'] is int);
+          decrease(1);
+        }
+      };
+      client2.onConversationLastMessageUpdate = ({
+        Client client,
+        Conversation conversation,
+      }) {
+        client2.onConversationLastMessageUpdate = null;
+        assert(client != null);
+        assert(conversation != null);
+        conversation.read();
+        decrease(1);
+      };
+      // open
+      await client1.open();
+      await client2.open();
+      // create
+      Conversation conversation = await client1.createConversation(
+        members: [client1.id, client2.id],
+      );
+      // send
+      await conversation.send(
+        message: message,
+        receipt: true,
+      );
+      // recycle
+      return [client1, client2];
+    });
+
 class _MyAppState extends State<MyApp> {
   List<UnitTestCaseCard> cases = [
     clientOpenThenClose,
@@ -682,6 +754,7 @@ class _MyAppState extends State<MyApp> {
     sendMessage,
     readMessage,
     // updateMessage,
+    messageReceipt,
   ];
 
   @override
