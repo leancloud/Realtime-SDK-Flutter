@@ -45,21 +45,17 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
             case "closeClient":
                 delegator.close(callback: result)
             case "createConversation":
-                delegator.createConversation(
-                    parameters: arguments,
-                    callback: result)
+                delegator.createConversation(parameters: arguments, callback: result)
             case "getConversation":
-                delegator.getConversation(
-                    parameters: arguments,
-                    callback: result)
+                delegator.getConversation(parameters: arguments, callback: result)
+            case "updateStatus":
+                delegator.updateStatus(parameters: arguments, callback: result)
             case "sendMessage":
-                delegator.sendMessage(
-                    parameters: arguments,
-                    callback: result)
+                delegator.sendMessage(parameters: arguments, callback: result)
             case "readMessage":
-                delegator.readMessage(
-                    parameters: arguments,
-                    callback: result)
+                delegator.readMessage(parameters: arguments, callback: result)
+            case "updateMessage":
+                delegator.updateMessage( parameters: arguments, callback: result)
             default:
                 fatalError("unknown method.")
             }
@@ -256,6 +252,22 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         }
     }
     
+    func updateStatus(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                if let unreadMessageMention = parameters["unreadMessageMention"] as? Bool {
+                    conversation.isUnreadMessageContainMention = unreadMessageMention
+                }
+                self.mainAsync([:], callback)
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
     func encodingMessage(
         clientID: String,
         conversationID: String,
@@ -302,6 +314,111 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         return messageData
     }
     
+    func decodingMessage(parameters: [String: Any], messageRawDataKey: String) throws -> IMMessage {
+        let message: IMMessage
+        let messageRawData = parameters[messageRawDataKey] as? [String: Any]
+        if let msg = messageRawData?["msg"] as? String {
+            message = IMMessage()
+            try message.set(content: .string(msg))
+        } else if let binaryMsg = messageRawData?["binaryMsg"] as? FlutterStandardTypedData {
+            message = IMMessage()
+            try message.set(content: .data(binaryMsg.data))
+        } else if let typeMsgData = messageRawData?["typeMsgData"] as? [String: Any] {
+            let typeableMessage: IMCategorizedMessage
+            let msgType = typeMsgData["_lctype"] as! Int
+            switch msgType {
+            case -1:
+                typeableMessage = IMTextMessage()
+            case -2, -3, -4, -6:
+                let fileData = parameters["file"] as? [String: Any]
+                let fileFormat = fileData?["format"] as? String
+                if let data = fileData?["data"] as? FlutterStandardTypedData {
+                    switch msgType {
+                    case -2:
+                        typeableMessage = IMImageMessage(data: data.data, format: fileFormat)
+                    case -3:
+                        typeableMessage = IMAudioMessage(data: data.data, format: fileFormat)
+                    case -4:
+                        typeableMessage = IMVideoMessage(data: data.data, format: fileFormat)
+                    case -6:
+                        typeableMessage = IMFileMessage(data: data.data, format: fileFormat)
+                    default: fatalError()
+                    }
+                } else if let path = fileData?["path"] as? String {
+                    switch msgType {
+                    case -2:
+                        typeableMessage = IMImageMessage(filePath: path, format: fileFormat)
+                    case -3:
+                        typeableMessage = IMAudioMessage(filePath: path, format: fileFormat)
+                    case -4:
+                        typeableMessage = IMVideoMessage(filePath: path, format: fileFormat)
+                    case -6:
+                        typeableMessage = IMFileMessage(filePath: path, format: fileFormat)
+                    default: fatalError()
+                    }
+                } else if let urlString = fileData?["url"] as? String,
+                    let url = URL(string: urlString) {
+                    switch msgType {
+                    case -2:
+                        typeableMessage = IMImageMessage(url: url, format: fileFormat)
+                    case -3:
+                        typeableMessage = IMAudioMessage(url: url, format: fileFormat)
+                    case -4:
+                        typeableMessage = IMVideoMessage(url: url, format: fileFormat)
+                    case -6:
+                        typeableMessage = IMFileMessage(url: url, format: fileFormat)
+                    default: fatalError()
+                    }
+                } else {
+                    switch msgType {
+                    case -2:
+                        typeableMessage = IMImageMessage()
+                    case -3:
+                        typeableMessage = IMAudioMessage()
+                    case -4:
+                        typeableMessage = IMVideoMessage()
+                    case -6:
+                        typeableMessage = IMFileMessage()
+                    default: fatalError()
+                    }
+                }
+                if let name = fileData?["name"] as? String {
+                    typeableMessage.file?.name = LCString(name)
+                }
+            case -5:
+                typeableMessage = IMLocationMessage()
+            case -127:
+                typeableMessage = IMRecalledMessage()
+            default: fatalError()
+            }
+            typeMsgData.forEach { (key, value) in
+                if key == "_lctext" {
+                    typeableMessage.text = value as? String
+                } else if key == "_lcattrs"  {
+                    typeableMessage.attributes = value as? [String: Any]
+                } else if key == "_lcloc" {
+                    if let location = value as? [String: Any],
+                        let latitude = location["latitude"] as? Double,
+                        let longitude = location["longitude"] as? Double {
+                        typeableMessage.location = LCGeoPoint(latitude: latitude, longitude: longitude)
+                    }
+                } else {
+                    typeableMessage[key] = value
+                }
+            }
+            message = typeableMessage
+        } else {
+            message = IMMessage()
+        }
+        if let mentionAll = messageRawData?["mentionAll"] as? Bool {
+            message.isAllMembersMentioned = mentionAll
+        }
+        if let mentionPids = messageRawData?["mentionPids"] as? [String] {
+            message.mentionedMembers = mentionPids
+        }
+        return message
+    }
+    
     func sendMessage(parameters: [String: Any], callback: @escaping FlutterResult) {
         self.client.getCachedConversation(
             ID: parameters["conversationId"] as! String)
@@ -309,101 +426,9 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             do {
                 switch result {
                 case .success(value: let conversation):
-                    let message: IMMessage
-                    let messageRawData = parameters["message"] as? [String: Any]
-                    if let msg = messageRawData?["msg"] as? String {
-                        message = IMMessage()
-                        try message.set(content: .string(msg))
-                    } else if let binaryMsg = messageRawData?["binaryMsg"] as? FlutterStandardTypedData {
-                        message = IMMessage()
-                        try message.set(content: .data(binaryMsg.data))
-                    } else if let typeMsgData = messageRawData?["typeMsgData"] as? [String: Any] {
-                        let typeableMessage: IMCategorizedMessage
-                        let msgType = typeMsgData["_lctype"] as! Int
-                        switch msgType {
-                        case -1:
-                            typeableMessage = IMTextMessage()
-                        case -2, -3, -4, -6:
-                            let fileData = parameters["file"] as? [String: Any]
-                            let fileFormat = fileData?["format"] as? String
-                            if let data = fileData?["data"] as? FlutterStandardTypedData {
-                                switch msgType {
-                                case -2:
-                                    typeableMessage = IMImageMessage(data: data.data, format: fileFormat)
-                                case -3:
-                                    typeableMessage = IMAudioMessage(data: data.data, format: fileFormat)
-                                case -4:
-                                    typeableMessage = IMVideoMessage(data: data.data, format: fileFormat)
-                                case -6:
-                                    typeableMessage = IMFileMessage(data: data.data, format: fileFormat)
-                                default: fatalError()
-                                }
-                            } else if let path = fileData?["path"] as? String {
-                                switch msgType {
-                                case -2:
-                                    typeableMessage = IMImageMessage(filePath: path, format: fileFormat)
-                                case -3:
-                                    typeableMessage = IMAudioMessage(filePath: path, format: fileFormat)
-                                case -4:
-                                    typeableMessage = IMVideoMessage(filePath: path, format: fileFormat)
-                                case -6:
-                                    typeableMessage = IMFileMessage(filePath: path, format: fileFormat)
-                                default: fatalError()
-                                }
-                            } else if let urlString = fileData?["url"] as? String,
-                                let url = URL(string: urlString) {
-                                switch msgType {
-                                case -2:
-                                    typeableMessage = IMImageMessage(url: url, format: fileFormat)
-                                case -3:
-                                    typeableMessage = IMAudioMessage(url: url, format: fileFormat)
-                                case -4:
-                                    typeableMessage = IMVideoMessage(url: url, format: fileFormat)
-                                case -6:
-                                    typeableMessage = IMFileMessage(url: url, format: fileFormat)
-                                default: fatalError()
-                                }
-                            } else {
-                                switch msgType {
-                                case -2:
-                                    typeableMessage = IMImageMessage()
-                                case -3:
-                                    typeableMessage = IMAudioMessage()
-                                case -4:
-                                    typeableMessage = IMVideoMessage()
-                                case -6:
-                                    typeableMessage = IMFileMessage()
-                                default: fatalError()
-                                }
-                            }
-                            if let name = fileData?["name"] as? String {
-                                typeableMessage.file?.name = LCString(name)
-                            }
-                        case -5:
-                            typeableMessage = IMLocationMessage()
-                        case -127:
-                            typeableMessage = IMRecalledMessage()
-                        default: fatalError()
-                        }
-                        typeMsgData.forEach { (key, value) in
-                            if key == "_lctext" {
-                                typeableMessage.text = value as? String
-                            } else if key == "_lcattrs"  {
-                                typeableMessage.attributes = value as? [String: Any]
-                            } else if key == "_lcloc" {
-                                if let location = value as? [String: Any],
-                                    let latitude = location["latitude"] as? Double,
-                                    let longitude = location["longitude"] as? Double {
-                                    typeableMessage.location = LCGeoPoint(latitude: latitude, longitude: longitude)
-                                }
-                            } else {
-                                typeableMessage[key] = value
-                            }
-                        }
-                        message = typeableMessage
-                    } else {
-                        message = IMMessage()
-                    }
+                    let message: IMMessage = try self.decodingMessage(
+                        parameters: parameters,
+                        messageRawDataKey: "message")
                     let options = parameters["options"] as? [String: Any]
                     var sendOptions: IMConversation.MessageSendOptions = []
                     if let receipt = options?["receipt"] as? Bool,
@@ -414,7 +439,7 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                         will {
                         sendOptions.insert(.isAutoDeliveringWhenOffline)
                     }
-                    if let transient = messageRawData?["transient"] as? Bool,
+                    if let transient = (parameters["message"] as? [String: Any])?["transient"] as? Bool,
                         transient {
                         sendOptions.insert(.isTransient)
                     }
@@ -499,6 +524,19 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             }
         }
     }
+    
+    func updateMessage(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: _):
+                fatalError()
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
 }
 
 extension IMClientDelegator: IMClientDelegate {
@@ -556,7 +594,9 @@ extension IMClientDelegator: IMClientDelegate {
             }
         case .unreadMessageCountUpdated:
             args["count"] = conversation.unreadMessageCount
-            args["mention"] = conversation.isUnreadMessageContainMention
+            if conversation.isUnreadMessageContainMention {
+                args["mention"] = true
+            }
             self.invoke("onUnreadMessageCountUpdate", args)
         case let .message(event: messageEvent):
             switch messageEvent {
@@ -567,6 +607,15 @@ extension IMClientDelegator: IMClientDelegate {
                     message: message)
                 args["message"] = messageRawData
                 self.invoke("onMessageReceive", args)
+            case let .updated(updatedMessage: message, reason: reason):
+                let messageRawData: [String: Any] = self.encodingMessage(
+                    clientID: client.ID,
+                    conversationID: conversation.ID,
+                    message: message)
+                args["message"] = messageRawData
+                args["patchCode"] = reason?.code
+                args["patchReason"] = reason?.reason
+                self.invoke("onMessageUpdate", args)
             default:
                 break
             }
