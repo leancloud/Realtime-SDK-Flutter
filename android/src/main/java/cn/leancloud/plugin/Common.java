@@ -286,6 +286,7 @@ public class Common {
         result.put("unique", true);
       }
     }
+
     return result;
   }
 }

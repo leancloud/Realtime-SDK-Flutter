@@ -143,11 +143,12 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     }
 
     if (call.method.equals(Common.Method_Create_Conversation)) {
-      int convType = Common.getParamInt(call, Common.Param_Conv_Type);
+      final int convType = Common.getParamInt(call, Common.Param_Conv_Type);
       List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
       String name = Common.getMethodParam(call, Common.Param_Conv_Name);
       Map<String, Object> attr = Common.getMethodParam(call, Common.Param_Conv_Attributes);
-      int ttl = Common.getParamInt(call, Common.Param_Conv_TTL);
+      final int ttl = Common.getParamInt(call, Common.Param_Conv_TTL);
+      Log.d(TAG, "conv_type=" + convType + ", m=" + name + ", attr=" + attr + ", ttl=" + ttl);
       AVIMConversationCreatedCallback callback = new AVIMConversationCreatedCallback() {
         @Override
         public void done(AVIMConversation conversation, AVIMException e) {
@@ -155,6 +156,10 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
             result.success(Common.wrapException(e));
           } else {
             Map<String, Object> convData = Common.wrapConversation(conversation);
+            // we need to change ttl bcz that native sdk set ttl as aboslute timestamp(createdAt + ttl).
+            if (ttl > 0 && convType == Common.Conv_Type_Temporary) {
+              convData.put("ttl", ttl);
+            }
             Log.d(TAG, "succeed create conv:" + new JSONObject(convData).toJSONString());
             result.success(Common.wrapSuccessResponse(convData));
           }
@@ -172,7 +177,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           break;
         case Common.Conv_Type_Common:
         default:
-          avimClient.createConversation(members, name, attr, callback);
+          avimClient.createConversation(members, name, attr, false, false, callback);
           break;
       }
       return;
