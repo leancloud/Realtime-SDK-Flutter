@@ -56,6 +56,10 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                 delegator.sendMessage(
                     parameters: arguments,
                     callback: result)
+            case "readMessage":
+                delegator.readMessage(
+                    parameters: arguments,
+                    callback: result)
             default:
                 fatalError("unknown method.")
             }
@@ -481,6 +485,20 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             }
         }
     }
+    
+    func readMessage(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                conversation.read()
+                self.mainAsync([:], callback)
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
 }
 
 extension IMClientDelegator: IMClientDelegate {
@@ -528,6 +546,18 @@ extension IMClientDelegator: IMClientDelegate {
                 args["udate"] = (LCDate(at).jsonValue as? [String: String])?["iso"]
             }
             self.invoke("onConversationMembersUpdate", args)
+        case .lastMessageUpdated:
+            if let message = conversation.lastMessage {
+                args["message"] = self.encodingMessage(
+                    clientID: client.ID,
+                    conversationID: conversation.ID,
+                    message: message)
+                self.invoke("onLastMessageUpdate", args)
+            }
+        case .unreadMessageCountUpdated:
+            args["count"] = conversation.unreadMessageCount
+            args["mention"] = conversation.isUnreadMessageContainMention
+            self.invoke("onUnreadMessageCountUpdate", args)
         case let .message(event: messageEvent):
             switch messageEvent {
             case let .received(message: message):

@@ -370,7 +370,6 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
     title: 'Case: Send Message',
     extraExpectedCount: 8,
     testCaseFunc: (decrease) async {
-      int client2MessageReceivedCount = 8;
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
       String stringContent = uuid();
@@ -398,6 +397,7 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
         assert(fileMessage.size != null);
       };
       // event
+      int client2OnMessageReceivedCount = 8;
       client2.onMessageReceive = ({
         Client client,
         Conversation conversation,
@@ -406,8 +406,8 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
         assert(client != null);
         assert(conversation != null);
         assertMessage(message, conversation);
-        client2MessageReceivedCount -= 1;
-        if (client2MessageReceivedCount <= 0) {
+        client2OnMessageReceivedCount -= 1;
+        if (client2OnMessageReceivedCount <= 0) {
           client2.onMessageReceive = null;
         }
         if (message.stringContent != null) {
@@ -451,7 +451,7 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
           decrease(1);
         } else if (message is FileMessage) {
           // receive file
-          assertFileMessage(message);
+          assert(message.url != null);
           decrease(1);
         }
       };
@@ -522,14 +522,60 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
       assert(locationMessage.latitude == 22);
       assert(locationMessage.longitude == 33);
       // send file
-      ByteData fileData = await rootBundle.load('assets/test.zip');
       FileMessage fileMessage = FileMessage.from(
-        binaryData: fileData.buffer.asUint8List(),
+        url:
+            'http://lc-heQFQ0Sw.cn-n1.lcfile.com/167022c1a77143a3aa48464b236fa00d',
         format: 'zip',
       );
       await conversation.send(message: fileMessage);
       assertMessage(locationMessage, conversation);
-      assertFileMessage(fileMessage);
+      assert(fileMessage.url != null);
+      // recycle
+      return [client1, client2];
+    });
+
+UnitTestCaseCard readMessage = UnitTestCaseCard(
+    title: 'Case: Read Message',
+    extraExpectedCount: 3,
+    testCaseFunc: (decrease) async {
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+      // event
+      int client2OnConversationUnreadMessageCountUpdateCount = 2;
+      client2.onConversationUnreadMessageCountUpdate = ({
+        Client client,
+        Conversation conversation,
+      }) {
+        client2OnConversationUnreadMessageCountUpdateCount -= 1;
+        if (client2OnConversationUnreadMessageCountUpdateCount <= 0) {
+          client2.onConversationUnreadMessageCountUpdate = null;
+        }
+        if (conversation.unreadMessageCount == 1) {
+          conversation.read();
+          decrease(1);
+        } else if (conversation.unreadMessageCount == 0) {
+          decrease(1);
+        }
+      };
+      client2.onMessageReceive = ({
+        Client client,
+        Conversation conversation,
+        Message message,
+      }) {
+        client2.onMessageReceive = null;
+        decrease(1);
+      };
+      // open
+      await client1.open();
+      await client2.open();
+      // create
+      Conversation conversation = await client1.createConversation(
+        members: [client1.id, client2.id],
+      );
+      // send string
+      Message stringMessage = Message();
+      stringMessage.stringContent = uuid();
+      await conversation.send(message: stringMessage);
       // recycle
       return [client1, client2];
     });
@@ -542,6 +588,7 @@ class _MyAppState extends State<MyApp> {
     createTransientConversation,
     createTemporaryConversation,
     sendMessage,
+    readMessage,
   ];
 
   @override
