@@ -2,6 +2,7 @@ package cn.leancloud.plugin;
 
 import android.util.Log;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
 import java.util.ArrayList;
@@ -30,6 +31,8 @@ import cn.leancloud.im.v2.callback.AVIMConversationMemberCountCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationQueryCallback;
 import cn.leancloud.im.v2.callback.AVIMMessageUpdatedCallback;
 import cn.leancloud.im.v2.callback.AVIMMessagesQueryCallback;
+import cn.leancloud.im.v2.callback.AVIMOperationFailure;
+import cn.leancloud.im.v2.callback.AVIMOperationPartiallySucceededCallback;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -259,9 +262,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Update_Members)) {
       String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
       List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
-      AVIMConversationCallback callback = new AVIMConversationCallback() {
+      AVIMOperationPartiallySucceededCallback callback = new AVIMOperationPartiallySucceededCallback() {
         @Override
-        public void done(AVIMException e) {
+        public void done(AVIMException e, List<String> successfulClientIds, List<AVIMOperationFailure> failures) {
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
@@ -394,6 +397,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
   }
 
   public void notify(String method, Object param) {
+    Log.d(TAG, "notify mehtod=" + method + ", param=" + JSON.toJSONString(param));
     _CHANNEL.invokeMethod(method, param);
   }
 
