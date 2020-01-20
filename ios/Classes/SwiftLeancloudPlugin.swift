@@ -56,6 +56,8 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                 delegator.readMessage(parameters: arguments, callback: result)
             case "updateMessage":
                 delegator.updateMessage( parameters: arguments, callback: result)
+            case "getMessageReceipt":
+                delegator.getMessageReceipt(parameters: arguments, callback: result)
             default:
                 fatalError("unknown method.")
             }
@@ -537,6 +539,37 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             }
         }
     }
+    
+    func getMessageReceipt(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                do {
+                    try conversation.getMessageReceiptFlag { (result) in
+                        switch result {
+                        case .success(value: let rcp):
+                            var success: [String: Any] = [:]
+                            if let maxDeliveredTimestamp = rcp.deliveredFlagTimestamp {
+                                success["maxDeliveredTimestamp"] = Int(maxDeliveredTimestamp)
+                            }
+                            if let maxReadTimestamp = rcp.readFlagTimestamp {
+                                success["maxReadTimestamp"] = Int(maxReadTimestamp)
+                            }
+                            self.mainAsync(["success": success], callback)
+                        case .failure(error: let error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
 }
 
 extension IMClientDelegator: IMClientDelegate {
@@ -616,8 +649,22 @@ extension IMClientDelegator: IMClientDelegate {
                 args["patchCode"] = reason?.code
                 args["patchReason"] = reason?.reason
                 self.invoke("onMessageUpdate", args)
-            default:
-                break
+            case let .delivered(toClientID: toClientID, messageID: messageID, deliveredTimestamp: deliveredTimestamp):
+                args["id"] = messageID
+                args["t"] = Int(deliveredTimestamp)
+                if let from = toClientID {
+                    args["from"] = from
+                }
+                args["read"] = false
+                self.invoke("onMessageReceipt", args)
+            case let .read(byClientID: byClientID, messageID: messageID, readTimestamp: readTimestamp):
+                args["id"] = messageID
+                args["t"] = Int(readTimestamp)
+                if let from = byClientID {
+                    args["from"] = from
+                }
+                args["read"] = true
+                self.invoke("onMessageReceipt", args)
             }
         default:
             break
