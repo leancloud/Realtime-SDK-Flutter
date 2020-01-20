@@ -262,7 +262,7 @@ class Client with _Utilities {
     Client client,
     Conversation conversation,
     String messageId,
-    int messageTimestamp,
+    int timestamp,
     String byClientId,
     bool isRead,
   }) onMessageReceipt;
@@ -911,7 +911,7 @@ class Conversation with _Utilities {
             client: this.client,
             conversation: this,
             messageId: args['id'],
-            messageTimestamp: args['t'],
+            timestamp: args['t'],
             byClientId: args['from'],
             isRead: args['read'],
           );
