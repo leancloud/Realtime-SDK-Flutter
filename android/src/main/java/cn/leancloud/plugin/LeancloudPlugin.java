@@ -5,6 +5,7 @@ import android.util.Log;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,7 +13,9 @@ import java.util.Map;
 
 import androidx.annotation.NonNull;
 import cn.leancloud.AVException;
+import cn.leancloud.AVFile;
 import cn.leancloud.im.AVIMOptions;
+import cn.leancloud.im.v2.AVIMBinaryMessage;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMClientOpenOption;
 import cn.leancloud.im.v2.AVIMConversation;
@@ -33,6 +36,7 @@ import cn.leancloud.im.v2.callback.AVIMMessageUpdatedCallback;
 import cn.leancloud.im.v2.callback.AVIMMessagesQueryCallback;
 import cn.leancloud.im.v2.callback.AVIMOperationFailure;
 import cn.leancloud.im.v2.callback.AVIMOperationPartiallySucceededCallback;
+import cn.leancloud.im.v2.messages.AVIMFileMessage;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -41,6 +45,7 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
+import io.flutter.plugin.common.StandardMethodCodec;
 
 /** LeancloudPlugin */
 public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
@@ -71,7 +76,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
   private static void _initialize(BinaryMessenger messenger, String name) {
     if (null == _CHANNEL) {
-      _CHANNEL = new MethodChannel(messenger, "leancloud_plugin");
+      _CHANNEL = new MethodChannel(messenger, "leancloud_plugin", new StandardMethodCodec(new LeanCloudMessageCodec()));
       _CHANNEL.setMethodCallHandler(_INSTANCE);
 
       AVIMMessageManager.registerDefaultMessageHandler(new DefaultMessageHandler(_INSTANCE));
@@ -110,7 +115,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       client.open(openOption, new AVIMClientCallback() {
         @Override
         public void done(AVIMClient client, AVIMException e) {
-          Log.d(TAG, "client open result: " + client);
+          Log.d(TAG, "client open result: " + Common.wrapClient(client));
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
@@ -138,11 +143,12 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     }
 
     if (call.method.equals(Common.Method_Create_Conversation)) {
-      int convType = Common.getParamInt(call, Common.Param_Conv_Type);
+      final int convType = Common.getParamInt(call, Common.Param_Conv_Type);
       List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
       String name = Common.getMethodParam(call, Common.Param_Conv_Name);
       Map<String, Object> attr = Common.getMethodParam(call, Common.Param_Conv_Attributes);
-      int ttl = Common.getParamInt(call, Common.Param_Conv_TTL);
+      final int ttl = Common.getParamInt(call, Common.Param_Conv_TTL);
+      Log.d(TAG, "conv_type=" + convType + ", m=" + name + ", attr=" + attr + ", ttl=" + ttl);
       AVIMConversationCreatedCallback callback = new AVIMConversationCreatedCallback() {
         @Override
         public void done(AVIMConversation conversation, AVIMException e) {
@@ -150,6 +156,10 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
             result.success(Common.wrapException(e));
           } else {
             Map<String, Object> convData = Common.wrapConversation(conversation);
+            // we need to change ttl bcz that native sdk set ttl as aboslute timestamp(createdAt + ttl).
+            if (ttl > 0 && convType == Common.Conv_Type_Temporary) {
+              convData.put("ttl", ttl);
+            }
             Log.d(TAG, "succeed create conv:" + new JSONObject(convData).toJSONString());
             result.success(Common.wrapSuccessResponse(convData));
           }
@@ -167,7 +177,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           break;
         case Common.Conv_Type_Common:
         default:
-          avimClient.createConversation(members, name, attr, callback);
+          avimClient.createConversation(members, name, attr, false, false, callback);
           break;
       }
       return;
@@ -355,9 +365,56 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Send_Message)) {
       Map<String, Object> msgData = Common.getMethodParam(call, Common.Param_Message_Raw);
       Map<String, Object> optionData = Common.getMethodParam(call, Common.Param_Message_Options);
+      Map<String, Object> fileData = Common.getMethodParam(call, Common.Param_Message_File);
+      Log.d(TAG, "send message from conv:" + conversationId
+          + ", message:" + JSON.toJSONString(msgData)
+          + ", option:" + JSON.toJSONString(optionData));
       final AVIMMessage message = Common.parseMessage(msgData);
+      if (message instanceof AVIMFileMessage && null != fileData) {
+        byte[] byteArray = null;
+        if (fileData.containsKey(Common.Param_File_Data)) {
+          byteArray = (byte[]) fileData.get(Common.Param_File_Data);
+        }
+        String localPath = null;
+        if (fileData.containsKey(Common.Param_File_Path)) {
+          localPath = (String) fileData.get(Common.Param_File_Path);
+        }
+        String url = null;
+        if (fileData.containsKey(Common.Param_File_Url)) {
+          url = (String) fileData.get(Common.Param_File_Url);
+        }
+        String format = null;
+        if (fileData.containsKey(Common.Param_File_Format)) {
+          format = (String) fileData.get(Common.Param_File_Format);
+        }
+        String name = null;
+        if (fileData.containsKey(Common.Param_File_Name)) {
+          name = (String) fileData.get(Common.Param_File_Name);
+        }
+        if (StringUtil.isEmpty(name)) {
+          name = StringUtil.getRandomString(16);
+        }
+        AVFile avFile = null;
+        if (null != byteArray) {
+          avFile = new AVFile(name, byteArray);
+        } else if (!StringUtil.isEmpty(localPath)) {
+          avFile = new AVFile(name, new File(localPath));
+        } else if (!StringUtil.isEmpty(url)) {
+          avFile = new AVFile(name, url);
+        }
+        if (null != avFile) {
+          ((AVIMFileMessage) message).attachAVFile(avFile);
+          if (!StringUtil.isEmpty(format)) {
+            Map<String, Object> metaData = ((AVIMFileMessage)message).getFileMetaData();
+            if (null != metaData) {
+              metaData.put("format", format);
+            }
+          }
+        } else {
+          Log.d(TAG, "invalid file param!!");
+        }
+      }
       AVIMMessageOption option = Common.parseMessageOption(optionData);
-      Log.d(TAG, "send message from conv:" + message.getConversationId());
       conversation.sendMessage(message, option,
           new AVIMConversationCallback() {
             @Override
@@ -366,7 +423,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
                 Log.d(TAG, "send failed. cause: " + e.getMessage());
                 result.success(Common.wrapException(e));
               } else {
-                Log.d(TAG, "send finished. message: " + message);
+                Log.d(TAG, "send finished. message: " + Common.wrapMessage(message));
                 result.success(Common.wrapSuccessResponse(Common.wrapMessage(message)));
               }
             }
