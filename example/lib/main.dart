@@ -17,6 +17,7 @@ class MyApp extends StatefulWidget {
 UnitTestCaseCard clientOpenThenClose = UnitTestCaseCard(
     title: 'Case: Client Open then Close',
     testCaseFunc: (decrease) async {
+      // client
       Client client = Client(id: uuid());
       // open
       await client.open();
@@ -31,6 +32,7 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
     title: 'Case: Create Unique Conversation',
     extraExpectedCount: 4,
     testCaseFunc: (decrease) async {
+      // client
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
       // event
@@ -102,11 +104,11 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
         type: ConversationType.normalUnique,
         members: [client1.id, client2.id],
       );
-      final Map rawData1 = conversation1.rawData;
+      Map rawData1 = conversation1.rawData;
       assert(rawData1['conv_type'] == 1);
-      final String objectId = rawData1['objectId'];
+      String objectId = rawData1['objectId'];
       assert(objectId != null);
-      final String uniqueId = rawData1['uniqueId'];
+      String uniqueId = rawData1['uniqueId'];
       assert(uniqueId != null);
       List members1 = rawData1['m'];
       assert(members1.length == 2);
@@ -116,12 +118,12 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
       assert(rawData1['name'] == null);
       assert(rawData1['attr'] == null);
       assert(rawData1['c'] == client1.id);
-      final String createdAt = rawData1['createdAt'];
+      String createdAt = rawData1['createdAt'];
       assert(createdAt != null);
       // query unique conversation from creation
-      final String name = uuid();
-      final String attrKey = uuid();
-      final String attrValue = uuid();
+      String name = uuid();
+      String attrKey = uuid();
+      String attrValue = uuid();
       Conversation conversation2 = await client1.createConversation(
         type: ConversationType.normalUnique,
         members: [client1.id, client2.id],
@@ -129,7 +131,7 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
         attributes: {attrKey: attrValue},
       );
       assert(conversation2 == conversation1);
-      final Map rawData2 = conversation2.rawData;
+      Map rawData2 = conversation2.rawData;
       assert(rawData2['conv_type'] == 1);
       assert(rawData2['objectId'] == objectId);
       assert(rawData2['uniqueId'] == uniqueId);
@@ -139,7 +141,7 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
       assert(members2.contains(client2.id));
       assert(rawData2['unique'] == true);
       assert(rawData2['name'] == name);
-      final Map attr = rawData2['attr'];
+      Map attr = rawData2['attr'];
       assert(attr.length == 1);
       assert(attr[attrKey] == attrValue);
       assert(rawData2['c'] == client1.id);
@@ -152,6 +154,7 @@ UnitTestCaseCard createNonUniqueConversation = UnitTestCaseCard(
     title: 'Case: Create Non-Unique Conversation',
     extraExpectedCount: 4,
     testCaseFunc: (decrease) async {
+      // client
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
       // event
@@ -219,26 +222,26 @@ UnitTestCaseCard createNonUniqueConversation = UnitTestCaseCard(
       await client1.open();
       await client2.open();
       // create non-unique conversation
-      final String name = uuid();
-      final String attrKey = uuid();
-      final String attrValue = uuid();
+      String name = uuid();
+      String attrKey = uuid();
+      String attrValue = uuid();
       Conversation conversation = await client1.createConversation(
         type: ConversationType.normal,
         members: [client1.id, client2.id],
         name: name,
         attributes: {attrKey: attrValue},
       );
-      final Map rawData = conversation.rawData;
+      Map rawData = conversation.rawData;
       assert(rawData['conv_type'] == 1);
       assert(rawData['objectId'] is String);
       List members = rawData['m'];
       assert(members.length == 2);
       assert(members.contains(client1.id));
       assert(members.contains(client2.id));
-      final bool unique = rawData['unique'];
+      bool unique = rawData['unique'];
       assert(unique == null || unique == false);
       assert(rawData['name'] == name);
-      final Map attr = rawData['attr'];
+      Map attr = rawData['attr'];
       assert(attr.length == 1);
       assert(attr[attrKey] == attrValue);
       assert(rawData['c'] == client1.id);
@@ -250,24 +253,25 @@ UnitTestCaseCard createNonUniqueConversation = UnitTestCaseCard(
 UnitTestCaseCard createTransientConversation = UnitTestCaseCard(
     title: 'Case: Create Transient Conversation',
     testCaseFunc: (decrease) async {
+      // client
       Client client = Client(id: uuid());
       // open
       await client.open();
       // create transient conversation
-      final String name = uuid();
-      final String attrKey = uuid();
-      final String attrValue = uuid();
+      String name = uuid();
+      String attrKey = uuid();
+      String attrValue = uuid();
       Conversation conversation = await client.createConversation(
         type: ConversationType.transient,
         name: name,
         attributes: {attrKey: attrValue},
       );
-      final Map rawData = conversation.rawData;
+      Map rawData = conversation.rawData;
       assert(rawData['conv_type'] == 2);
       assert(rawData['objectId'] is String);
       assert(rawData['tr'] == true);
       assert(rawData['name'] == name);
-      final Map attr = rawData['attr'];
+      Map attr = rawData['attr'];
       assert(attr.length == 1);
       assert(attr[attrKey] == attrValue);
       assert(rawData['c'] == client.id);
@@ -280,6 +284,7 @@ UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
     title: 'Case: Create Temporary Conversation',
     extraExpectedCount: 4,
     testCaseFunc: (decrease) async {
+      // client
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
       // event
@@ -352,7 +357,7 @@ UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
         members: [client1.id, client2.id],
         ttl: 3600,
       );
-      final Map rawData = conversation.rawData;
+      Map rawData = conversation.rawData;
       assert(rawData['conv_type'] == 4);
       String objectId = rawData['objectId'];
       assert(objectId.startsWith('_tmp:'));
@@ -368,13 +373,18 @@ UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
 
 UnitTestCaseCard sendMessage = UnitTestCaseCard(
     title: 'Case: Send Message',
-    extraExpectedCount: 8,
+    extraExpectedCount: 16,
     testCaseFunc: (decrease) async {
+      // client
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
+      // string content
       String stringContent = uuid();
+      // binary content
       Uint8List binaryContent = Uint8List.fromList(uuid().codeUnits);
+      // text
       String text = uuid();
+      // message assertion
       void Function(
         Message,
         Conversation,
@@ -403,18 +413,17 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
         Conversation conversation,
         Message message,
       }) {
-        assert(client != null);
-        assert(conversation != null);
-        assertMessage(message, conversation);
         client2OnMessageReceivedCount -= 1;
         if (client2OnMessageReceivedCount <= 0) {
           client2.onMessageReceive = null;
         }
+        assert(client != null);
+        assert(conversation != null);
+        assertMessage(message, conversation);
         if (message.stringContent != null) {
           // receive string
           assert(message.stringContent == stringContent);
           decrease(1);
-          print('receive string');
         } else if (message.binaryContent != null) {
           // receive binary
           int index = 0;
@@ -454,6 +463,20 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
           assert(message.url != null);
           decrease(1);
         }
+      };
+      int client2OnConversationLastMessageUpdate = 8;
+      client2.onConversationLastMessageUpdate = ({
+        Client client,
+        Conversation conversation,
+      }) {
+        client2OnConversationLastMessageUpdate -= 1;
+        if (client2OnConversationLastMessageUpdate <= 0) {
+          client2.onConversationLastMessageUpdate = null;
+        }
+        assert(client != null);
+        assert(conversation != null);
+        assert(conversation.lastMessage != null);
+        decrease(1);
       };
       // open
       await client1.open();
@@ -506,7 +529,7 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
       ByteData videoData = await rootBundle.load('assets/test.mp4');
       VideoMessage videoMessage = VideoMessage.from(
         binaryData: videoData.buffer.asUint8List(),
-        format: 'mp3',
+        format: 'mp4',
       );
       await conversation.send(message: videoMessage);
       assertMessage(videoMessage, conversation);
@@ -538,8 +561,21 @@ UnitTestCaseCard readMessage = UnitTestCaseCard(
     title: 'Case: Read Message',
     extraExpectedCount: 3,
     testCaseFunc: (decrease) async {
+      // client
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
+      // open client 1
+      await client1.open();
+      // create
+      Conversation conversation = await client1.createConversation(
+        members: [client1.id, client2.id],
+      );
+      // send
+      Message message = Message();
+      message.stringContent = uuid();
+      message.mentionMembers = [client2.id];
+      message.mentionAll = true;
+      await conversation.send(message: message);
       // event
       int client2OnConversationUnreadMessageCountUpdateCount = 2;
       client2.onConversationUnreadMessageCountUpdate = ({
@@ -550,19 +586,72 @@ UnitTestCaseCard readMessage = UnitTestCaseCard(
         if (client2OnConversationUnreadMessageCountUpdateCount <= 0) {
           client2.onConversationUnreadMessageCountUpdate = null;
         }
+        assert(client != null);
+        assert(conversation != null);
         if (conversation.unreadMessageCount == 1) {
+          assert(conversation.unreadMessageContainMention == true);
+          conversation.unreadMessageContainMention = false;
           conversation.read();
           decrease(1);
         } else if (conversation.unreadMessageCount == 0) {
           decrease(1);
         }
       };
-      client2.onMessageReceive = ({
+      client2.onConversationLastMessageUpdate = ({
+        Client client,
+        Conversation conversation,
+      }) {
+        client2.onConversationLastMessageUpdate = null;
+        assert(client != null);
+        assert(conversation != null);
+        Message lastMessage = conversation.lastMessage;
+        assert(lastMessage != null);
+        assert(lastMessage.id == message.id);
+        assert(lastMessage.sentTimestamp == message.sentTimestamp);
+        assert(lastMessage.conversationId == message.conversationId);
+        decrease(1);
+      };
+      // open client 2
+      await client2.open();
+      // recycle
+      return [client1, client2];
+    });
+
+UnitTestCaseCard updateMessage = UnitTestCaseCard(
+    title: 'Case: Update Message',
+    extraExpectedCount: 1,
+    testCaseFunc: (decrease) async {
+      // client
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+      // old message
+      Message oldMessage = Message();
+      oldMessage.stringContent = uuid();
+      // new message
+      ByteData imageData = await rootBundle.load('assets/test.jpg');
+      ImageMessage newMessage = ImageMessage.from(
+        binaryData: imageData.buffer.asUint8List(),
+        format: 'jpg',
+        name: 'test.jpg',
+      );
+      // event
+      client2.onMessageUpdate = ({
         Client client,
         Conversation conversation,
         Message message,
+        int patchCode,
+        String patchReason,
       }) {
-        client2.onMessageReceive = null;
+        client2.onMessageUpdate = null;
+        assert(message.id == newMessage.id);
+        assert(message.sentTimestamp == newMessage.sentTimestamp);
+        assert(message.conversationId == newMessage.conversationId);
+        assert(message.fromClientId == newMessage.fromClientId);
+        assert(message.patchedTimestamp == newMessage.patchedTimestamp);
+        assert(message is ImageMessage);
+        if (message is ImageMessage) {
+          assert(message.url == newMessage.url);
+        }
         decrease(1);
       };
       // open
@@ -572,10 +661,13 @@ UnitTestCaseCard readMessage = UnitTestCaseCard(
       Conversation conversation = await client1.createConversation(
         members: [client1.id, client2.id],
       );
-      // send string
-      Message stringMessage = Message();
-      stringMessage.stringContent = uuid();
-      await conversation.send(message: stringMessage);
+      // send
+      await conversation.send(message: oldMessage);
+      // update
+      await conversation.updateMessage(
+        oldMessage: oldMessage,
+        newMessage: newMessage,
+      );
       // recycle
       return [client1, client2];
     });
@@ -589,6 +681,7 @@ class _MyAppState extends State<MyApp> {
     createTemporaryConversation,
     sendMessage,
     readMessage,
+    // updateMessage,
   ];
 
   @override
