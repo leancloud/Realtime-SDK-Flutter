@@ -13,6 +13,7 @@ import java.util.Map;
 import androidx.annotation.NonNull;
 import cn.leancloud.AVException;
 import cn.leancloud.im.AVIMOptions;
+import cn.leancloud.im.v2.AVIMBinaryMessage;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMClientOpenOption;
 import cn.leancloud.im.v2.AVIMConversation;
@@ -110,7 +111,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       client.open(openOption, new AVIMClientCallback() {
         @Override
         public void done(AVIMClient client, AVIMException e) {
-          Log.d(TAG, "client open result: " + client);
+          Log.d(TAG, "client open result: " + Common.wrapClient(client));
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
@@ -355,9 +356,10 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Send_Message)) {
       Map<String, Object> msgData = Common.getMethodParam(call, Common.Param_Message_Raw);
       Map<String, Object> optionData = Common.getMethodParam(call, Common.Param_Message_Options);
+      Log.d(TAG, "send message from conv:" + conversationId
+          + ", message:" + JSON.toJSONString(msgData) + ", option:" + JSON.toJSONString(optionData));
       final AVIMMessage message = Common.parseMessage(msgData);
       AVIMMessageOption option = Common.parseMessageOption(optionData);
-      Log.d(TAG, "send message from conv:" + message.getConversationId());
       conversation.sendMessage(message, option,
           new AVIMConversationCallback() {
             @Override
@@ -366,7 +368,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
                 Log.d(TAG, "send failed. cause: " + e.getMessage());
                 result.success(Common.wrapException(e));
               } else {
-                Log.d(TAG, "send finished. message: " + message);
+                Log.d(TAG, "send finished. message: " + Common.wrapMessage(message));
                 result.success(Common.wrapSuccessResponse(Common.wrapMessage(message)));
               }
             }
