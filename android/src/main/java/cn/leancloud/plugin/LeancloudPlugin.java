@@ -45,6 +45,7 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
+import io.flutter.plugin.common.StandardMethodCodec;
 
 /** LeancloudPlugin */
 public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
@@ -75,7 +76,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
   private static void _initialize(BinaryMessenger messenger, String name) {
     if (null == _CHANNEL) {
-      _CHANNEL = new MethodChannel(messenger, "leancloud_plugin");
+      _CHANNEL = new MethodChannel(messenger, "leancloud_plugin", new StandardMethodCodec(new LeanCloudMessageCodec()));
       _CHANNEL.setMethodCallHandler(_INSTANCE);
 
       AVIMMessageManager.registerDefaultMessageHandler(new DefaultMessageHandler(_INSTANCE));
@@ -362,7 +363,6 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       Map<String, Object> fileData = Common.getMethodParam(call, Common.Param_Message_File);
       Log.d(TAG, "send message from conv:" + conversationId
           + ", message:" + JSON.toJSONString(msgData)
-          + ", file:" + JSON.toJSONString(fileData)
           + ", option:" + JSON.toJSONString(optionData));
       final AVIMMessage message = Common.parseMessage(msgData);
       if (message instanceof AVIMFileMessage && null != fileData) {
@@ -386,6 +386,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         if (fileData.containsKey(Common.Param_File_Name)) {
           name = (String) fileData.get(Common.Param_File_Name);
         }
+        if (StringUtil.isEmpty(name)) {
+          name = StringUtil.getRandomString(16);
+        }
         AVFile avFile = null;
         if (null != byteArray) {
           avFile = new AVFile(name, byteArray);
@@ -395,10 +398,13 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           avFile = new AVFile(name, url);
         }
         if (null != avFile) {
-          if (!StringUtil.isEmpty(format)) {
-            avFile.setMimeType(format);
-          }
           ((AVIMFileMessage) message).attachAVFile(avFile);
+          if (!StringUtil.isEmpty(format)) {
+            Map<String, Object> metaData = ((AVIMFileMessage)message).getFileMetaData();
+            if (null != metaData) {
+              metaData.put("format", format);
+            }
+          }
         } else {
           Log.d(TAG, "invalid file param!!");
         }
