@@ -656,7 +656,7 @@ class Conversation with _Utilities {
       args['start'] = start;
     }
     if (end.isNotEmpty) {
-      args['start'] = end;
+      args['end'] = end;
     }
     if (direction != null) {
       assert(direction == 1 || direction == 2);
