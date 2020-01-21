@@ -1,5 +1,9 @@
 package cn.leancloud.plugin;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+
+import java.nio.ByteBuffer;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -69,6 +73,7 @@ public class Common {
   public static final String Param_RawData = "rawData";
   public static final String Param_Count = "count";
   public static final String Param_Mention = "mention";
+  public static final String Param_From = "from";
 
   public static final String Param_Timestamp = "t";
   public static final String Param_Flag_Read = "read";
@@ -96,6 +101,12 @@ public class Common {
   public static final String Param_Message_Options = "options";
   public static final String Param_Message_File = "file";
   public static final String Param_Message_Id = "id";
+
+  public static final String Param_File_Path = "path";
+  public static final String Param_File_Data = "data";
+  public static final String Param_File_Url = "url";
+  public static final String Param_File_Format = "format";
+  public static final String Param_File_Name = "name";
 
   public static final String Param_Code = "code";
   public static final String Param_Error = "error";
@@ -160,7 +171,7 @@ public class Common {
     }
     error.put("message", ex.getMessage());
     if (null != ex.getCause()) {
-      error.put("details", ex.getCause());
+      error.put("details", ex.getCause().getMessage());
     }
     Map<String, Object> result = new HashMap<>();
     result.put("error", error);
@@ -197,110 +208,17 @@ public class Common {
     return result;
   }
 
-  public static Map<String, Object> wrapTypedMessage(AVIMTypedMessage message) {
-    HashMap<String, Object> result = new HashMap<>();
-    if (null == message) {
-      return result;
-    }
-
-    result.put("_lctype", message.getMessageType());
-
-    String text = null;
-    Map<String, Object> attributes = null;
-    Map<String, Object> fileInstance = null;
-    Map<String, Object> locationInstance = null;
-    if (message instanceof AVIMTextMessage) {
-      text = ((AVIMTextMessage)message).getText();
-      attributes = ((AVIMTextMessage)message).getAttrs();
-    } else if (message instanceof AVIMFileMessage) {
-      text = ((AVIMFileMessage) message).getText();
-      attributes = ((AVIMFileMessage) message).getAttrs();
-      AVFile avFile = ((AVIMFileMessage) message).getAVFile();
-
-      fileInstance = new HashMap<String, Object>();
-      if (null != avFile) {
-        fileInstance.put("objId", avFile.getObjectId());
-        fileInstance.put("url", avFile.getUrl());
-      }
-      fileInstance.put("metaData", ((AVIMFileMessage) message).getFileMetaData());
-    } else if (message instanceof AVIMLocationMessage) {
-      text = ((AVIMLocationMessage) message).getText();
-      attributes = ((AVIMLocationMessage) message).getAttrs();
-      AVGeoPoint geoPoint = ((AVIMLocationMessage) message).getLocation();
-      if (null != geoPoint) {
-        locationInstance = new HashMap<>();
-        locationInstance.put("latitude", geoPoint.getLatitude());
-        locationInstance.put("longitude", geoPoint.getLongitude());
-      }
-    } else {
-      text = message.getContent();
-    }
-    if (!StringUtil.isEmpty(text)) {
-      result.put("_lctext", text);
-    }
-    if (null != attributes) {
-      result.put("_lcattrs", attributes);
-    }
-    if (null != fileInstance) {
-      result.put("_lcfile", fileInstance);
-    }
-    if (null != locationInstance) {
-      result.put("_lcloc", locationInstance);
-    }
-    return result;
-  }
-
   public static Map<String, Object> wrapMessage(AVIMMessage message) {
     Map<String, Object> result = new HashMap<>();
     if (null == message) {
       return result;
     }
 
-    if (!StringUtil.isEmpty(message.getMessageId())) {
-      result.put("id", message.getMessageId());
-    }
-    String conversationId = message.getConversationId();
-    if (!StringUtil.isEmpty(conversationId)) {
-      result.put("cid", conversationId);
-    }
-    String from = message.getFrom();
-    if (!StringUtil.isEmpty(from)) {
-      result.put("from", from);
-    }
-    long timestamp = message.getTimestamp();
-    if (timestamp > 0l) {
-      result.put("timestamp", timestamp);
-    }
-    long patchTimestamp = message.getUpdateAt();
-    if (patchTimestamp > 0l) {
-      result.put("patchTimestamp", patchTimestamp);
-    }
-    long deliverTimestamp = message.getDeliveredAt();
-    if (deliverTimestamp > 0l) {
-      result.put("ackAt", deliverTimestamp);
-    }
-    long readTimestamp = message.getReadAt();
-    if (readTimestamp > 0l) {
-      result.put("readAt", readTimestamp);
-    }
-    boolean mentionAll = message.isMentionAll();
-    if (mentionAll) {
-      result.put("mentionAll", mentionAll);
-    }
-    List<String> mentionList = message.getMentionList();
-    if (null != mentionList && mentionList.size() > 0) {
-      result.put("mentionPids", mentionList);
-    }
-    if (message instanceof AVIMTypedMessage) {
-      AVIMTypedMessage typedMessage = (AVIMTypedMessage) message;
-      result.put("typeMsgData", wrapTypedMessage(typedMessage));
-    } else if (message instanceof AVIMBinaryMessage) {
-      AVIMBinaryMessage binaryMessage = (AVIMBinaryMessage) message;
-      result.put("binaryMsg", binaryMessage.getBytes());
-    } else {
-      String content = message.getContent();
-      if (null != content) {
-        result.put("msg", content);
+    result = message.dumpRawData();
+    if (result.containsKey("typeMsgData")) {
+      Object val = result.get("typeMsgData");
+      if (val instanceof String) {
+        result.put("typeMsgData", JSON.parse((String) val));
       }
     }
 
@@ -311,44 +229,7 @@ public class Common {
     if (null == rawData) {
       return null;
     }
-    AVIMMessage message;
-    if (rawData.containsKey("typeMsgData")) {
-      message = new AVIMTypedMessage();
-    } else if (rawData.containsKey("binaryMsg")) {
-      message = new AVIMBinaryMessage();
-      ((AVIMBinaryMessage)message).setBytes((byte[]) rawData.get("binaryMsg"));
-    } else  {
-      message = new AVIMMessage();
-      if (rawData.containsKey("msg")) {
-        String content = (String) rawData.get("msg");
-        message.setContent(content);
-      }
-    }
-    if (rawData.containsKey("cid")) {
-      message.setConversationId((String) rawData.get("cid"));
-    }
-    if (rawData.containsKey("from")) {
-      message.setFrom((String) rawData.get("from"));
-    }
-    if (rawData.containsKey("mentionAll")) {
-      message.setMentionAll((boolean) rawData.get("mentionAll"));
-    }
-    if (rawData.containsKey("mentionPids")) {
-      message.setMentionList((List<String>) rawData.get("mentionPids"));
-    }
-    if (rawData.containsKey("id")) {
-      message.setMessageId((String) rawData.get("id"));
-    }
-    if (rawData.containsKey("timestamp")) {
-      message.setTimestamp((long) rawData.get("timestamp"));
-    }
-    if (rawData.containsKey("ackAt")) {
-      message.setReceiptTimestamp((long)rawData.get("ackAt"));
-    }
-    if (rawData.containsKey("readAt")) {
-      message.setReadAt((long) rawData.get("readAt"));
-    }
-
+    AVIMMessage message = AVIMMessage.parseJSON(new JSONObject(rawData));
     return message;
   }
 
@@ -384,63 +265,27 @@ public class Common {
   }
 
   public static Map<String, Object> wrapConversation(AVIMConversation conversation) {
-    HashMap<String, Object> result = new HashMap<>();
+    Map<String, Object> result = new HashMap<>();
     if (null == conversation) {
       return result;
     }
-    String conversationId = conversation.getConversationId();
-    String creator = conversation.getCreator();
-    Map<String, Object> attr = conversation.getAttributes();
-    String name = conversation.getName();
-    Date createdAt = conversation.getCreatedAt();
-    Date updatedAt = conversation.getUpdatedAt();
-    List<String> members = conversation.getMembers();
-    boolean isSystem = conversation.isSystem();
-    boolean isTemporary = conversation.isTemporary();
-    boolean isTransient = conversation.isTransient();
-    int type = conversation.getType();
-    AVIMMessage lastMsg = conversation.getLastMessage();
-    String uniqueId = conversation.getUniqueId();
-    Date lastMsgAt = conversation.getLastMessageAt();
 
-    result.put("objectId", conversationId);
-    result.put("c", creator);
-    if (!StringUtil.isEmpty(name)) {
-      result.put("name", name);
+    result = conversation.dumpRawData();
+    // because java sdk put name info attr, so refine it now.
+    if (result.containsKey("attr")) {
+      Map<String, Object> attr = (Map<String, Object>)result.get("attr");
+      if (attr.containsKey("name")) {
+        Object nameValue = attr.remove("name");
+        result.put("name", nameValue);
+      }
+      if (attr.size() < 1) {
+        result.remove("attr");
+      }
     }
-    if (!StringUtil.isEmpty(uniqueId)) {
-      result.put("uniqueId", uniqueId);
-      result.put("unique", true);
-    } else {
-      result.put("unique", false);
-    }
-
-    if (null != attr && !attr.isEmpty()) {
-      result.put("attr", attr);
-    }
-    if (null != createdAt) {
-      result.put("createdAt", StringUtil.stringFromDate(createdAt));
-    }
-    if (null != updatedAt) {
-      result.put("updatedAt", StringUtil.stringFromDate(updatedAt));
-    }
-    result.put("conv_type", type);
-    result.put("tr", isTransient);
-    result.put("sys", isSystem);
-    result.put("temp", isTemporary);
-    if (isTemporary) {
-      result.put("ttl", conversation.getTemporaryExpiredat());
-    }
-    if (null != members) {
-      result.put("m", members);
-    }
-
-    if (null != lastMsgAt) {
-      result.put("lm", Utils.mapFromDate(lastMsgAt));
-    }
-
-    if (null != lastMsg) {
-      result.put("msg", lastMsg.getContent());
+    if (result.containsKey("conv_type") && result.containsKey("uniqueId") && !result.containsKey("unique")) {
+      if (1 == (int)result.get("conv_type") && !StringUtil.isEmpty((String) result.get("uniqueId"))) {
+        result.put("unique", true);
+      }
     }
 
     return result;
