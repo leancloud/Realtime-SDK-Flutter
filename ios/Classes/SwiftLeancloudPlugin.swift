@@ -58,6 +58,8 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                 delegator.updateMessage( parameters: arguments, callback: result)
             case "getMessageReceipt":
                 delegator.getMessageReceipt(parameters: arguments, callback: result)
+            case "queryMessage":
+                delegator.queryMessage(parameters: arguments, callback: result)
             default:
                 fatalError("unknown method.")
             }
@@ -558,6 +560,60 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                                 success["maxReadTimestamp"] = Int(maxReadTimestamp)
                             }
                             self.mainAsync(["success": success], callback)
+                        case .failure(error: let error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    func queryMessage(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                do {
+                    var startEndpoint: IMConversation.MessageQueryEndpoint?
+                    if let start = parameters["start"] as? [String: Any] {
+                        let timestamp = start["timestamp"] as? Int
+                        startEndpoint = IMConversation.MessageQueryEndpoint(
+                            messageID: start["id"] as? String,
+                            sentTimestamp: (timestamp != nil) ? Int64(timestamp!) : nil,
+                            isClosed: start["close"] as? Bool)
+                    }
+                    var endEndpoint: IMConversation.MessageQueryEndpoint?
+                    if let end = parameters["end"] as? [String: Any] {
+                        let timestamp = end["timestamp"] as? Int
+                        endEndpoint = IMConversation.MessageQueryEndpoint(
+                            messageID: end["id"] as? String,
+                            sentTimestamp: (timestamp != nil) ? Int64(timestamp!) : nil,
+                            isClosed: end["close"] as? Bool)
+                    }
+                    try conversation.queryMessage(
+                        start: startEndpoint,
+                        end: endEndpoint,
+                        direction: (parameters["direction"] as? Int ?? 1) == 1 ? .newToOld : .oldToNew,
+                        limit: parameters["limit"] as? Int ?? 20,
+                        type: parameters["type"] as? Int,
+                        policy: .onlyNetwork)
+                    { (result) in
+                        switch result {
+                        case .success(value: let messages):
+                            var messageRawDatas: [[String: Any]] = []
+                            messages.forEach { (item) in
+                                messageRawDatas.append(self.encodingMessage(
+                                    clientID: self.client.ID,
+                                    conversationID: conversation.ID,
+                                    message: item))
+                            }
+                            self.mainAsync(["success": messageRawDatas], callback)
                         case .failure(error: let error):
                             self.mainAsync(self.error(error), callback)
                         }
