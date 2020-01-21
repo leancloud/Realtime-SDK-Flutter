@@ -39,14 +39,14 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
       client1.onConversationInvite = ({
         Client client,
         Conversation conversation,
-        String atDate,
         String byClientId,
+        String atDate,
       }) {
         client1.onConversationInvite = null;
         assert(client != null);
         assert(conversation != null);
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
         decrease(1);
       };
       client1.onConversationMembersJoin = ({
@@ -62,21 +62,21 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
         assert(members.length == 2);
         assert(members.contains(client1.id));
         assert(members.contains(client2.id));
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
         decrease(1);
       };
       client2.onConversationInvite = ({
         Client client,
         Conversation conversation,
-        String atDate,
         String byClientId,
+        String atDate,
       }) {
         client2.onConversationInvite = null;
         assert(client != null);
         assert(conversation != null);
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
         decrease(1);
       };
       client2.onConversationMembersJoin = ({
@@ -92,8 +92,8 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
         assert(members.length == 2);
         assert(members.contains(client1.id));
         assert(members.contains(client2.id));
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
         decrease(1);
       };
       // open
@@ -150,57 +150,191 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
       return [client1, client2];
     });
 
-UnitTestCaseCard createNonUniqueConversation = UnitTestCaseCard(
-    title: 'Case: Create Non-Unique Conversation',
-    extraExpectedCount: 4,
+UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
+    title: 'Case: Create Non-Unique Conversation & Update Members',
+    extraExpectedCount: 17,
     testCaseFunc: (decrease) async {
       // client
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
+      String client3id = uuid();
       // event
+      int client1OnConversationInvite = 2;
       client1.onConversationInvite = ({
         Client client,
         Conversation conversation,
-        String atDate,
         String byClientId,
-      }) {
-        client1.onConversationInvite = null;
+        String atDate,
+      }) async {
+        client1OnConversationInvite -= 1;
+        if (client1OnConversationInvite <= 0) {
+          client1.onConversationInvite = null;
+        }
         assert(client != null);
         assert(conversation != null);
+        List m = conversation.rawData['m'];
+        assert(m.length == 2);
+        assert(m.contains(client1.id));
+        assert(m.contains(client2.id));
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
         decrease(1);
       };
+      client1.onConversationKick = ({
+        Client client,
+        Conversation conversation,
+        String byClientId,
+        String atDate,
+      }) async {
+        client1.onConversationKick = null;
+        assert(client != null);
+        assert(conversation != null);
+        List m1 = conversation.rawData['m'];
+        assert(m1.length == 1);
+        assert(m1.contains(client2.id));
+        assert(byClientId == client1.id);
+        assert(atDate != null);
+        decrease(1);
+        Map result = await conversation.updateMembers(
+          members: [client1.id],
+          op: 'add',
+        );
+        List allowedPids = result['allowedPids'];
+        assert(allowedPids.length == 1);
+        assert(allowedPids.contains(client1.id));
+        List m2 = conversation.rawData['m'];
+        assert(m2.length == 2);
+        assert(m2.contains(client1.id));
+        assert(m2.contains(client2.id));
+        decrease(1);
+      };
+      int client1OnConversationMembersJoin = 3;
       client1.onConversationMembersJoin = ({
         Client client,
         Conversation conversation,
         List members,
         String byClientId,
         String atDate,
-      }) {
-        client1.onConversationMembersJoin = null;
+      }) async {
+        client1OnConversationMembersJoin -= 1;
+        if (client1OnConversationMembersJoin <= 0) {
+          client1.onConversationMembersJoin = null;
+        }
         assert(client != null);
         assert(conversation != null);
-        assert(members.length == 2);
-        assert(members.contains(client1.id));
-        assert(members.contains(client2.id));
+        if (client1OnConversationMembersJoin == 2) {
+          assert(members.length == 2);
+          assert(members.contains(client1.id));
+          assert(members.contains(client2.id));
+          List m = conversation.rawData['m'];
+          assert(m.length == 2);
+          assert(m.contains(client1.id));
+          assert(m.contains(client2.id));
+        }
+        if (client1OnConversationMembersJoin == 1) {
+          assert(members.length == 1);
+          assert(members.contains(client1.id));
+          List m = conversation.rawData['m'];
+          assert(m.length == 2);
+          assert(m.contains(client1.id));
+          assert(m.contains(client2.id));
+        }
+        if (client1OnConversationMembersJoin == 0) {
+          assert(members.length == 1);
+          assert(members.contains(client3id));
+          List m = conversation.rawData['m'];
+          assert(m.length == 3);
+          assert(m.contains(client1.id));
+          assert(m.contains(client2.id));
+          assert(m.contains(client3id));
+        }
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
+        decrease(1);
+        if (client1OnConversationMembersJoin == 2) {
+          // client 1 leave
+          Map leaveResult = await conversation.updateMembers(
+            members: [client1.id],
+            op: 'remove',
+          );
+          List allowedPids = leaveResult['allowedPids'];
+          assert(allowedPids.length == 1);
+          assert(allowedPids.contains(client1.id));
+          List m = conversation.rawData['m'];
+          assert(m.length == 1);
+          assert(m.contains(client2.id));
+          decrease(1);
+        }
+        if (client1OnConversationMembersJoin == 1) {
+          // add client 3
+          Map result = await conversation.updateMembers(
+            members: [client3id],
+            op: 'add',
+          );
+          List allowedPids = result['allowedPids'];
+          assert(allowedPids.length == 1);
+          assert(allowedPids.contains(client3id));
+          List m = conversation.rawData['m'];
+          assert(m.length == 3);
+          assert(m.contains(client1.id));
+          assert(m.contains(client2.id));
+          assert(m.contains(client3id));
+          decrease(1);
+        }
+        if (client1OnConversationMembersJoin == 0) {
+          // remove client 3
+          Map result = await conversation.updateMembers(
+            members: [client3id],
+            op: 'remove',
+          );
+          List allowedPids = result['allowedPids'];
+          assert(allowedPids.length == 1);
+          assert(allowedPids.contains(client3id));
+          List m = conversation.rawData['m'];
+          assert(m.length == 2);
+          assert(m.contains(client1.id));
+          assert(m.contains(client2.id));
+          decrease(1);
+        }
+      };
+      client1.onConversationMembersLeave = ({
+        Client client,
+        Conversation conversation,
+        List members,
+        String byClientId,
+        String atDate,
+      }) {
+        client1.onConversationMembersLeave = null;
+        assert(client != null);
+        assert(conversation != null);
+        assert(members.length == 1);
+        assert(members.contains(client3id));
+        List m = conversation.rawData['m'];
+        assert(m.length == 2);
+        assert(m.contains(client1.id));
+        assert(m.contains(client2.id));
+        assert(byClientId == client1.id);
+        assert(atDate != null);
         decrease(1);
       };
       client2.onConversationInvite = ({
         Client client,
         Conversation conversation,
-        String atDate,
         String byClientId,
+        String atDate,
       }) {
         client2.onConversationInvite = null;
         assert(client != null);
         assert(conversation != null);
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
+        List m = conversation.rawData['m'];
+        assert(m.length == 2);
+        assert(m.contains(client1.id));
+        assert(m.contains(client2.id));
         decrease(1);
       };
+      int client2OnConversationMembersJoin = 3;
       client2.onConversationMembersJoin = ({
         Client client,
         Conversation conversation,
@@ -208,14 +342,73 @@ UnitTestCaseCard createNonUniqueConversation = UnitTestCaseCard(
         String byClientId,
         String atDate,
       }) {
-        client2.onConversationMembersJoin = null;
+        client2OnConversationMembersJoin -= 1;
+        if (client2OnConversationMembersJoin <= 0) {
+          client2.onConversationMembersJoin = null;
+        }
         assert(client != null);
         assert(conversation != null);
-        assert(members.length == 2);
-        assert(members.contains(client1.id));
-        assert(members.contains(client2.id));
+        if (client2OnConversationMembersJoin == 2) {
+          assert(members.length == 2);
+          assert(members.contains(client1.id));
+          assert(members.contains(client2.id));
+          List m = conversation.rawData['m'];
+          assert(m.length == 2);
+          assert(m.contains(client1.id));
+          assert(m.contains(client2.id));
+        }
+        if (client2OnConversationMembersJoin == 1) {
+          assert(members.length == 1);
+          assert(members.contains(client1.id));
+          List m = conversation.rawData['m'];
+          assert(m.length == 2);
+          assert(m.contains(client1.id));
+          assert(m.contains(client2.id));
+        }
+        if (client2OnConversationMembersJoin == 0) {
+          assert(members.length == 1);
+          assert(members.contains(client3id));
+          List m = conversation.rawData['m'];
+          assert(m.length == 3);
+          assert(m.contains(client1.id));
+          assert(m.contains(client2.id));
+          assert(m.contains(client3id));
+        }
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
+        decrease(1);
+      };
+      int client2OnConversationMembersLeave = 2;
+      client2.onConversationMembersLeave = ({
+        Client client,
+        Conversation conversation,
+        List members,
+        String byClientId,
+        String atDate,
+      }) {
+        client2OnConversationMembersLeave -= 1;
+        if (client2OnConversationMembersLeave <= 0) {
+          client2.onConversationMembersLeave = null;
+        }
+        assert(client != null);
+        assert(conversation != null);
+        if (client2OnConversationMembersLeave == 1) {
+          assert(members.length == 1);
+          assert(members.contains(client1.id));
+          List m = conversation.rawData['m'];
+          assert(m.length == 1);
+          assert(m.contains(client2.id));
+        }
+        if (client2OnConversationMembersLeave == 0) {
+          assert(members.length == 1);
+          assert(members.contains(client3id));
+          List m = conversation.rawData['m'];
+          assert(m.length == 2);
+          assert(m.contains(client1.id));
+          assert(m.contains(client2.id));
+        }
+        assert(byClientId == client1.id);
+        assert(atDate != null);
         decrease(1);
       };
       // open
@@ -291,14 +484,14 @@ UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
       client1.onConversationInvite = ({
         Client client,
         Conversation conversation,
-        String atDate,
         String byClientId,
+        String atDate,
       }) {
         client1.onConversationInvite = null;
         assert(client != null);
         assert(conversation != null);
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
         decrease(1);
       };
       client1.onConversationMembersJoin = ({
@@ -314,21 +507,21 @@ UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
         assert(members.length == 2);
         assert(members.contains(client1.id));
         assert(members.contains(client2.id));
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
         decrease(1);
       };
       client2.onConversationInvite = ({
         Client client,
         Conversation conversation,
-        String atDate,
         String byClientId,
+        String atDate,
       }) {
         client2.onConversationInvite = null;
         assert(client != null);
         assert(conversation != null);
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
         decrease(1);
       };
       client2.onConversationMembersJoin = ({
@@ -344,8 +537,8 @@ UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
         assert(members.length == 2);
         assert(members.contains(client1.id));
         assert(members.contains(client2.id));
+        assert(byClientId == client1.id);
         assert(atDate != null);
-        assert(byClientId != null);
         decrease(1);
       };
       // open
@@ -802,7 +995,7 @@ class _MyAppState extends State<MyApp> {
   List<UnitTestCaseCard> cases = [
     clientOpenThenClose,
     createUniqueConversation,
-    createNonUniqueConversation,
+    createNonUniqueConversationAndUpdateMembers,
     createTransientConversation,
     createTemporaryConversation,
     sendMessageAndQueryMessage,
