@@ -56,4 +56,25 @@ public class DefaultMessageHandler extends AVIMMessageHandler {
       this.listener.notify(Common.Method_Message_Receipted, param);
     }
   }
+
+  /**
+   * 重载此方法来处理消息回执
+   *
+   * @param message
+   * @param conversation
+   * @param client
+   */
+  @Override
+  public void onMessageReceiptEx(AVIMMessage message, String operator, AVIMConversation conversation, AVIMClient client) {
+    if (null != this.listener) {
+      HashMap<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Message_Id, message.getMessageId());
+      param.put(Common.Param_Timestamp, message.getDeliveredAt());
+      param.put(Common.Param_From, operator);
+      param.put(Common.Param_Flag_Read, false);
+      this.listener.notify(Common.Method_Message_Receipted, param);
+    }
+  }
 }

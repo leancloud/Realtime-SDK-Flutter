@@ -73,6 +73,7 @@ public class Common {
   public static final String Param_RawData = "rawData";
   public static final String Param_Count = "count";
   public static final String Param_Mention = "mention";
+  public static final String Param_From = "from";
 
   public static final String Param_Timestamp = "t";
   public static final String Param_Flag_Read = "read";
