@@ -371,19 +371,72 @@ UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
       return [client1, client2];
     });
 
-UnitTestCaseCard sendMessage = UnitTestCaseCard(
-    title: 'Case: Send Message',
-    extraExpectedCount: 16,
+UnitTestCaseCard sendMessageAndQueryMessage = UnitTestCaseCard(
+    title: 'Case: Send Message & Query Message',
+    extraExpectedCount: 17,
     testCaseFunc: (decrease) async {
       // client
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
       // string content
       String stringContent = uuid();
+      // string message
+      Message stringMessage = Message();
+      stringMessage.stringContent = stringContent;
       // binary content
       Uint8List binaryContent = Uint8List.fromList(uuid().codeUnits);
+      // binary message
+      Message binaryMessage = Message();
+      binaryMessage.binaryContent = binaryContent;
       // text
       String text = uuid();
+      // text message
+      TextMessage textMessage = TextMessage();
+      textMessage.text = text;
+      // image data
+      ByteData imageData = await rootBundle.load('assets/test.png');
+      // image message
+      ImageMessage imageMessage = ImageMessage.from(
+        binaryData: imageData.buffer.asUint8List(),
+        format: 'png',
+        name: 'image.png',
+      );
+      // audio data
+      ByteData audioData = await rootBundle.load('assets/test.mp3');
+      // audio message
+      AudioMessage audioMessage = AudioMessage.from(
+        binaryData: audioData.buffer.asUint8List(),
+        format: 'mp3',
+      );
+      // video data
+      ByteData videoData = await rootBundle.load('assets/test.mp4');
+      // video message
+      VideoMessage videoMessage = VideoMessage.from(
+        binaryData: videoData.buffer.asUint8List(),
+        format: 'mp4',
+      );
+      // location message
+      LocationMessage locationMessage = LocationMessage.from(
+        latitude: 22,
+        longitude: 33,
+      );
+      // file message from external url
+      FileMessage fileMessage = FileMessage.from(
+        url:
+            'http://lc-heQFQ0Sw.cn-n1.lcfile.com/167022c1a77143a3aa48464b236fa00d',
+        format: 'zip',
+      );
+      // sent message list
+      List<Message> sentMessages = [
+        stringMessage,
+        binaryMessage,
+        textMessage,
+        imageMessage,
+        audioMessage,
+        videoMessage,
+        locationMessage,
+        fileMessage,
+      ];
       // message assertion
       void Function(
         Message,
@@ -412,7 +465,7 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
         Client client,
         Conversation conversation,
         Message message,
-      }) {
+      }) async {
         client2OnMessageReceivedCount -= 1;
         if (client2OnMessageReceivedCount <= 0) {
           client2.onMessageReceive = null;
@@ -463,6 +516,38 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
           assert(message.url != null);
           decrease(1);
         }
+        if (client2OnMessageReceivedCount == 0) {
+          List<Message> messages1 = await conversation.queryMessage(
+            startTimestamp: textMessage.sentTimestamp,
+            startMessageId: textMessage.id,
+            startClose: true,
+            endTimestamp: fileMessage.sentTimestamp,
+            endMessageId: fileMessage.id,
+            endClose: false,
+            direction: 2,
+            limit: 100,
+          );
+          assert(messages1.length == 5);
+          messages1.asMap().forEach((index, value) {
+            Message sentMessage = sentMessages[index + 2];
+            assert(value.sentTimestamp == sentMessage.sentTimestamp);
+            assert(value.id == sentMessage.id);
+            assert(value.conversationId == sentMessage.conversationId);
+            assert(value.fromClientId == sentMessage.fromClientId);
+            assert(value.runtimeType == sentMessage.runtimeType);
+          });
+          List<Message> messages2 = await conversation.queryMessage(
+            limit: 1,
+            type: -1,
+          );
+          assert(messages2.length == 1);
+          assert(messages2[0] is TextMessage);
+          assert(messages2[0].id == textMessage.id);
+          assert(messages2[0].sentTimestamp == textMessage.sentTimestamp);
+          assert(messages2[0].conversationId == textMessage.conversationId);
+          assert(messages2[0].fromClientId == textMessage.fromClientId);
+          decrease(1);
+        }
       };
       int client2OnConversationLastMessageUpdate = 8;
       client2.onConversationLastMessageUpdate = ({
@@ -486,70 +571,39 @@ UnitTestCaseCard sendMessage = UnitTestCaseCard(
         members: [client1.id, client2.id],
       );
       // send string
-      Message stringMessage = Message();
-      stringMessage.stringContent = stringContent;
       await conversation.send(message: stringMessage);
       assertMessage(stringMessage, conversation);
       assert(stringMessage.stringContent != null);
       // send binary
-      Message binaryMessage = Message();
-      binaryMessage.binaryContent = binaryContent;
       await conversation.send(message: binaryMessage);
       assertMessage(binaryMessage, conversation);
       assert(binaryMessage.binaryContent != null);
       // send text
-      TextMessage textMessage = TextMessage();
-      textMessage.text = text;
       await conversation.send(message: textMessage);
       assertMessage(textMessage, conversation);
       assert(textMessage.text != null);
       // send image
-      ByteData imageData = await rootBundle.load('assets/test.png');
-      ImageMessage imageMessage = ImageMessage.from(
-        binaryData: imageData.buffer.asUint8List(),
-        format: 'png',
-        name: 'image.png',
-      );
       await conversation.send(message: imageMessage);
       assertMessage(imageMessage, conversation);
       assertFileMessage(imageMessage);
       assert(imageMessage.width != null);
       assert(imageMessage.height != null);
       // send audio
-      ByteData audioData = await rootBundle.load('assets/test.mp3');
-      AudioMessage audioMessage = AudioMessage.from(
-        binaryData: audioData.buffer.asUint8List(),
-        format: 'mp3',
-      );
       await conversation.send(message: audioMessage);
       assertMessage(audioMessage, conversation);
       assertFileMessage(audioMessage);
       assert(audioMessage.duration != null);
       // send video
-      ByteData videoData = await rootBundle.load('assets/test.mp4');
-      VideoMessage videoMessage = VideoMessage.from(
-        binaryData: videoData.buffer.asUint8List(),
-        format: 'mp4',
-      );
       await conversation.send(message: videoMessage);
       assertMessage(videoMessage, conversation);
       assertFileMessage(videoMessage);
       assert(videoMessage.duration != null);
       // send location
-      LocationMessage locationMessage = LocationMessage.from(
-        latitude: 22,
-        longitude: 33,
-      );
       await conversation.send(message: locationMessage);
       assertMessage(locationMessage, conversation);
       assert(locationMessage.latitude == 22);
       assert(locationMessage.longitude == 33);
       // send file
-      FileMessage fileMessage = FileMessage.from(
-        url:
-            'http://lc-heQFQ0Sw.cn-n1.lcfile.com/167022c1a77143a3aa48464b236fa00d',
-        format: 'zip',
-      );
       await conversation.send(message: fileMessage);
       assertMessage(locationMessage, conversation);
       assert(fileMessage.url != null);
@@ -751,7 +805,7 @@ class _MyAppState extends State<MyApp> {
     createNonUniqueConversation,
     createTransientConversation,
     createTemporaryConversation,
-    sendMessage,
+    sendMessageAndQueryMessage,
     readMessage,
     // updateMessage,
     messageReceipt,
