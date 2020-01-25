@@ -8,6 +8,7 @@ buildscript {
         maven {
             url "https://oss.sonatype.org/content/groups/public/"
         }
+        mavenLocal()
     }
 
     dependencies {
@@ -22,6 +23,7 @@ rootProject.allprojects {
         maven {
             url "https://oss.sonatype.org/content/groups/public/"
         }
+        mavenLocal()
     }
 }
 
@@ -40,7 +42,12 @@ android {
 }
 
 dependencies {
-    implementation('cn.leancloud:realtime-android:6.2.1') {
+    implementation('cn.leancloud:realtime-android:6.3.0') {
+        exclude group: 'com.alibaba', module: 'fastjson'
+        exclude group: 'org.ligboy.retrofit2', module: 'converter-fastjson'
+        exclude group: 'cn.leancloud', module: 'realtime-core'
+    }
+    implementation('cn.leancloud:realtime-core:6.3.0') {
         exclude group: 'com.alibaba', module: 'fastjson'
         exclude group: 'org.ligboy.retrofit2', module: 'converter-fastjson'
     }
