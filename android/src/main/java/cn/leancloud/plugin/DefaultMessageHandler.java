@@ -61,6 +61,7 @@ public class DefaultMessageHandler extends AVIMMessageHandler {
    * 重载此方法来处理消息回执
    *
    * @param message
+   * @param operator
    * @param conversation
    * @param client
    */

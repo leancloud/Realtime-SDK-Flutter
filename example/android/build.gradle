@@ -5,6 +5,7 @@ buildscript {
         maven {
             url "https://oss.sonatype.org/content/groups/public/"
         }
+        mavenLocal()
     }
 
     dependencies {
@@ -19,6 +20,7 @@ allprojects {
         maven {
             url "https://oss.sonatype.org/content/groups/public/"
         }
+        mavenLocal()
     }
 }
 
