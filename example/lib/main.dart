@@ -7,6 +7,11 @@ import 'package:leancloud_plugin/leancloud_plugin.dart';
 
 String uuid() => Uuid().generateV4();
 
+Future<void> delay({
+  int seconds = 3,
+}) async =>
+    await Future.delayed(Duration(seconds: seconds));
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatefulWidget {
@@ -25,7 +30,9 @@ UnitTestCaseCard clientOpenThenClose = UnitTestCaseCard(
       assert(client.tag == null);
       // close
       await client.close();
-      return [];
+      // reopen
+      await client.open();
+      return [client];
     });
 
 UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
@@ -172,13 +179,19 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
         }
         assert(client != null);
         assert(conversation != null);
+        assert(byClientId == client1.id);
+        assert(atDate != null);
         List m = conversation.rawData['m'];
         assert(m.length == 2);
         assert(m.contains(client1.id));
         assert(m.contains(client2.id));
-        assert(byClientId == client1.id);
-        assert(atDate != null);
-        decrease(1);
+        if (client1OnConversationInvite == 1) {
+          // join by create
+          decrease(1);
+        } else if (client1OnConversationInvite == 0) {
+          // rejoin
+          decrease(1);
+        }
       };
       client1.onConversationKick = ({
         Client client,
@@ -189,11 +202,11 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
         client1.onConversationKick = null;
         assert(client != null);
         assert(conversation != null);
+        assert(byClientId == client1.id);
+        assert(atDate != null);
         List m1 = conversation.rawData['m'];
         assert(m1.length == 1);
         assert(m1.contains(client2.id));
-        assert(byClientId == client1.id);
-        assert(atDate != null);
         decrease(1);
         Map result = await conversation.updateMembers(
           members: [client1.id],
@@ -206,6 +219,7 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
         assert(m2.length == 2);
         assert(m2.contains(client1.id));
         assert(m2.contains(client2.id));
+        assert(result['udate'] is String);
         decrease(1);
       };
       int client1OnConversationMembersJoin = 3;
@@ -222,7 +236,10 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
         }
         assert(client != null);
         assert(conversation != null);
+        assert(byClientId == client1.id);
+        assert(atDate != null);
         if (client1OnConversationMembersJoin == 2) {
+          // join by create
           assert(members.length == 2);
           assert(members.contains(client1.id));
           assert(members.contains(client2.id));
@@ -230,16 +247,18 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
           assert(m.length == 2);
           assert(m.contains(client1.id));
           assert(m.contains(client2.id));
-        }
-        if (client1OnConversationMembersJoin == 1) {
+          decrease(1);
+        } else if (client1OnConversationMembersJoin == 1) {
+          // rejoin
           assert(members.length == 1);
           assert(members.contains(client1.id));
           List m = conversation.rawData['m'];
           assert(m.length == 2);
           assert(m.contains(client1.id));
           assert(m.contains(client2.id));
-        }
-        if (client1OnConversationMembersJoin == 0) {
+          decrease(1);
+        } else if (client1OnConversationMembersJoin == 0) {
+          // add new member
           assert(members.length == 1);
           assert(members.contains(client3id));
           List m = conversation.rawData['m'];
@@ -247,26 +266,22 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
           assert(m.contains(client1.id));
           assert(m.contains(client2.id));
           assert(m.contains(client3id));
+          decrease(1);
         }
-        assert(byClientId == client1.id);
-        assert(atDate != null);
-        decrease(1);
         if (client1OnConversationMembersJoin == 2) {
-          // client 1 leave
-          Map leaveResult = await conversation.updateMembers(
+          Map result = await conversation.updateMembers(
             members: [client1.id],
             op: 'remove',
           );
-          List allowedPids = leaveResult['allowedPids'];
+          List allowedPids = result['allowedPids'];
           assert(allowedPids.length == 1);
           assert(allowedPids.contains(client1.id));
           List m = conversation.rawData['m'];
           assert(m.length == 1);
           assert(m.contains(client2.id));
+          assert(result['udate'] is String);
           decrease(1);
-        }
-        if (client1OnConversationMembersJoin == 1) {
-          // add client 3
+        } else if (client1OnConversationMembersJoin == 1) {
           Map result = await conversation.updateMembers(
             members: [client3id],
             op: 'add',
@@ -279,10 +294,9 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
           assert(m.contains(client1.id));
           assert(m.contains(client2.id));
           assert(m.contains(client3id));
+          assert(result['udate'] is String);
           decrease(1);
-        }
-        if (client1OnConversationMembersJoin == 0) {
-          // remove client 3
+        } else if (client1OnConversationMembersJoin == 0) {
           Map result = await conversation.updateMembers(
             members: [client3id],
             op: 'remove',
@@ -294,6 +308,7 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
           assert(m.length == 2);
           assert(m.contains(client1.id));
           assert(m.contains(client2.id));
+          assert(result['udate'] is String);
           decrease(1);
         }
       };
@@ -307,14 +322,14 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
         client1.onConversationMembersLeave = null;
         assert(client != null);
         assert(conversation != null);
+        assert(byClientId == client1.id);
+        assert(atDate != null);
         assert(members.length == 1);
         assert(members.contains(client3id));
         List m = conversation.rawData['m'];
         assert(m.length == 2);
         assert(m.contains(client1.id));
         assert(m.contains(client2.id));
-        assert(byClientId == client1.id);
-        assert(atDate != null);
         decrease(1);
       };
       client2.onConversationInvite = ({
@@ -348,7 +363,10 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
         }
         assert(client != null);
         assert(conversation != null);
+        assert(byClientId == client1.id);
+        assert(atDate != null);
         if (client2OnConversationMembersJoin == 2) {
+          // join by create
           assert(members.length == 2);
           assert(members.contains(client1.id));
           assert(members.contains(client2.id));
@@ -356,16 +374,18 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
           assert(m.length == 2);
           assert(m.contains(client1.id));
           assert(m.contains(client2.id));
-        }
-        if (client2OnConversationMembersJoin == 1) {
+          decrease(1);
+        } else if (client2OnConversationMembersJoin == 1) {
+          // rejoin
           assert(members.length == 1);
           assert(members.contains(client1.id));
           List m = conversation.rawData['m'];
           assert(m.length == 2);
           assert(m.contains(client1.id));
           assert(m.contains(client2.id));
-        }
-        if (client2OnConversationMembersJoin == 0) {
+          decrease(1);
+        } else if (client2OnConversationMembersJoin == 0) {
+          // add new member
           assert(members.length == 1);
           assert(members.contains(client3id));
           List m = conversation.rawData['m'];
@@ -373,10 +393,8 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
           assert(m.contains(client1.id));
           assert(m.contains(client2.id));
           assert(m.contains(client3id));
+          decrease(1);
         }
-        assert(byClientId == client1.id);
-        assert(atDate != null);
-        decrease(1);
       };
       int client2OnConversationMembersLeave = 2;
       client2.onConversationMembersLeave = ({
@@ -392,24 +410,26 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
         }
         assert(client != null);
         assert(conversation != null);
+        assert(byClientId == client1.id);
+        assert(atDate != null);
         if (client2OnConversationMembersLeave == 1) {
+          // leave
           assert(members.length == 1);
           assert(members.contains(client1.id));
           List m = conversation.rawData['m'];
           assert(m.length == 1);
           assert(m.contains(client2.id));
-        }
-        if (client2OnConversationMembersLeave == 0) {
+          decrease(1);
+        } else if (client2OnConversationMembersLeave == 0) {
+          // remove new member
           assert(members.length == 1);
           assert(members.contains(client3id));
           List m = conversation.rawData['m'];
           assert(m.length == 2);
           assert(m.contains(client1.id));
           assert(m.contains(client2.id));
+          decrease(1);
         }
-        assert(byClientId == client1.id);
-        assert(atDate != null);
-        decrease(1);
       };
       // open
       await client1.open();
@@ -710,6 +730,7 @@ UnitTestCaseCard sendMessageAndQueryMessage = UnitTestCaseCard(
           decrease(1);
         }
         if (client2OnMessageReceivedCount == 0) {
+          await delay();
           List<Message> messages1 = await conversation.queryMessage(
             startTimestamp: textMessage.sentTimestamp,
             startMessageId: textMessage.id,
@@ -1037,11 +1058,10 @@ class _MyAppState extends State<MyApp> {
 }
 
 class UnitTestCaseCard extends StatefulWidget {
-  final String title;
   final UnitTestCaseState state;
 
   UnitTestCaseCard({
-    @required this.title,
+    @required title,
     int extraExpectedCount = 0,
     @required Future<List<Client>> Function(void Function(int)) testCaseFunc,
   }) : this.state = UnitTestCaseState(
