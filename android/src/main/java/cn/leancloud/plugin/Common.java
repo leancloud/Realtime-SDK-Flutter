@@ -215,13 +215,6 @@ public class Common {
     }
 
     result = message.dumpRawData();
-    if (result.containsKey("typeMsgData")) {
-      Object val = result.get("typeMsgData");
-      if (val instanceof String) {
-        result.put("typeMsgData", JSON.parse((String) val));
-      }
-    }
-
     return result;
   }
 
@@ -271,17 +264,6 @@ public class Common {
     }
 
     result = conversation.dumpRawData();
-    // because java sdk put name info attr, so refine it now.
-    if (result.containsKey("attr")) {
-      Map<String, Object> attr = (Map<String, Object>)result.get("attr");
-      if (attr.containsKey("name")) {
-        Object nameValue = attr.remove("name");
-        result.put("name", nameValue);
-      }
-      if (attr.size() < 1) {
-        result.remove("attr");
-      }
-    }
     if (result.containsKey("conv_type") && result.containsKey("uniqueId") && !result.containsKey("unique")) {
       if (1 == (int)result.get("conv_type") && !StringUtil.isEmpty((String) result.get("uniqueId"))) {
         result.put("unique", true);
