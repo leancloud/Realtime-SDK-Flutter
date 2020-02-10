@@ -60,6 +60,8 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                 delegator.getMessageReceipt(parameters: arguments, callback: result)
             case "queryMessage":
                 delegator.queryMessage(parameters: arguments, callback: result)
+            case "updateMembers":
+                delegator.updateMembers(parameters: arguments, callback: result)
             default:
                 fatalError("unknown method.")
             }
@@ -617,6 +619,71 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                         case .failure(error: let error):
                             self.mainAsync(self.error(error), callback)
                         }
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    func updateMembers(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                let op = parameters["op"] as! String
+                let m = parameters["m"] as! [String]
+                do {
+                    let handleResult: (IMConversation.MemberResult) -> Void = { result in
+                        switch result {
+                        case .allSucceeded:
+                            var successData: [String: Any] = ["allowedPids": m]
+                            if let members = conversation.members {
+                                successData["m"] = members
+                            }
+                            if let udate = conversation.updatedAt {
+                                successData["udate"] = (LCDate(udate).jsonValue as? [String: String])?["iso"]
+                            }
+                            self.mainAsync(["success": successData], callback)
+                        case let .slicing(success: success, failure: failure):
+                            var successData: [String: Any] = [:]
+                            if let sucess = success {
+                                successData["allowedPids"] = sucess
+                            }
+                            var failedPids: [[String: Any]] = []
+                            for item in failure {
+                                failedPids.append([
+                                    "pids": item.IDs,
+                                    "error": self.error(item.error),
+                                ])
+                            }
+                            successData["failedPids"] = failedPids
+                            if let members = conversation.members {
+                                successData["m"] = members
+                            }
+                            if let udate = conversation.updatedAt {
+                                successData["udate"] = (LCDate(udate).jsonValue as? [String: String])?["iso"]
+                            }
+                            self.mainAsync(["success": successData], callback)
+                        case let .failure(error: error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                    switch op {
+                    case "add":
+                        try conversation.add(members: Set(m)) { (result) in
+                            handleResult(result)
+                        }
+                    case "remove":
+                        try conversation.remove(members: Set(m)) { (result) in
+                            handleResult(result)
+                        }
+                    default:
+                        fatalError()
                     }
                 } catch {
                     self.mainAsync(self.error(error), callback)
