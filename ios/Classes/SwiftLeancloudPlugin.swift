@@ -66,6 +66,10 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                 delegator.muteToggle(parameters: arguments, callback: result)
             case "updateData":
                 delegator.updateData(parameters: arguments, callback: result)
+            case "countMembers":
+                delegator.countMembers(parameters: arguments, callback: result)
+            case "queryConversation":
+                delegator.queryConversation(parameters: arguments, callback: result)
             default:
                 fatalError("unknown method.")
             }
@@ -760,6 +764,76 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             case .failure(error: let error):
                 self.mainAsync(self.error(error), callback)
             }
+        }
+    }
+    
+    func countMembers(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                conversation.countMembers { (result) in
+                    switch result {
+                    case .success(count: let count):
+                        self.mainAsync(["success": count], callback)
+                    case .failure(error: let error):
+                        self.mainAsync(self.error(error), callback)
+                    }
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    func queryConversation(parameters: [String: Any], callback: @escaping FlutterResult) {
+        do {
+            let query = self.client.conversationQuery
+            if let tempConvIds = parameters["tempConvIds"] as? [String] {
+                try query.getTemporaryConversations(by: Set(tempConvIds)) { (result) in
+                    switch result {
+                    case .success(value: let conversations):
+                        var rawDatas: [[String: Any]] = []
+                        for item in conversations {
+                            rawDatas.append(item.rawData)
+                        }
+                        self.mainAsync(["success": rawDatas], callback)
+                    case .failure(error: let error):
+                        self.mainAsync(self.error(error), callback)
+                    }
+                }
+            } else {
+                if let whereString = parameters["where"] as? String {
+                    query.whereString = whereString
+                }
+                if let sort = parameters["sort"] as? String {
+                    try query.where(sort, .ascending)
+                }
+                if let limit = parameters["limit"] as? Int {
+                    query.limit = limit
+                }
+                if let skip = parameters["skip"] as? Int {
+                    query.skip = skip
+                }
+                if let flag = parameters["flag"] as? Int {
+                    query.options = IMConversationQuery.Options(rawValue: flag)
+                }
+                try query.findConversations { (result) in
+                    switch result {
+                    case .success(value: let conversations):
+                        var rawDatas: [[String: Any]] = []
+                        for item in conversations {
+                            rawDatas.append(item.rawData)
+                        }
+                        self.mainAsync(["success": rawDatas], callback)
+                    case .failure(error: let error):
+                        self.mainAsync(self.error(error), callback)
+                    }
+                }
+            }
+        } catch {
+            self.mainAsync(self.error(error), callback)
         }
     }
 }

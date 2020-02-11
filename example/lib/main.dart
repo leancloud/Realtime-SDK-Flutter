@@ -35,8 +35,8 @@ UnitTestCaseCard clientOpenThenClose = UnitTestCaseCard(
       return [client];
     });
 
-UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
-    title: 'Case: Create Unique Conversation',
+UnitTestCaseCard createUniqueConversationAndCountMember = UnitTestCaseCard(
+    title: 'Case: Create Unique Conversation & Count Member',
     extraExpectedCount: 4,
     testCaseFunc: (decrease) async {
       // client
@@ -153,6 +153,8 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
       assert(attr[attrKey] == attrValue);
       assert(rawData2['c'] == client1.id);
       assert(rawData2['createdAt'] == createdAt);
+      int count = await conversation2.countMembers();
+      assert(count == 2);
       // recycle
       return [client1, client2];
     });
@@ -463,8 +465,8 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMember = UnitTestCaseCard(
       return [client1, client2];
     });
 
-UnitTestCaseCard createTransientConversation = UnitTestCaseCard(
-    title: 'Case: Create Transient Conversation',
+UnitTestCaseCard createTransientConversationAndCountMember = UnitTestCaseCard(
+    title: 'Case: Create Transient Conversation & Count Member',
     testCaseFunc: (decrease) async {
       // client
       Client client = Client(id: uuid());
@@ -489,12 +491,14 @@ UnitTestCaseCard createTransientConversation = UnitTestCaseCard(
       assert(attr[attrKey] == attrValue);
       assert(rawData['c'] == client.id);
       assert(rawData['createdAt'] is String);
+      int count = await conversation.countMembers();
+      assert(count == 1);
       // recycle
       return [client];
     });
 
-UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
-    title: 'Case: Create Temporary Conversation',
+UnitTestCaseCard createAndQueryTemporaryConversation = UnitTestCaseCard(
+    title: 'Case: Create & Query Temporary Conversation',
     extraExpectedCount: 4,
     testCaseFunc: (decrease) async {
       // client
@@ -580,12 +584,17 @@ UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
       assert(members.contains(client2.id));
       assert(rawData['temp'] == true);
       assert(rawData['ttl'] == 3600);
+      List<Conversation> conversations = await client2.queryConversation(
+        temporaryConversationIds: [conversation.id],
+      );
+      assert(conversations.length == 1);
+      assert(conversations[0].id == conversation.id);
       // recycle
       return [client1, client2];
     });
 
-UnitTestCaseCard sendMessageAndQueryMessage = UnitTestCaseCard(
-    title: 'Case: Send Message & Query Message',
+UnitTestCaseCard sendAndQueryMessage = UnitTestCaseCard(
+    title: 'Case: Send & Query Message',
     extraExpectedCount: 17,
     testCaseFunc: (decrease) async {
       // client
@@ -1093,19 +1102,52 @@ UnitTestCaseCard updateConversation = UnitTestCaseCard(
       return [client1, client2];
     });
 
+UnitTestCaseCard queryConversation = UnitTestCaseCard(
+    title: 'Case: Query Conversation',
+    testCaseFunc: (decrease) async {
+      // client
+      String clientId = uuid();
+      Client client = Client(id: clientId);
+      // open
+      await client.open();
+      // create unique
+      await client.createConversation(
+        type: ConversationType.normalUnique,
+        members: [clientId, uuid()],
+      );
+      // create non-unique
+      Conversation nonUniqueConversation = await client.createConversation(
+        type: ConversationType.normal,
+        members: [clientId, uuid()],
+      );
+      List<Conversation> conversations = await client.queryConversation(
+        where: '{\"m\":\"$clientId\"}',
+        sort: 'createdAt',
+        limit: 1,
+        skip: 1,
+        flag: 1,
+      );
+      assert(conversations.length == 1);
+      assert(conversations[0].id == nonUniqueConversation.id);
+      assert(conversations[0].rawData['m'] == null);
+      // recycle
+      return [client];
+    });
+
 class _MyAppState extends State<MyApp> {
   List<UnitTestCaseCard> cases = [
     clientOpenThenClose,
-    createUniqueConversation,
+    createUniqueConversationAndCountMember,
     createNonUniqueConversationAndUpdateMember,
-    createTransientConversation,
-    createTemporaryConversation,
-    sendMessageAndQueryMessage,
+    createTransientConversationAndCountMember,
+    createAndQueryTemporaryConversation,
+    sendAndQueryMessage,
     readMessage,
     // updateMessage,
     messageReceipt,
     muteConversation,
     updateConversation,
+    queryConversation,
   ];
 
   @override
