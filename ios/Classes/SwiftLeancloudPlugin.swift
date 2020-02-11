@@ -66,6 +66,8 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                 delegator.muteToggle(parameters: arguments, callback: result)
             case "updateData":
                 delegator.updateData(parameters: arguments, callback: result)
+            case "countMembers":
+                delegator.countMembers(parameters: arguments, callback: result)
             default:
                 fatalError("unknown method.")
             }
@@ -756,6 +758,26 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                     }
                 } catch {
                     self.mainAsync(self.error(error), callback)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    func countMembers(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                conversation.countMembers { (result) in
+                    switch result {
+                    case .success(count: let count):
+                        self.mainAsync(["success": count], callback)
+                    case .failure(error: let error):
+                        self.mainAsync(self.error(error), callback)
+                    }
                 }
             case .failure(error: let error):
                 self.mainAsync(self.error(error), callback)
