@@ -35,8 +35,8 @@ UnitTestCaseCard clientOpenThenClose = UnitTestCaseCard(
       return [client];
     });
 
-UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
-    title: 'Case: Create Unique Conversation',
+UnitTestCaseCard createUniqueConversationAndCountMember = UnitTestCaseCard(
+    title: 'Case: Create Unique Conversation & Count Member',
     extraExpectedCount: 4,
     testCaseFunc: (decrease) async {
       // client
@@ -153,6 +153,8 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
       assert(attr[attrKey] == attrValue);
       assert(rawData2['c'] == client1.id);
       assert(rawData2['createdAt'] == createdAt);
+      int count = await conversation2.countMembers();
+      assert(count == 2);
       // recycle
       return [client1, client2];
     });
@@ -463,8 +465,8 @@ UnitTestCaseCard createNonUniqueConversationAndUpdateMember = UnitTestCaseCard(
       return [client1, client2];
     });
 
-UnitTestCaseCard createTransientConversation = UnitTestCaseCard(
-    title: 'Case: Create Transient Conversation',
+UnitTestCaseCard createTransientConversationAndCountMember = UnitTestCaseCard(
+    title: 'Case: Create Transient Conversation & Count Member',
     testCaseFunc: (decrease) async {
       // client
       Client client = Client(id: uuid());
@@ -489,6 +491,8 @@ UnitTestCaseCard createTransientConversation = UnitTestCaseCard(
       assert(attr[attrKey] == attrValue);
       assert(rawData['c'] == client.id);
       assert(rawData['createdAt'] is String);
+      int count = await conversation.countMembers();
+      assert(count == 1);
       // recycle
       return [client];
     });
@@ -1096,9 +1100,9 @@ UnitTestCaseCard updateConversation = UnitTestCaseCard(
 class _MyAppState extends State<MyApp> {
   List<UnitTestCaseCard> cases = [
     clientOpenThenClose,
-    createUniqueConversation,
+    createUniqueConversationAndCountMember,
     createNonUniqueConversationAndUpdateMember,
-    createTransientConversation,
+    createTransientConversationAndCountMember,
     createTemporaryConversation,
     sendMessageAndQueryMessage,
     readMessage,
