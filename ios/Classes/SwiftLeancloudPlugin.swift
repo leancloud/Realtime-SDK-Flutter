@@ -62,6 +62,10 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                 delegator.queryMessage(parameters: arguments, callback: result)
             case "updateMembers":
                 delegator.updateMembers(parameters: arguments, callback: result)
+            case "muteToggle":
+                delegator.muteToggle(parameters: arguments, callback: result)
+            case "updateData":
+                delegator.updateData(parameters: arguments, callback: result)
             default:
                 fatalError("unknown method.")
             }
@@ -693,6 +697,71 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             }
         }
     }
+    
+    func muteToggle(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                let op = parameters["op"] as! String
+                let handleResult: (LCBooleanResult) -> Void = { result in
+                    switch result {
+                    case .success:
+                        var successData: [String: Any] = [:]
+                        if let mu = conversation["mu"] as? [String] {
+                            successData["mu"] = mu
+                        }
+                        if let udate = conversation.updatedAt {
+                            successData["udate"] = (LCDate(udate).jsonValue as? [String: String])?["iso"]
+                        }
+                        self.mainAsync(["success": successData], callback)
+                    case .failure(error: let error):
+                        self.mainAsync(self.error(error), callback)
+                    }
+                }
+                switch op {
+                case "mute":
+                    conversation.mute { (result) in
+                        handleResult(result)
+                    }
+                case "unmute":
+                    conversation.unmute { (result) in
+                        handleResult(result)
+                    }
+                default:
+                    fatalError()
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    func updateData(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                let data = parameters["data"] as! [String: Any]
+                do {
+                    try conversation.update(attribution: data) { (result) in
+                        switch result {
+                        case .success:
+                            self.mainAsync(["success": conversation.rawData], callback)
+                        case .failure(error: let error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
 }
 
 extension IMClientDelegator: IMClientDelegate {
@@ -754,6 +823,15 @@ extension IMClientDelegator: IMClientDelegate {
                 args["mention"] = true
             }
             self.invoke("onUnreadMessageCountUpdate", args)
+        case let .dataUpdated(updatingData: updatingData, updatedData: updatedData, byClientID: byClientID, at: at):
+            args["attr"] = updatingData
+            args["attrModified"] = updatedData
+            args["rawData"] = conversation.rawData
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = (LCDate(at).jsonValue as? [String: String])?["iso"]
+            }
+            self.invoke("onConversationDataUpdate", args)
         case let .message(event: messageEvent):
             switch messageEvent {
             case let .received(message: message):

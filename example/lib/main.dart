@@ -157,8 +157,8 @@ UnitTestCaseCard createUniqueConversation = UnitTestCaseCard(
       return [client1, client2];
     });
 
-UnitTestCaseCard createNonUniqueConversationAndUpdateMembers = UnitTestCaseCard(
-    title: 'Case: Create Non-Unique Conversation & Update Members',
+UnitTestCaseCard createNonUniqueConversationAndUpdateMember = UnitTestCaseCard(
+    title: 'Case: Create Non-Unique Conversation & Update Member',
     extraExpectedCount: 17,
     testCaseFunc: (decrease) async {
       // client
@@ -1012,17 +1012,100 @@ UnitTestCaseCard messageReceipt = UnitTestCaseCard(
       return [client1, client2];
     });
 
+UnitTestCaseCard muteConversation = UnitTestCaseCard(
+    title: 'Case: Mute Conversation',
+    testCaseFunc: (decrease) async {
+      // client
+      Client client = Client(id: uuid());
+      // open
+      await client.open();
+      // create
+      Conversation conversation = await client.createConversation(
+        members: [client.id, uuid()],
+      );
+      // mute
+      await conversation.muteToggle(op: 'mute');
+      assert(conversation.rawData['mu'].contains(client.id));
+      String updatedAt = conversation.rawData['updatedAt'];
+      assert(updatedAt != null);
+      // unmute
+      await conversation.muteToggle(op: 'unmute');
+      assert(conversation.rawData['mu'].contains(client.id) == false);
+      assert(conversation.rawData['updatedAt'] is String);
+      assert(conversation.rawData['updatedAt'] != updatedAt);
+      // recycle
+      return [client];
+    });
+
+UnitTestCaseCard updateConversation = UnitTestCaseCard(
+    title: 'Case: Update Conversation',
+    extraExpectedCount: 1,
+    testCaseFunc: (decrease) async {
+      String setValue = uuid();
+      String unsetValue = uuid();
+      // client
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+      // event
+      client2.onConversationDataUpdate = ({
+        Client client,
+        Conversation conversation,
+        Map updatingAttributes,
+        Map updatedAttributes,
+        String byClientId,
+        String atDate,
+      }) {
+        client2.onConversationDataUpdate = null;
+        assert(client != null);
+        assert(conversation != null);
+        assert(byClientId == client1.id);
+        assert(atDate != null);
+        assert(updatingAttributes.length == 2);
+        assert(updatingAttributes['attr.set'] == setValue);
+        assert(updatingAttributes['attr.unset']['__op'] == 'Delete');
+        assert(updatedAttributes['attr']['set'] == setValue);
+        assert(updatedAttributes['attr']['unset'] == null);
+        assert(conversation.rawData['attr']['set'] == setValue);
+        assert(conversation.rawData['attr']['unset'] == null);
+        decrease(1);
+      };
+      // open
+      await client1.open();
+      await client2.open();
+      // create
+      Conversation conversation = await client1.createConversation(
+        members: [client1.id, client2.id],
+        attributes: {'unset': unsetValue},
+      );
+      assert(conversation.rawData['attr']['unset'] == unsetValue);
+      await delay();
+      await client2.close();
+      await delay();
+      await conversation.update(data: {
+        'attr.set': setValue,
+        'attr.unset': {'__op': 'Delete'},
+      });
+      assert(conversation.rawData['attr']['set'] == setValue);
+      assert(conversation.rawData['attr']['unset'] == null);
+      await delay();
+      await client2.open();
+      // recycle
+      return [client1, client2];
+    });
+
 class _MyAppState extends State<MyApp> {
   List<UnitTestCaseCard> cases = [
     clientOpenThenClose,
     createUniqueConversation,
-    createNonUniqueConversationAndUpdateMembers,
+    createNonUniqueConversationAndUpdateMember,
     createTransientConversation,
     createTemporaryConversation,
     sendMessageAndQueryMessage,
     readMessage,
     // updateMessage,
     messageReceipt,
+    muteConversation,
+    updateConversation,
   ];
 
   @override
