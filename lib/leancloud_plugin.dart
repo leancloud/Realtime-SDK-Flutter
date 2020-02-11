@@ -401,8 +401,10 @@ class Client with _Utilities {
     if (skip != null) {
       args['skip'] = skip;
     }
+    bool needLastMessage = false;
     if (flag != null) {
       args['flag'] = flag;
+      needLastMessage = (flag & 2) == 2;
     }
     if (temporaryConversationIds != null) {
       args['tempConvIds'] = temporaryConversationIds;
@@ -411,7 +413,6 @@ class Client with _Utilities {
       method: 'queryConversation',
       arguments: args,
     );
-    bool needLastMessage = (flag & 2) == 2;
     List<Conversation> conversations = List();
     results.forEach((item) {
       final String conversationId = item['objectId'];
