@@ -497,8 +497,8 @@ UnitTestCaseCard createTransientConversationAndCountMember = UnitTestCaseCard(
       return [client];
     });
 
-UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
-    title: 'Case: Create Temporary Conversation',
+UnitTestCaseCard createAndQueryTemporaryConversation = UnitTestCaseCard(
+    title: 'Case: Create & Query Temporary Conversation',
     extraExpectedCount: 4,
     testCaseFunc: (decrease) async {
       // client
@@ -584,12 +584,17 @@ UnitTestCaseCard createTemporaryConversation = UnitTestCaseCard(
       assert(members.contains(client2.id));
       assert(rawData['temp'] == true);
       assert(rawData['ttl'] == 3600);
+      List<Conversation> conversations = await client2.queryConversation(
+        temporaryConversationIds: [conversation.id],
+      );
+      assert(conversations.length == 1);
+      assert(conversations[0].id == conversation.id);
       // recycle
       return [client1, client2];
     });
 
-UnitTestCaseCard sendMessageAndQueryMessage = UnitTestCaseCard(
-    title: 'Case: Send Message & Query Message',
+UnitTestCaseCard sendAndQueryMessage = UnitTestCaseCard(
+    title: 'Case: Send & Query Message',
     extraExpectedCount: 17,
     testCaseFunc: (decrease) async {
       // client
@@ -1097,19 +1102,52 @@ UnitTestCaseCard updateConversation = UnitTestCaseCard(
       return [client1, client2];
     });
 
+UnitTestCaseCard queryConversation = UnitTestCaseCard(
+    title: 'Case: Query Conversation',
+    testCaseFunc: (decrease) async {
+      // client
+      String clientId = uuid();
+      Client client = Client(id: clientId);
+      // open
+      await client.open();
+      // create unique
+      await client.createConversation(
+        type: ConversationType.normalUnique,
+        members: [clientId, uuid()],
+      );
+      // create non-unique
+      Conversation nonUniqueConversation = await client.createConversation(
+        type: ConversationType.normal,
+        members: [clientId, uuid()],
+      );
+      List<Conversation> conversations = await client.queryConversation(
+        where: '{\"m\":\"$clientId\"}',
+        sort: 'createdAt',
+        limit: 1,
+        skip: 1,
+        flag: 1,
+      );
+      assert(conversations.length == 1);
+      assert(conversations[0].id == nonUniqueConversation.id);
+      assert(conversations[0].rawData['m'] == null);
+      // recycle
+      return [client];
+    });
+
 class _MyAppState extends State<MyApp> {
   List<UnitTestCaseCard> cases = [
     clientOpenThenClose,
     createUniqueConversationAndCountMember,
     createNonUniqueConversationAndUpdateMember,
     createTransientConversationAndCountMember,
-    createTemporaryConversation,
-    sendMessageAndQueryMessage,
+    createAndQueryTemporaryConversation,
+    sendAndQueryMessage,
     readMessage,
     // updateMessage,
     messageReceipt,
     muteConversation,
     updateConversation,
+    queryConversation,
   ];
 
   @override
