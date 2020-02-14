@@ -97,6 +97,7 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         if self.isSignSessionOpen || self.isSignConversation {
             self.client.signatureDelegate = self
         }
+        SwiftLeancloudPlugin.delegatorMap[self.client.ID] = self
     }
     
     func mainAsync(_ value: [String: Any], _ callback: @escaping FlutterResult) {
@@ -109,10 +110,7 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         self.client.open(options: isReconnect ? [] : .default) { (result) in
             switch result {
             case .success:
-                DispatchQueue.main.async {
-                    SwiftLeancloudPlugin.delegatorMap[self.client.ID] = self
-                }
-                self.mainAsync([:], callback);
+                self.mainAsync([:], callback)
             case .failure(error: let error):
                 self.mainAsync(self.error(error), callback)
             }
@@ -126,7 +124,7 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                 DispatchQueue.main.async {
                     SwiftLeancloudPlugin.delegatorMap.removeValue(forKey: self.client.ID)
                 }
-                self.mainAsync([:], callback);
+                self.mainAsync([:], callback)
             case .failure(error: let error):
                 self.mainAsync(self.error(error), callback)
             }
@@ -950,7 +948,68 @@ extension IMClientDelegator: IMClientDelegate {
 extension IMClientDelegator: IMSignatureDelegate {
     
     func client(_ client: IMClient, action: IMSignature.Action, signatureHandler: @escaping (IMClient, IMSignature?) -> Void) {
-        
+        let handleSignResult: (Any?) -> Void = { result in
+            if let result = result as? [String: Any],
+                let sign = result["sign"] as? [String: Any],
+                let s = sign["s"] as? String,
+                let n = sign["n"] as? String,
+                let t = sign["t"] as? Int {
+                signatureHandler(client, IMSignature(
+                    signature: s,
+                    timestamp: Int64(t),
+                    nonce: n))
+            }
+        }
+        switch action {
+        case .open:
+            if self.isSignSessionOpen {
+                self.invoke("onSignSessionOpen", ["clientId": client.ID]) { (result) in
+                    handleSignResult(result)
+                }
+            } else {
+                signatureHandler(client, nil)
+            }
+        case let .createConversation(memberIDs: memberIDs):
+            if self.isSignConversation {
+                self.invoke("onSignConversation", [
+                    "clientId": client.ID,
+                    "targetIds": Array(memberIDs),
+                    "action": "create"])
+                { (result) in
+                    handleSignResult(result)
+                }
+            } else {
+                signatureHandler(client, nil)
+            }
+        case let .add(memberIDs: memberIDs, toConversation: conversation):
+            if self.isSignConversation {
+                self.invoke("onSignConversation", [
+                    "clientId": client.ID,
+                    "conversationId": conversation.ID,
+                    "targetIds": Array(memberIDs),
+                    "action": "invite"])
+                { (result) in
+                    handleSignResult(result)
+                }
+            } else {
+                signatureHandler(client, nil)
+            }
+        case let .remove(memberIDs: memberIDs, fromConversation: conversation):
+            if self.isSignConversation {
+                self.invoke("onSignConversation", [
+                    "clientId": client.ID,
+                    "conversationId": conversation.ID,
+                    "targetIds": Array(memberIDs),
+                    "action": "kick"])
+                { (result) in
+                    handleSignResult(result)
+                }
+            } else {
+                signatureHandler(client, nil)
+            }
+        default:
+            signatureHandler(client, nil)
+        }
     }
 }
 
