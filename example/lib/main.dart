@@ -1261,6 +1261,91 @@ UnitTestCase queryConversation() => UnitTestCase(
       return [client];
     });
 
+UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
+    title: 'Signature Case: Client Open & Conversation Operation',
+    testingLogic: (decrease) async {
+      String clientId = 'test-signature';
+      int timestamp = 1581668447937;
+      String clientId1 = clientId + '-1';
+      String clientId2 = clientId + '-2';
+      // client
+      Client client = Client(
+        id: clientId,
+        signSessionOpen: ({
+          Client client,
+        }) async {
+          assert(client != null);
+          return Signature(
+            nonce: clientId,
+            timestamp: timestamp,
+            signature: 'ad872fb259ff95121a3be6f7fc8209bc927cc1d3',
+          );
+        },
+        signConversation: ({
+          String action,
+          Client client,
+          Conversation conversation,
+          List targetIds,
+        }) async {
+          assert(client != null);
+          if (action == 'invite') {
+            assert(conversation != null);
+            assert(targetIds.length == 1);
+            assert(targetIds.contains(clientId2));
+            return Signature(
+              nonce: clientId,
+              timestamp: timestamp,
+              signature: '5340039bb0bb03446365e26d8788bcadcf8c7d9f',
+            );
+          } else if (action == 'kick') {
+            assert(conversation != null);
+            assert(targetIds.length == 1);
+            assert(targetIds.contains(clientId2));
+            return Signature(
+              nonce: clientId,
+              timestamp: timestamp,
+              signature: '823782f7251687726c2337fa9b4a91ff19d21f38',
+            );
+          } else {
+            assert(action == 'create');
+            assert(targetIds.length == 2);
+            assert(targetIds.contains(clientId));
+            assert(targetIds.contains(clientId1));
+            return Signature(
+              nonce: clientId,
+              timestamp: timestamp,
+              signature: 'c473e608320c5f77252c5a4109bc48f57848a555',
+            );
+          }
+        },
+      );
+      // open
+      await client.open();
+      // create
+      Conversation conversation = await client.createConversation(
+        members: [clientId, clientId1],
+      );
+      assert(conversation.id == '5e46698f90aef5aa847a5a04');
+      // add
+      Map addResult = await conversation.updateMembers(
+        members: [clientId2],
+        op: 'add',
+      );
+      List addAllowedPids = addResult['allowedPids'];
+      assert(addAllowedPids.length == 1);
+      assert(addAllowedPids.contains(clientId2));
+      // remove
+      Map removeResult = await conversation.updateMembers(
+        members: [clientId2],
+        op: 'remove',
+      );
+      List removeAllowedPids = removeResult['allowedPids'];
+      assert(removeAllowedPids.length == 1);
+      assert(removeAllowedPids.contains(clientId2));
+      // recycle
+      return [client];
+    });
+
 class UnitTestCase {
   final String title;
   final int expectedCount;
@@ -1390,7 +1475,9 @@ class _MyAppState extends State<MyApp> {
     updateConversation(),
     queryConversation(),
   ];
-  List<UnitTestCase> signatureUnitCases = [];
+  List<UnitTestCase> signatureUnitCases = [
+    signClientOpenAndConversationOperation(),
+  ];
   List<UnitTestCase> allUnitCases = [];
 
   @override
@@ -1398,7 +1485,7 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     this.allUnitCases = [
           UnitTestCase(
-              title: 'Run all unit cases',
+              title: 'Run all unit cases (exclude signature cases)',
               extraExpectedCount: this.unitCases.length,
               timeout: 0,
               testingLogic: (decrease) async {
@@ -1415,25 +1502,6 @@ class _MyAppState extends State<MyApp> {
               }),
         ] +
         this.unitCases +
-        [
-          // UnitTestCase(
-          //     title: 'Run all signature unit cases',
-          //     extraExpectedCount: this.signatureUnitCases.length,
-          //     timeout: 0,
-          //     testingLogic: (decrease) async {
-          //       for (var i = 0; i < this.signatureUnitCases.length; i++) {
-          //         await this.signatureUnitCases[i].run(
-          //             stateCountDidChange: (count) {
-          //           if (count == 0) {
-          //             decrease(1);
-          //           } else if (count < 0) {
-          //             decrease(-1);
-          //           }
-          //         });
-          //       }
-          //       return [];
-          //     }),
-        ] +
         this.signatureUnitCases;
     this.allUnitCases.forEach((item) {
       item.stateCountWillChange = (count) {
