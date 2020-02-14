@@ -78,9 +78,11 @@ class _Bridge with _Utilities {
           break;
         case 'onSignConversation':
           if (client._signConversation != null) {
-            final Conversation conversation = await client._getConversation(
-              id: args['conversationId'],
-            );
+            final String conversationId = args['conversationId'];
+            Conversation conversation;
+            if (conversationId != null) {
+              conversation = await client._getConversation(id: conversationId);
+            }
             final Signature sign = await client._signConversation(
               client: client,
               conversation: conversation,
