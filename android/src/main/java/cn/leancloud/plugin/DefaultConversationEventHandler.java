@@ -275,6 +275,13 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    */
   public void onMessageRecalled(AVIMClient client, AVIMConversation conversation, AVIMMessage message) {
     LOGGER.d("Notification --- message was recalled. messageId: " + message.getMessageId());
+    if (null != this.listener) {
+      HashMap<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Message_Raw, Common.wrapMessage(message));
+      this.listener.notify(Common.Method_Message_Updated, param);
+    }
   }
 
   /**
