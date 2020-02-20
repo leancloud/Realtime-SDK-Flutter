@@ -1,31 +1,20 @@
 package cn.leancloud.plugin;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 
-import java.nio.ByteBuffer;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import cn.leancloud.AVException;
-import cn.leancloud.AVFile;
 import cn.leancloud.im.Signature;
-import cn.leancloud.im.v2.AVIMBinaryMessage;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMConversation;
 import cn.leancloud.im.v2.AVIMException;
 import cn.leancloud.im.v2.AVIMMessage;
 import cn.leancloud.im.v2.AVIMMessageInterval;
 import cn.leancloud.im.v2.AVIMMessageOption;
-import cn.leancloud.im.v2.AVIMTypedMessage;
-import cn.leancloud.im.v2.messages.AVIMFileMessage;
-import cn.leancloud.im.v2.messages.AVIMLocationMessage;
-import cn.leancloud.im.v2.messages.AVIMTextMessage;
 import cn.leancloud.im.v2.AVIMMessageInterval.AVIMMessageIntervalBound;
-import cn.leancloud.ops.Utils;
-import cn.leancloud.types.AVGeoPoint;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.plugin.common.MethodCall;
 
@@ -60,7 +49,9 @@ public class Common {
   public static final String Param_Client_Id = "clientId";
   public static final String Param_ReOpen = "r";
   public static final String Param_Client_Tag = "tag";
-  public static final String Param_Signature = "sign";
+  public static final String Param_Signature = "signRegistry";
+  public static final String Param_Sign_SessionOpen = "sessionOpen";
+  public static final String Param_Sign_Conversation = "conversation";
   public static final String Param_Conv_Type = "conv_type";
   public static final String Param_Conv_Members = "m";
   public static final String Param_Conv_Name = "name";
@@ -107,6 +98,9 @@ public class Common {
   public static final String Param_File_Url = "url";
   public static final String Param_File_Format = "format";
   public static final String Param_File_Name = "name";
+
+  public static final String Param_Sign_TargetIds = "targetIds";
+  public static final String Param_Sign_Action = "action";
 
   public static final String Param_Code = "code";
   public static final String Param_Error = "error";
