@@ -32,7 +32,7 @@ public class Common {
   public static final String Method_Update_Members = "updateMembers";
   public static final String Method_Mute_Conversation = "muteToggle";
   public static final String Method_Update_Conversation = "updateData";
-  public static final String Method_Query_Member_Count = "getMembersCount";
+  public static final String Method_Query_Member_Count = "countMembers";
 
   public static final String Method_Client_Offline = "onSessionClose";
   public static final String Method_Client_Disconnected = "onSessionDisconnect";
@@ -42,6 +42,7 @@ public class Common {
   public static final String Method_Message_Receipted = "onMessageReceipt";
   public static final String Method_Message_Updated = "onMessageUpdate";
 
+  public static final String Method_Conv_Update_Status = "updateStatus";
   public static final String Method_Conv_Member_Updated = "onConversationMembersUpdate";
   public static final String Method_Conv_Updated = "onConversationDataUpdate";
   public static final String Method_Conv_UnreadCount_Updated = "onUnreadMessageCountUpdate";
@@ -58,6 +59,8 @@ public class Common {
   public static final String Param_Conv_Attributes = "attr";
   public static final String Param_Conv_TTL = "ttl";
   public static final String Param_Conv_Id = "conversationId";
+
+  public static final String Param_Unread_Mention = "unreadMessageMention";
 
   public static final String Param_Conv_Operation = "op";
   public static final String Param_Conv_Data = "data";

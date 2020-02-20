@@ -559,6 +559,10 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
               }
             }
           });
+    } else if (call.method.equals(Common.Method_Conv_Update_Status)) {
+      boolean unreadMention = Common.getParamBoolean(call, Common.Param_Unread_Mention);
+      conversation.unreadMessagesMentioned();
+      result.success(Common.wrapSuccessResponse(0));
     } else {
       result.notImplemented();
     }
