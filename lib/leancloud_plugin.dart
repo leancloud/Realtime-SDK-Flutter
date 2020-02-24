@@ -886,6 +886,14 @@ class Conversation with _Utilities {
     if (mention != null) {
       this._unreadMessageMentioned = mention;
     }
+    final Map messageRawData = args['message'];
+    if (messageRawData != null) {
+      this._updateLastMessage(
+        message: Message._instanceFrom(
+          messageRawData,
+        ),
+      );
+    }
     if (this.client.onConversationUnreadMessageCountUpdate != null) {
       this.client.onConversationUnreadMessageCountUpdate(
             client: this.client,
