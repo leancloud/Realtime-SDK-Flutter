@@ -513,7 +513,7 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
       assert(rawData['c'] == client1.id);
       assert(rawData['createdAt'] is String);
       // recycle
-      await delay(seconds: 5);
+      await delay();
       return [client1, client2];
     });
 
@@ -913,6 +913,7 @@ UnitTestCase readMessage() => UnitTestCase(
       message.mentionMembers = [client2.id];
       message.mentionAll = true;
       await conversation.send(message: message);
+      await delay();
       // event
       int client2OnConversationUnreadMessageCountUpdateCount = 2;
       client2.onConversationUnreadMessageCountUpdate = ({
@@ -928,6 +929,11 @@ UnitTestCase readMessage() => UnitTestCase(
           assert(conversation != null);
           if (conversation.unreadMessageCount == 1) {
             assert(conversation.unreadMessageMentioned == true);
+            Message lastMessage = conversation.lastMessage;
+            assert(lastMessage.id == message.id);
+            assert(lastMessage.sentTimestamp == message.sentTimestamp);
+            assert(lastMessage.conversationId == message.conversationId);
+            assert(lastMessage.fromClientId == message.fromClientId);
             conversation.read();
             decrease(1);
           } else if (conversation.unreadMessageCount == 0) {
@@ -954,13 +960,6 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
       // old message
       Message oldMessage = Message();
       oldMessage.stringContent = uuid();
-      // new message
-      ByteData imageData = await rootBundle.load('assets/test.jpg');
-      ImageMessage newMessage = ImageMessage.from(
-        binaryData: imageData.buffer.asUint8List(),
-        format: 'jpg',
-        name: 'test.jpg',
-      );
       // event
       client2.onMessageUpdated = ({
         Client client,
@@ -980,7 +979,7 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
           assert(updatedMessage.patchedTimestamp != null);
           assert(updatedMessage is ImageMessage);
           if (updatedMessage is ImageMessage) {
-            assert(updatedMessage.url == newMessage.url);
+            assert(updatedMessage.url != null);
             assert(updatedMessage.url.endsWith('/test.jpg'));
           }
           decrease(1);
@@ -1018,6 +1017,12 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
       await conversation.send(message: oldMessage);
       await delay();
       // update
+      ByteData imageData = await rootBundle.load('assets/test.jpg');
+      ImageMessage newMessage = ImageMessage.from(
+        binaryData: imageData.buffer.asUint8List(),
+        format: 'jpg',
+        name: 'test.jpg',
+      );
       Message updatedMessage = await conversation.updateMessage(
         oldMessage: oldMessage,
         newMessage: newMessage,
@@ -1071,8 +1076,12 @@ UnitTestCase messageReceipt() => UnitTestCase(
           }
           assert(client != null);
           assert(conversation != null);
-          assert(messageId == message.id);
-          assert(timestamp >= message.sentTimestamp);
+          if (message.id != null) {
+            assert(messageId == message.id);
+          }
+          if (message.sentTimestamp != null) {
+            assert(timestamp >= message.sentTimestamp);
+          }
           assert(byClientId == client2.id);
           if (client1OnMessageReceipt == 1) {
             assert(isRead == false);
@@ -1141,7 +1150,7 @@ UnitTestCase messageReceipt() => UnitTestCase(
         receipt: true,
       );
       // recycle
-      await delay(seconds: 5);
+      await delay();
       return [client1, client2];
     });
 
@@ -1248,16 +1257,22 @@ UnitTestCase queryConversation() => UnitTestCase(
         type: ConversationType.normal,
         members: [clientId, uuid()],
       );
+      Message message = Message();
+      message.stringContent = uuid();
+      await nonUniqueConversation.send(message: message);
+      await delay();
       List<Conversation> conversations = await client.queryConversation(
         where: '{\"m\":\"$clientId\"}',
         sort: 'createdAt',
         limit: 1,
         skip: 1,
-        flag: 1,
+        flag: 3,
       );
       assert(conversations.length == 1);
       assert(conversations[0].id == nonUniqueConversation.id);
       assert(conversations[0].rawData['m'] == null);
+      assert(conversations[0].lastMessage != null);
+      assert(conversations[0].lastMessage != message);
       // recycle
       return [client];
     });
