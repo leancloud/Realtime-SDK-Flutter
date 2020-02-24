@@ -64,8 +64,7 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
           assert(atDate != null);
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       client1.onConversationMembersJoin = ({
@@ -86,8 +85,7 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
           assert(atDate != null);
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       client2.onConversationInvite = ({
@@ -104,8 +102,7 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
           assert(atDate != null);
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       client2.onConversationMembersJoin = ({
@@ -126,8 +123,7 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
           assert(atDate != null);
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       // open
@@ -223,8 +219,7 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
             decrease(1);
           }
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       client1.onConversationKick = ({
@@ -257,8 +252,7 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
           assert(result['udate'] is String);
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       int client1OnConversationMembersJoin = 3;
@@ -352,8 +346,7 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
             decrease(1);
           }
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       client1.onConversationMembersLeave = ({
@@ -377,8 +370,7 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
           assert(m.contains(client2.id));
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       client2.onConversationInvite = ({
@@ -399,8 +391,7 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
           assert(m.contains(client2.id));
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       int client2OnConversationMembersJoin = 3;
@@ -451,8 +442,7 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
             decrease(1);
           }
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       int client2OnConversationMembersLeave = 2;
@@ -491,8 +481,7 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
             decrease(1);
           }
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       // open
@@ -524,7 +513,7 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
       assert(rawData['c'] == client1.id);
       assert(rawData['createdAt'] is String);
       // recycle
-      await delay();
+      await delay(seconds: 5);
       return [client1, client2];
     });
 
@@ -583,8 +572,7 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
           assert(atDate != null);
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       client1.onConversationMembersJoin = ({
@@ -605,8 +593,7 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
           assert(atDate != null);
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       client2.onConversationInvite = ({
@@ -623,8 +610,7 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
           assert(atDate != null);
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       client2.onConversationMembersJoin = ({
@@ -645,8 +631,7 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
           assert(atDate != null);
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       // open
@@ -679,7 +664,7 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
 
 UnitTestCase sendAndQueryMessage() => UnitTestCase(
     title: 'Case: Send & Query Message',
-    extraExpectedCount: 17,
+    extraExpectedCount: 9,
     testingLogic: (decrease) async {
       // client
       Client client1 = Client(id: uuid());
@@ -857,27 +842,7 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
             decrease(1);
           }
         } catch (e) {
-          logException(e);
-          decrease(-1);
-        }
-      };
-      int client2OnConversationLastMessageUpdate = 8;
-      client2.onConversationLastMessageUpdate = ({
-        Client client,
-        Conversation conversation,
-      }) {
-        try {
-          client2OnConversationLastMessageUpdate -= 1;
-          if (client2OnConversationLastMessageUpdate <= 0) {
-            client2.onConversationLastMessageUpdate = null;
-          }
-          assert(client != null);
-          assert(conversation != null);
-          assert(conversation.lastMessage != null);
-          decrease(1);
-        } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       // open
@@ -931,7 +896,7 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
 
 UnitTestCase readMessage() => UnitTestCase(
     title: 'Case: Read Message',
-    extraExpectedCount: 3,
+    extraExpectedCount: 2,
     testingLogic: (decrease) async {
       // client
       Client client1 = Client(id: uuid());
@@ -962,35 +927,15 @@ UnitTestCase readMessage() => UnitTestCase(
           assert(client != null);
           assert(conversation != null);
           if (conversation.unreadMessageCount == 1) {
-            assert(conversation.unreadMessageContainMention == true);
-            conversation.unreadMessageContainMention = false;
+            assert(conversation.unreadMessageMentioned == true);
             conversation.read();
             decrease(1);
           } else if (conversation.unreadMessageCount == 0) {
+            assert(conversation.unreadMessageMentioned == false);
             decrease(1);
           }
         } catch (e) {
-          logException(e);
-          decrease(-1);
-        }
-      };
-      client2.onConversationLastMessageUpdate = ({
-        Client client,
-        Conversation conversation,
-      }) {
-        try {
-          client2.onConversationLastMessageUpdate = null;
-          assert(client != null);
-          assert(conversation != null);
-          Message lastMessage = conversation.lastMessage;
-          assert(lastMessage != null);
-          assert(lastMessage.id == message.id);
-          assert(lastMessage.sentTimestamp == message.sentTimestamp);
-          assert(lastMessage.conversationId == message.conversationId);
-          decrease(1);
-        } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       // open client 2
@@ -999,9 +944,9 @@ UnitTestCase readMessage() => UnitTestCase(
       return [client1, client2];
     });
 
-UnitTestCase updateMessage() => UnitTestCase(
-    title: 'Case: Update Message',
-    extraExpectedCount: 1,
+UnitTestCase updateAndRecallMessage() => UnitTestCase(
+    title: 'Case: Update & Recall Message',
+    extraExpectedCount: 2,
     testingLogic: (decrease) async {
       // client
       Client client1 = Client(id: uuid());
@@ -1017,28 +962,49 @@ UnitTestCase updateMessage() => UnitTestCase(
         name: 'test.jpg',
       );
       // event
-      client2.onMessageUpdate = ({
+      client2.onMessageUpdated = ({
         Client client,
         Conversation conversation,
-        Message message,
+        Message updatedMessage,
         int patchCode,
         String patchReason,
       }) {
         try {
-          client2.onMessageUpdate = null;
-          assert(message.id == newMessage.id);
-          assert(message.sentTimestamp == newMessage.sentTimestamp);
-          assert(message.conversationId == newMessage.conversationId);
-          assert(message.fromClientId == newMessage.fromClientId);
-          assert(message.patchedTimestamp == newMessage.patchedTimestamp);
-          assert(message is ImageMessage);
-          if (message is ImageMessage) {
-            assert(message.url == newMessage.url);
+          client2.onMessageUpdated = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(updatedMessage.id == oldMessage.id);
+          assert(updatedMessage.sentTimestamp == oldMessage.sentTimestamp);
+          assert(updatedMessage.conversationId == oldMessage.conversationId);
+          assert(updatedMessage.fromClientId == oldMessage.fromClientId);
+          assert(updatedMessage.patchedTimestamp != null);
+          assert(updatedMessage is ImageMessage);
+          if (updatedMessage is ImageMessage) {
+            assert(updatedMessage.url == newMessage.url);
+            assert(updatedMessage.url.endsWith('/test.jpg'));
           }
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
+        }
+      };
+      client2.onMessageRecalled = ({
+        Client client,
+        Conversation conversation,
+        RecalledMessage recalledMessage,
+      }) {
+        try {
+          client2.onMessageRecalled = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(recalledMessage.id == oldMessage.id);
+          assert(recalledMessage.sentTimestamp == oldMessage.sentTimestamp);
+          assert(recalledMessage.conversationId == oldMessage.conversationId);
+          assert(recalledMessage.fromClientId == oldMessage.fromClientId);
+          assert(recalledMessage.patchedTimestamp != null);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
         }
       };
       // open
@@ -1050,18 +1016,37 @@ UnitTestCase updateMessage() => UnitTestCase(
       );
       // send
       await conversation.send(message: oldMessage);
+      await delay();
       // update
-      await conversation.updateMessage(
+      Message updatedMessage = await conversation.updateMessage(
         oldMessage: oldMessage,
         newMessage: newMessage,
       );
+      assert(updatedMessage == newMessage);
+      assert(newMessage.id == oldMessage.id);
+      assert(newMessage.sentTimestamp == oldMessage.sentTimestamp);
+      assert(newMessage.conversationId == oldMessage.conversationId);
+      assert(newMessage.fromClientId == oldMessage.fromClientId);
+      assert(newMessage.patchedTimestamp != null);
+      assert(newMessage.url != null);
+      assert(newMessage.url.endsWith('/test.jpg'));
+      await delay();
+      // recall
+      RecalledMessage recalledMessage = await conversation.recallMessage(
+        message: newMessage,
+      );
+      assert(recalledMessage.id == oldMessage.id);
+      assert(recalledMessage.sentTimestamp == oldMessage.sentTimestamp);
+      assert(recalledMessage.conversationId == oldMessage.conversationId);
+      assert(recalledMessage.fromClientId == oldMessage.fromClientId);
+      assert(recalledMessage.patchedTimestamp != null);
       // recycle
       return [client1, client2];
     });
 
 UnitTestCase messageReceipt() => UnitTestCase(
     title: 'Case: Message Receipt',
-    extraExpectedCount: 4,
+    extraExpectedCount: 5,
     testingLogic: (decrease) async {
       // client
       Client client1 = Client(id: uuid());
@@ -1071,8 +1056,6 @@ UnitTestCase messageReceipt() => UnitTestCase(
       message.stringContent = uuid();
       // event
       int client1OnMessageReceipt = 2;
-      int maxReadTimestamp;
-      int maxDeliveredTimestamp;
       client1.onMessageReceipt = ({
         Client client,
         Conversation conversation,
@@ -1091,39 +1074,58 @@ UnitTestCase messageReceipt() => UnitTestCase(
           assert(messageId == message.id);
           assert(timestamp >= message.sentTimestamp);
           assert(byClientId == client2.id);
-          if (isRead) {
-            maxReadTimestamp = timestamp;
-          } else {
-            maxDeliveredTimestamp = timestamp;
-          }
-          decrease(1);
-          if (client1OnMessageReceipt == 0) {
-            Map rcp = await conversation.getMessageReceipt();
-            assert(maxReadTimestamp != null);
-            assert(maxDeliveredTimestamp != null);
-            assert(rcp['maxReadTimestamp'] is int);
-            assert(rcp['maxDeliveredTimestamp'] is int);
+          if (client1OnMessageReceipt == 1) {
+            assert(isRead == false);
+            decrease(1);
+          } else if (client1OnMessageReceipt == 0) {
+            assert(isRead == true);
+            await conversation.fetchReceiptTimestamps();
             decrease(1);
           }
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
-      client2.onConversationLastMessageUpdate = ({
+      client1.onLastDeliveredAtUpdated = ({
         Client client,
         Conversation conversation,
-      }) async {
+      }) {
         try {
-          client2.onConversationLastMessageUpdate = null;
+          client1.onLastDeliveredAtUpdated = null;
           assert(client != null);
           assert(conversation != null);
-          await delay();
-          conversation.read();
+          assert(conversation.lastDeliveredTimestamp >= message.sentTimestamp);
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
+        }
+      };
+      client1.onLastReadAtUpdated = ({
+        Client client,
+        Conversation conversation,
+      }) {
+        try {
+          client1.onLastReadAtUpdated = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(conversation.lastReadTimestamp >= message.sentTimestamp);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      client2.onMessageReceive = ({
+        Client client,
+        Conversation conversation,
+        Message message,
+      }) async {
+        try {
+          client2.onMessageReceive = null;
+          await delay();
+          await conversation.read();
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
         }
       };
       // open
@@ -1201,8 +1203,7 @@ UnitTestCase updateConversation() => UnitTestCase(
           assert(conversation.rawData['attr']['unset'] == null);
           decrease(1);
         } catch (e) {
-          logException(e);
-          decrease(-1);
+          decrease(-1, e: e);
         }
       };
       // open
@@ -1350,7 +1351,12 @@ class UnitTestCase {
   final String title;
   final int expectedCount;
   final int timeout;
-  final Future<List<Client>> Function(void Function(int)) testingLogic;
+  final Future<List<Client>> Function(
+    void Function(
+      int, {
+      Exception e,
+    }),
+  ) testingLogic;
 
   void Function(int) stateCountWillChange;
   void Function(int) stateCountDidChange;
@@ -1403,7 +1409,13 @@ class UnitTestCase {
     }
     bool hasException = false;
     try {
-      this._clients = await this.testingLogic((int count) {
+      this._clients = await this.testingLogic((
+        int count, {
+        Exception e,
+      }) {
+        if (e != null) {
+          logException(e, title: this.title);
+        }
         if (count > 0) {
           this.stateCountWillChange(this._stateCount - count);
         } else {
@@ -1445,12 +1457,14 @@ class UnitTestCase {
     client.onConversationMembersJoin = null;
     client.onConversationMembersLeave = null;
     client.onConversationDataUpdate = null;
-    client.onConversationLastMessageUpdate = null;
     client.onConversationUnreadMessageCountUpdate = null;
+    client.onLastReadAtUpdated = null;
+    client.onLastDeliveredAtUpdated = null;
     // message
     client.onMessageReceive = null;
-    client.onMessageUpdate = null;
-    client.onMessageReceive = null;
+    client.onMessageUpdated = null;
+    client.onMessageRecalled = null;
+    client.onMessageReceipt = null;
     client.close();
   }
 }
@@ -1469,7 +1483,7 @@ class _MyAppState extends State<MyApp> {
     createAndQueryTemporaryConversation(),
     sendAndQueryMessage(),
     readMessage(),
-    // updateMessage(),
+    updateAndRecallMessage(),
     messageReceipt(),
     muteConversation(),
     updateConversation(),
