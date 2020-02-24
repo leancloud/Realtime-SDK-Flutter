@@ -58,10 +58,10 @@ class _Bridge with _Utilities {
           break;
         case 'onConversationMembersUpdate':
         case 'onConversationDataUpdate':
-        case 'onLastMessageUpdate':
         case 'onUnreadMessageCountUpdate':
+        case 'onLastReceiptTimestampUpdate':
         case 'onMessageReceive':
-        case 'onMessageUpdate':
+        case 'onMessagePatch':
         case 'onMessageReceipt':
           client._processConversationEvent(
             method: call.method,
@@ -78,9 +78,11 @@ class _Bridge with _Utilities {
           break;
         case 'onSignConversation':
           if (client._signConversation != null) {
-            final Conversation conversation = await client._getConversation(
-              id: args['conversationId'],
-            );
+            final String conversationId = args['conversationId'];
+            Conversation conversation;
+            if (conversationId != null) {
+              conversation = await client._getConversation(id: conversationId);
+            }
             final Signature sign = await client._signConversation(
               client: client,
               conversation: conversation,
@@ -239,12 +241,15 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-  }) onConversationLastMessageUpdate;
-
+  }) onConversationUnreadMessageCountUpdate;
   void Function({
     Client client,
     Conversation conversation,
-  }) onConversationUnreadMessageCountUpdate;
+  }) onLastReadAtUpdated;
+  void Function({
+    Client client,
+    Conversation conversation,
+  }) onLastDeliveredAtUpdated;
 
   void Function({
     Client client,
@@ -254,10 +259,15 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    Message message,
+    Message updatedMessage,
     int patchCode,
     String patchReason,
-  }) onMessageUpdate;
+  }) onMessageUpdated;
+  void Function({
+    Client client,
+    Conversation conversation,
+    RecalledMessage recalledMessage,
+  }) onMessageRecalled;
   void Function({
     Client client,
     Conversation conversation,
@@ -430,10 +440,12 @@ class Client with _Utilities {
         }
         conversations.add(conversation);
         if (needLastMessage) {
-          final Map msgRawData = item['msg'];
-          if (msgRawData != null) {
-            conversation._lastMessage = Message._instanceFrom(
-              msgRawData,
+          dynamic msg = item['msg'];
+          if (msg is Map) {
+            conversation._updateLastMessage(
+              message: Message._instanceFrom(
+                msg,
+              ),
             );
           }
         }
@@ -456,17 +468,17 @@ class Client with _Utilities {
       case 'onConversationDataUpdate':
         conversation._dataUpdate(args: args);
         break;
-      case 'onLastMessageUpdate':
-        conversation._lastMessageUpdate(args: args);
-        break;
       case 'onUnreadMessageCountUpdate':
         conversation._unreadMessageCountUpdate(args: args);
+        break;
+      case 'onLastReceiptTimestampUpdate':
+        conversation._lastReceiptTimestampUpdate(args: args);
         break;
       case 'onMessageReceive':
         conversation._messageReceive(args: args);
         break;
-      case 'onMessageUpdate':
-        conversation._messageUpdate(args: args);
+      case 'onMessagePatch':
+        conversation._messagePatch(args: args);
         break;
       case 'onMessageReceipt':
         conversation._messageReceipt(args: args);
@@ -495,17 +507,16 @@ class Conversation with _Utilities {
   Message _lastMessage;
   Message get lastMessage => this._lastMessage;
 
+  int _lastDeliveredTimestamp;
+  int get lastDeliveredTimestamp => this._lastDeliveredTimestamp;
+  int _lastReadTimestamp;
+  int get lastReadTimestamp => this._lastReadTimestamp;
+
   int _unreadMessageCount;
   int get unreadMessageCount => this._unreadMessageCount;
 
-  bool _unreadMessageContainMention;
-  bool get unreadMessageContainMention => this._unreadMessageContainMention;
-  set unreadMessageContainMention(bool value) {
-    this._unreadMessageContainMention = value;
-    this._updateStatus(args: {
-      'unreadMessageMention': value,
-    });
-  }
+  bool _unreadMessageMentioned;
+  bool get unreadMessageMentioned => this._unreadMessageMentioned;
 
   Conversation._from({
     @required this.id,
@@ -565,6 +576,9 @@ class Conversation with _Utilities {
       arguments: args,
     );
     message._loadMap(rawData);
+    this._updateLastMessage(
+      message: message,
+    );
     return message;
   }
 
@@ -583,37 +597,72 @@ class Conversation with _Utilities {
     @required Message oldMessage,
     @required Message newMessage,
   }) async {
-    assert(oldMessage != null && newMessage != null);
+    assert(newMessage != null);
+    return await this._patchMessage(
+      oldMessage: oldMessage,
+      newMessage: newMessage,
+    );
+  }
+
+  Future<RecalledMessage> recallMessage({
+    @required Message message,
+  }) async {
+    return await this._patchMessage(
+      oldMessage: message,
+      recall: true,
+    );
+  }
+
+  Future<Message> _patchMessage({
+    @required Message oldMessage,
+    Message newMessage,
+    bool recall = false,
+  }) async {
+    assert(oldMessage != null);
     var args = {
       'clientId': this.client.id,
       'conversationId': this.id,
       'oldMessage': oldMessage._toMap(),
-      'newMessage': newMessage._toMap(),
     };
-    if (newMessage is FileMessage) {
-      final Map fileMap = Map();
-      fileMap['path'] = newMessage._filePath;
-      fileMap['data'] = newMessage._fileData;
-      fileMap['url'] = newMessage._fileUrl;
-      fileMap['format'] = newMessage._fileFormat;
-      fileMap['name'] = newMessage._fileName;
-      args['file'] = fileMap;
+    if (newMessage != null) {
+      args['newMessage'] = newMessage._toMap();
+      if (newMessage is FileMessage) {
+        final Map fileMap = Map();
+        fileMap['path'] = newMessage._filePath;
+        fileMap['data'] = newMessage._fileData;
+        fileMap['url'] = newMessage._fileUrl;
+        fileMap['format'] = newMessage._fileFormat;
+        fileMap['name'] = newMessage._fileName;
+        args['file'] = fileMap;
+      }
+    }
+    if (recall) {
+      args['recall'] = true;
     }
     final Map rawData = await this.call(
-      method: 'readMessage',
+      method: 'patchMessage',
       arguments: args,
     );
-    newMessage._loadMap(rawData);
-    return newMessage;
+    Message patchedMessage;
+    if (newMessage != null) {
+      patchedMessage = newMessage;
+    } else if (recall) {
+      patchedMessage = RecalledMessage();
+    }
+    patchedMessage._loadMap(rawData);
+    this._updateLastMessage(
+      message: patchedMessage,
+    );
+    return patchedMessage;
   }
 
-  Future<Map> getMessageReceipt() async {
+  Future<void> fetchReceiptTimestamps() async {
     var args = {
       'clientId': this.client.id,
       'conversationId': this.id,
     };
     return await this.call(
-      method: 'getMessageReceipt',
+      method: 'fetchReceiptTimestamp',
       arguments: args,
     );
   }
@@ -747,21 +796,6 @@ class Conversation with _Utilities {
     );
   }
 
-  Future<void> _updateStatus({
-    @required Map args,
-  }) async {
-    args['clientId'] = this.client.id;
-    args['conversationId'] = this.id;
-    try {
-      await this.call(
-        method: 'updateStatus',
-        arguments: args,
-      );
-    } catch (e) {
-      print(e);
-    }
-  }
-
   void _membersUpdate({
     @required Map args,
   }) {
@@ -844,27 +878,21 @@ class Conversation with _Utilities {
     }
   }
 
-  void _lastMessageUpdate({
-    @required Map args,
-  }) {
-    this._lastMessage = Message._instanceFrom(
-      args['message'],
-    );
-    if (this.client.onConversationLastMessageUpdate != null) {
-      this.client.onConversationLastMessageUpdate(
-            client: this.client,
-            conversation: this,
-          );
-    }
-  }
-
   void _unreadMessageCountUpdate({
     @required Map args,
   }) {
     this._unreadMessageCount = args['count'];
     final bool mention = args['mention'];
     if (mention != null) {
-      this.unreadMessageContainMention = mention;
+      this._unreadMessageMentioned = mention;
+    }
+    final Map messageRawData = args['message'];
+    if (messageRawData != null) {
+      this._updateLastMessage(
+        message: Message._instanceFrom(
+          messageRawData,
+        ),
+      );
     }
     if (this.client.onConversationUnreadMessageCountUpdate != null) {
       this.client.onConversationUnreadMessageCountUpdate(
@@ -874,33 +902,84 @@ class Conversation with _Utilities {
     }
   }
 
+  void _lastReceiptTimestampUpdate({
+    @required Map args,
+  }) {
+    final int maxReadTimestamp = args['maxReadTimestamp'];
+    final int maxAckTimestamp = args['maxAckTimestamp'];
+    if (maxReadTimestamp != null) {
+      if (this._lastReadTimestamp == null ||
+          (maxReadTimestamp > this._lastReadTimestamp)) {
+        this._lastReadTimestamp = maxReadTimestamp;
+        if (this.client.onLastReadAtUpdated != null) {
+          this.client.onLastReadAtUpdated(
+                client: this.client,
+                conversation: this,
+              );
+        }
+      }
+    }
+    if (maxAckTimestamp != null) {
+      if (this._lastDeliveredTimestamp == null ||
+          (maxAckTimestamp > this._lastDeliveredTimestamp)) {
+        this._lastDeliveredTimestamp = maxAckTimestamp;
+        if (this.client.onLastDeliveredAtUpdated != null) {
+          this.client.onLastDeliveredAtUpdated(
+                client: this.client,
+                conversation: this,
+              );
+        }
+      }
+    }
+  }
+
   void _messageReceive({
     @required Map args,
   }) {
+    final Message message = Message._instanceFrom(
+      args['message'],
+    );
+    this._updateLastMessage(
+      message: message,
+    );
     if (this.client.onMessageReceive != null) {
       this.client.onMessageReceive(
             client: this.client,
             conversation: this,
-            message: Message._instanceFrom(
-              args['message'],
-            ),
+            message: message,
           );
     }
   }
 
-  void _messageUpdate({
+  void _messagePatch({
     @required Map args,
   }) {
-    if (this.client.onMessageUpdate != null) {
-      this.client.onMessageUpdate(
-            client: this.client,
-            conversation: this,
-            message: Message._instanceFrom(
-              args['message'],
-            ),
-            patchCode: args['patchCode'],
-            patchReason: args['patchReason'],
-          );
+    final Message message = Message._instanceFrom(
+      args['message'],
+    );
+    this._updateLastMessage(
+      message: message,
+    );
+    final bool recall = args['recall'] ?? false;
+    if (recall) {
+      if ((message is RecalledMessage) &&
+          this.client.onMessageRecalled != null) {
+        this.client.onMessageRecalled(
+              client: this.client,
+              conversation: this,
+              recalledMessage: message,
+            );
+      }
+    } else {
+      if (this.client.onMessageUpdated != null) {
+        this.client.onMessageUpdated(
+              client: this.client,
+              conversation: this,
+              updatedMessage: message,
+              patchCode: args['patchCode'],
+              patchReason: args['patchReason'],
+            );
+      }
     }
   }
 
@@ -916,6 +995,18 @@ class Conversation with _Utilities {
             byClientId: args['from'],
             isRead: args['read'],
           );
+    }
+  }
+
+  void _updateLastMessage({
+    @required Message message,
+  }) {
+    if (this.lastMessage == null) {
+      this._lastMessage = message;
+    } else if (this.lastMessage.sentTimestamp != null &&
+        message.sentTimestamp != null &&
+        message.sentTimestamp >= this.lastMessage.sentTimestamp) {
+      this._lastMessage = message;
     }
   }
 }

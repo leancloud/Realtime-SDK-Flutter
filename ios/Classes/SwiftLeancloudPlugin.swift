@@ -13,65 +13,67 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
     }
     
     static var delegatorMap: [String: IMClientDelegator] = [:]
+    static let eventQueue = DispatchQueue(
+        label: "LC.Flutter.\(SwiftLeancloudPlugin.self).eventQueue")
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        let arguments = call.arguments as! [String: Any]
-        let clientId = arguments["clientId"] as! String
-        if call.method == "openClient" {
-            let isReconnect = arguments["r"] as? Bool ?? false
-            if let delegator = SwiftLeancloudPlugin.delegatorMap[clientId] {
-                delegator.open(
-                    isReconnect: isReconnect,
-                    callback: result)
-            } else {
-                do {
-                    let delegator = try IMClientDelegator(
-                        ID: clientId,
-                        tag: arguments["tag"] as? String,
-                        signRegistry: arguments["signRegistry"] as? [String: Any])
+        SwiftLeancloudPlugin.eventQueue.async {
+            let arguments = call.arguments as! [String: Any]
+            let clientId = arguments["clientId"] as! String
+            if call.method == "openClient" {
+                let isReconnect = arguments["r"] as? Bool ?? false
+                if let delegator = SwiftLeancloudPlugin.delegatorMap[clientId] {
                     delegator.open(
                         isReconnect: isReconnect,
                         callback: result)
-                } catch {
-                    result(self.error(error))
+                } else {
+                    do {
+                        let delegator = try IMClientDelegator(
+                            ID: clientId,
+                            tag: arguments["tag"] as? String,
+                            signRegistry: arguments["signRegistry"] as? [String: Any])
+                        delegator.open(
+                            isReconnect: isReconnect,
+                            callback: result)
+                    } catch {
+                        result(self.error(error))
+                    }
                 }
-            }
-        } else {
-            guard let delegator = SwiftLeancloudPlugin.delegatorMap[clientId] else {
-                result(LCError.clientNotFound(ID: clientId))
-                return
-            }
-            switch call.method {
-            case "closeClient":
-                delegator.close(callback: result)
-            case "createConversation":
-                delegator.createConversation(parameters: arguments, callback: result)
-            case "getConversation":
-                delegator.getConversation(parameters: arguments, callback: result)
-            case "updateStatus":
-                delegator.updateStatus(parameters: arguments, callback: result)
-            case "sendMessage":
-                delegator.sendMessage(parameters: arguments, callback: result)
-            case "readMessage":
-                delegator.readMessage(parameters: arguments, callback: result)
-            case "updateMessage":
-                delegator.updateMessage( parameters: arguments, callback: result)
-            case "getMessageReceipt":
-                delegator.getMessageReceipt(parameters: arguments, callback: result)
-            case "queryMessage":
-                delegator.queryMessage(parameters: arguments, callback: result)
-            case "updateMembers":
-                delegator.updateMembers(parameters: arguments, callback: result)
-            case "muteToggle":
-                delegator.muteToggle(parameters: arguments, callback: result)
-            case "updateData":
-                delegator.updateData(parameters: arguments, callback: result)
-            case "countMembers":
-                delegator.countMembers(parameters: arguments, callback: result)
-            case "queryConversation":
-                delegator.queryConversation(parameters: arguments, callback: result)
-            default:
-                fatalError("unknown method.")
+            } else {
+                guard let delegator = SwiftLeancloudPlugin.delegatorMap[clientId] else {
+                    result(LCError.clientNotFound(ID: clientId))
+                    return
+                }
+                switch call.method {
+                case "closeClient":
+                    delegator.close(callback: result)
+                case "createConversation":
+                    delegator.createConversation(parameters: arguments, callback: result)
+                case "getConversation":
+                    delegator.getConversation(parameters: arguments, callback: result)
+                case "sendMessage":
+                    delegator.sendMessage(parameters: arguments, callback: result)
+                case "readMessage":
+                    delegator.readMessage(parameters: arguments, callback: result)
+                case "patchMessage":
+                    delegator.patchMessage(parameters: arguments, callback: result)
+                case "fetchReceiptTimestamp":
+                    delegator.fetchReceiptTimestamp(parameters: arguments, callback: result)
+                case "queryMessage":
+                    delegator.queryMessage(parameters: arguments, callback: result)
+                case "updateMembers":
+                    delegator.updateMembers(parameters: arguments, callback: result)
+                case "muteToggle":
+                    delegator.muteToggle(parameters: arguments, callback: result)
+                case "updateData":
+                    delegator.updateData(parameters: arguments, callback: result)
+                case "countMembers":
+                    delegator.countMembers(parameters: arguments, callback: result)
+                case "queryConversation":
+                    delegator.queryConversation(parameters: arguments, callback: result)
+                default:
+                    fatalError("unknown method.")
+                }
             }
         }
     }
@@ -89,14 +91,14 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         self.client = try IMClient(
             ID: ID,
             tag: tag,
-            eventQueue: DispatchQueue(
-                label: "\(IMClientDelegator.self).eventQueue"))
+            eventQueue: SwiftLeancloudPlugin.eventQueue)
         self.isSignSessionOpen = (signRegistry?["sessionOpen"] as? Bool) ?? false
         self.isSignConversation = (signRegistry?["conversation"] as? Bool) ?? false
         self.client.delegate = self
         if self.isSignSessionOpen || self.isSignConversation {
             self.client.signatureDelegate = self
         }
+        SwiftLeancloudPlugin.delegatorMap[self.client.ID] = self
     }
     
     func mainAsync(_ value: [String: Any], _ callback: @escaping FlutterResult) {
@@ -109,10 +111,7 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         self.client.open(options: isReconnect ? [] : .default) { (result) in
             switch result {
             case .success:
-                DispatchQueue.main.async {
-                    SwiftLeancloudPlugin.delegatorMap[self.client.ID] = self
-                }
-                self.mainAsync([:], callback);
+                self.mainAsync([:], callback)
             case .failure(error: let error):
                 self.mainAsync(self.error(error), callback)
             }
@@ -123,10 +122,8 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         self.client.close { (result) in
             switch result {
             case .success:
-                DispatchQueue.main.async {
-                    SwiftLeancloudPlugin.delegatorMap.removeValue(forKey: self.client.ID)
-                }
-                self.mainAsync([:], callback);
+                SwiftLeancloudPlugin.delegatorMap.removeValue(forKey: self.client.ID)
+                self.mainAsync([:], callback)
             case .failure(error: let error):
                 self.mainAsync(self.error(error), callback)
             }
@@ -142,14 +139,13 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             if convType == 0 || convType == 1 {
                 try self.client.createConversation(
                     clientIDs: Set(members),
-                    name: name, attributes: attributes, isUnique: convType == 0)
+                    name: name,
+                    attributes: attributes,
+                    isUnique: convType == 0)
                 { (result) in
                     switch result {
                     case .success(value: let conversation):
-                        var rawData = conversation.rawData
-                        rawData["objectId"] = conversation.ID
-                        rawData["conv_type"] = 1
-                        self.mainAsync(["success": rawData], callback)
+                        self.mainAsync(["success": conversation.rawData], callback)
                     case .failure(error: let error):
                         self.mainAsync(self.error(error), callback)
                     }
@@ -161,29 +157,19 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                 { (result) in
                     switch result {
                     case .success(value: let chatRoom):
-                        var rawData = chatRoom.rawData
-                        rawData["objectId"] = chatRoom.ID
-                        rawData["conv_type"] = 2
-                        rawData["tr"] = true
-                        self.mainAsync(["success": rawData], callback)
+                        self.mainAsync(["success": chatRoom.rawData], callback)
                     case .failure(error: let error):
                         self.mainAsync(self.error(error), callback)
                     }
                 }
             } else if convType == 4 {
-                let ttl = Int32(parameters["ttl"] as? Int ?? 0)
                 try self.client.createTemporaryConversation(
                     clientIDs: Set(members),
-                    timeToLive: ttl)
+                    timeToLive: Int32(parameters["ttl"] as? Int ?? 0))
                 { (result) in
                     switch result {
                     case .success(value: let temporaryConversation):
-                        var rawData = temporaryConversation.rawData
-                        rawData["objectId"] = temporaryConversation.ID
-                        rawData["conv_type"] = 4
-                        rawData["temp"] = true
-                        rawData["ttl"] = temporaryConversation.timeToLive
-                        self.mainAsync(["success": rawData], callback)
+                        self.mainAsync(["success": temporaryConversation.rawData], callback)
                     case .failure(error: let error):
                         self.mainAsync(self.error(error), callback)
                     }
@@ -201,59 +187,24 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         self.client.getCachedConversation(ID: conversationId) { (result) in
             switch result {
             case .success(value: let conversation):
-                var rawData = conversation.rawData
-                rawData["objectId"] = conversation.ID
-                switch conversation {
-                case is IMTemporaryConversation:
-                    rawData["conv_type"] = 4
-                case is IMServiceConversation:
-                    rawData["conv_type"] = 3
-                case is IMChatRoom:
-                    rawData["conv_type"] = 2
-                default:
-                    rawData["conv_type"] = 1
-                }
-                self.mainAsync(["success": rawData], callback)
+                self.mainAsync(["success": conversation.rawData], callback)
             case .failure:
                 do {
+                    let query = self.client.conversationQuery
                     if conversationId.hasPrefix("_tmp:") {
-                        try self.client.conversationQuery.getTemporaryConversations(by: [conversationId]) { (result) in
+                        try query.getTemporaryConversation(by: conversationId) { (result) in
                             switch result {
-                            case .success(value: let conversations):
-                                guard let conversation = conversations.first else {
-                                    self.mainAsync(
-                                        self.error(
-                                            LCError.InternalErrorCode.conversationNotFound.rawValue,
-                                            "Conversation not found,",
-                                            ["conversationId": conversationId]),
-                                        callback)
-                                    return
-                                }
-                                var rawData = conversation.rawData
-                                rawData["objectId"] = conversation.ID
-                                rawData["conv_type"] = 4
-                                self.mainAsync(["success": rawData], callback)
+                            case .success(value: let conversation):
+                                self.mainAsync(["success": conversation.rawData], callback)
                             case .failure(error: let error):
                                 self.mainAsync(self.error(error), callback)
                             }
                         }
                     } else {
-                        try self.client.conversationQuery.getConversation(by: conversationId) { (result) in
+                        try query.getConversation(by: conversationId) { (result) in
                             switch result {
                             case .success(value: let conversation):
-                                var rawData = conversation.rawData
-                                rawData["objectId"] = conversation.ID
-                                switch conversation {
-                                case is IMTemporaryConversation:
-                                    rawData["conv_type"] = 4
-                                case is IMServiceConversation:
-                                    rawData["conv_type"] = 3
-                                case is IMChatRoom:
-                                    rawData["conv_type"] = 2
-                                default:
-                                    rawData["conv_type"] = 1
-                                }
-                                self.mainAsync(["success": rawData], callback)
+                                self.mainAsync(["success": conversation.rawData], callback)
                             case .failure(error: let error):
                                 self.mainAsync(self.error(error), callback)
                             }
@@ -262,22 +213,6 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                 } catch {
                     self.mainAsync(self.error(error), callback)
                 }
-            }
-        }
-    }
-    
-    func updateStatus(parameters: [String: Any], callback: @escaping FlutterResult) {
-        self.client.getCachedConversation(
-            ID: parameters["conversationId"] as! String)
-        { (result) in
-            switch result {
-            case .success(value: let conversation):
-                if let unreadMessageMention = parameters["unreadMessageMention"] as? Bool {
-                    conversation.isUnreadMessageContainMention = unreadMessageMention
-                }
-                self.mainAsync([:], callback)
-            case .failure(error: let error):
-                self.mainAsync(self.error(error), callback)
             }
         }
     }
@@ -291,28 +226,28 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         var messageData: [String: Any] = [
             "clientId": clientID,
             "conversationId": conversationID]
-        if let messageID: String = message.ID {
+        if let messageID = message.ID {
             messageData["id"] = messageID
         }
-        if let from: String = message.fromClientID {
+        if let from = message.fromClientID {
             messageData["from"] = from
         }
-        if let timestamp: Int64 = message.sentTimestamp {
+        if let timestamp = message.sentTimestamp {
             messageData["timestamp"] = Int(timestamp)
         }
-        if let patchTimestamp: Int64 = message.patchedTimestamp {
+        if let patchTimestamp = message.patchedTimestamp {
             messageData["patchTimestamp"] = Int(patchTimestamp)
         }
-        if let ackAt: Int64 = message.deliveredTimestamp {
+        if let ackAt = message.deliveredTimestamp {
             messageData["ackAt"] = Int(ackAt)
         }
-        if let readAt: Int64 = message.readTimestamp {
+        if let readAt = message.readTimestamp {
             messageData["readAt"] = Int(readAt)
         }
-        if let mentionPids: [String] = message.mentionedMembers {
+        if let mentionPids = message.mentionedMembers {
             messageData["mentionPids"] = mentionPids
         }
-        if let mentionAll: Bool = message.isAllMembersMentioned {
+        if let mentionAll = message.isAllMembersMentioned {
             messageData["mentionAll"] = mentionAll
         }
         if message.isTransient {
@@ -320,15 +255,20 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         }
         if message is IMCategorizedMessage {
             messageData["typeMsgData"] = (message as? IMCategorizedMessage)?.rawData
-        } else if let data: Data = message.content?.data {
+        } else if let data = message.content?.data {
             messageData["binaryMsg"] = FlutterStandardTypedData(bytes: data)
-        } else if let msg: String = message.content?.string {
+        } else if let msg = message.content?.string {
             messageData["msg"] = msg
         }
         return messageData
     }
     
-    func decodingMessage(parameters: [String: Any], messageRawDataKey: String) throws -> IMMessage {
+    func decodingMessage(
+        parameters: [String: Any],
+        messageRawDataKey: String,
+        decodingFile: Bool = true)
+        throws -> IMMessage
+    {
         let message: IMMessage
         let messageRawData = parameters[messageRawDataKey] as? [String: Any]
         if let msg = messageRawData?["msg"] as? String {
@@ -344,7 +284,9 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             case -1:
                 typeableMessage = IMTextMessage()
             case -2, -3, -4, -6:
-                let fileData = parameters["file"] as? [String: Any]
+                let fileData = decodingFile
+                    ? (parameters["file"] as? [String: Any])
+                    : nil
                 let fileFormat = fileData?["format"] as? String
                 if let data = fileData?["data"] as? FlutterStandardTypedData {
                     switch msgType {
@@ -440,7 +382,7 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             do {
                 switch result {
                 case .success(value: let conversation):
-                    let message: IMMessage = try self.decodingMessage(
+                    let message = try self.decodingMessage(
                         parameters: parameters,
                         messageRawDataKey: "message")
                     let options = parameters["options"] as? [String: Any]
@@ -458,62 +400,29 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                         sendOptions.insert(.isTransient)
                     }
                     var priority: IMChatRoom.MessagePriority?
-                    if let priorityValue = options?["priority"] as? Int {
-                        if priorityValue == 1 {
-                            priority = .high
-                        } else if priorityValue == 2 {
-                            priority = .normal
-                        } else if priorityValue == 3 {
-                            priority = .low
-                        }
+                    if let priorityNumber = options?["priority"] as? Int,
+                        let priorityValue = IMChatRoom.MessagePriority(rawValue: priorityNumber) {
+                        priority = priorityValue
                     }
                     if let file = (message as? IMCategorizedMessage)?.file,
                         let _ = file.name {
-                        file.save(options: .keepFileName) { result in
-                            switch result {
-                            case .success:
-                                do {
-                                    try conversation.send(
-                                        message: message,
-                                        options: sendOptions,
-                                        priority: priority,
-                                        pushData: options?["pushData"] as? [String: Any])
-                                    { (result) in
-                                        switch result {
-                                        case .success:
-                                            let messageData: [String: Any] = self.encodingMessage(
-                                                clientID: self.client.ID,
-                                                conversationID: conversation.ID,
-                                                message: message)
-                                            self.mainAsync(["success": messageData], callback)
-                                        case .failure(error: let error):
-                                            self.mainAsync(self.error(error), callback)
-                                        }
-                                    }
-                                } catch {
-                                    self.mainAsync(self.error(error), callback)
-                                }
-                            case .failure(error: let error):
-                                self.mainAsync(self.error(error), callback)
-                            }
-                        }
-                    } else {
-                        try conversation.send(
-                            message: message,
-                            options: sendOptions,
-                            priority: priority,
-                            pushData: options?["pushData"] as? [String: Any])
-                        { (result) in
-                            switch result {
-                            case .success:
-                                let messageData: [String: Any] = self.encodingMessage(
-                                    clientID: self.client.ID,
-                                    conversationID: conversation.ID,
-                                    message: message)
-                                self.mainAsync(["success": messageData], callback)
-                            case .failure(error: let error):
-                                self.mainAsync(self.error(error), callback)
-                            }
+                        file.keepFileName = true
+                    }
+                    try conversation.send(
+                        message: message,
+                        options: sendOptions,
+                        priority: priority,
+                        pushData: options?["pushData"] as? [String: Any])
+                    { (result) in
+                        switch result {
+                        case .success:
+                            let messageData = self.encodingMessage(
+                                clientID: self.client.ID,
+                                conversationID: conversation.ID,
+                                message: message)
+                            self.mainAsync(["success": messageData], callback)
+                        case .failure(error: let error):
+                            self.mainAsync(self.error(error), callback)
                         }
                     }
                 case .failure(error: let error):
@@ -539,20 +448,65 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         }
     }
     
-    func updateMessage(parameters: [String: Any], callback: @escaping FlutterResult) {
+    func patchMessage(parameters: [String: Any], callback: @escaping FlutterResult) {
         self.client.getCachedConversation(
             ID: parameters["conversationId"] as! String)
         { (result) in
             switch result {
-            case .success(value: _):
-                fatalError()
+            case .success(value: let conversation):
+                do {
+                    let oldMessage = try self.decodingMessage(
+                        parameters: parameters,
+                        messageRawDataKey: "oldMessage",
+                        decodingFile: false)
+                    if let data = parameters["oldMessage"] {
+                        oldMessage.padding(unsafeFlutterObject: data)
+                    }
+                    if let recall = parameters["recall"] as? Bool,
+                        recall {
+                        try conversation.recall(message: oldMessage) { (result) in
+                            switch result {
+                            case .success(value: let recalledMessage):
+                                let messageRawData = self.encodingMessage(
+                                    clientID: self.client.ID,
+                                    conversationID: conversation.ID,
+                                    message: recalledMessage)
+                                self.mainAsync(["success": messageRawData], callback)
+                            case .failure(error: let error):
+                                self.mainAsync(self.error(error), callback)
+                            }
+                        }
+                    } else {
+                        let newMessage = try self.decodingMessage(
+                            parameters: parameters,
+                            messageRawDataKey: "newMessage")
+                        if let file = (newMessage as? IMCategorizedMessage)?.file,
+                            let _ = file.name {
+                            file.keepFileName = true
+                        }
+                        try conversation.update(oldMessage: oldMessage, to: newMessage) { (result) in
+                            switch result {
+                            case .success:
+                                let messageRawData = self.encodingMessage(
+                                    clientID: self.client.ID,
+                                    conversationID: conversation.ID,
+                                    message: newMessage)
+                                self.mainAsync(["success": messageRawData], callback)
+                            case .failure(error: let error):
+                                self.mainAsync(self.error(error), callback)
+                            }
+                        }
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
+                }
             case .failure(error: let error):
                 self.mainAsync(self.error(error), callback)
             }
         }
     }
     
-    func getMessageReceipt(parameters: [String: Any], callback: @escaping FlutterResult) {
+    func fetchReceiptTimestamp(parameters: [String: Any], callback: @escaping FlutterResult) {
         self.client.getCachedConversation(
             ID: parameters["conversationId"] as! String)
         { (result) in
@@ -562,14 +516,17 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                     try conversation.getMessageReceiptFlag { (result) in
                         switch result {
                         case .success(value: let rcp):
-                            var success: [String: Any] = [:]
-                            if let maxDeliveredTimestamp = rcp.deliveredFlagTimestamp {
-                                success["maxDeliveredTimestamp"] = Int(maxDeliveredTimestamp)
+                            var success: [String: Any] = [
+                                "clientId": self.client.ID,
+                                "conversationId": conversation.ID]
+                            if let maxAckTimestamp = rcp.deliveredFlagTimestamp {
+                                success["maxAckTimestamp"] = Int(maxAckTimestamp)
                             }
                             if let maxReadTimestamp = rcp.readFlagTimestamp {
                                 success["maxReadTimestamp"] = Int(maxReadTimestamp)
                             }
-                            self.mainAsync(["success": success], callback)
+                            self.mainAsync([:], callback)
+                            self.invoke("onLastReceiptTimestampUpdate", success)
                         case .failure(error: let error):
                             self.mainAsync(self.error(error), callback)
                         }
@@ -609,7 +566,8 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                     try conversation.queryMessage(
                         start: startEndpoint,
                         end: endEndpoint,
-                        direction: (parameters["direction"] as? Int ?? 1) == 1 ? .newToOld : .oldToNew,
+                        direction: IMConversation.MessageQueryDirection(
+                            rawValue: (parameters["direction"] as? Int) ?? 1),
                         limit: parameters["limit"] as? Int ?? 20,
                         type: parameters["type"] as? Int,
                         policy: .onlyNetwork)
@@ -654,7 +612,7 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                                 successData["m"] = members
                             }
                             if let udate = conversation.updatedAt {
-                                successData["udate"] = (LCDate(udate).jsonValue as? [String: String])?["iso"]
+                                successData["udate"] = udate.lcDate.isoString
                             }
                             self.mainAsync(["success": successData], callback)
                         case let .slicing(success: success, failure: failure):
@@ -674,7 +632,7 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                                 successData["m"] = members
                             }
                             if let udate = conversation.updatedAt {
-                                successData["udate"] = (LCDate(udate).jsonValue as? [String: String])?["iso"]
+                                successData["udate"] = udate.lcDate.isoString
                             }
                             self.mainAsync(["success": successData], callback)
                         case let .failure(error: error):
@@ -717,7 +675,7 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                             successData["mu"] = mu
                         }
                         if let udate = conversation.updatedAt {
-                            successData["udate"] = (LCDate(udate).jsonValue as? [String: String])?["iso"]
+                            successData["udate"] = udate.lcDate.isoString
                         }
                         self.mainAsync(["success": successData], callback)
                     case .failure(error: let error):
@@ -823,8 +781,17 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                     switch result {
                     case .success(value: let conversations):
                         var rawDatas: [[String: Any]] = []
-                        for item in conversations {
-                            rawDatas.append(item.rawData)
+                        for conversation in conversations {
+                            var rawData = conversation.rawData
+                            if let options = query.options,
+                                options.contains(.containLastMessage),
+                                let lastMessage = conversation.lastMessage {
+                                rawData["msg"] = self.encodingMessage(
+                                    clientID: self.client.ID,
+                                    conversationID: conversation.ID,
+                                    message: lastMessage)
+                            }
+                            rawDatas.append(rawData)
                         }
                         self.mainAsync(["success": rawDatas], callback)
                     case .failure(error: let error):
@@ -841,7 +808,19 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
 extension IMClientDelegator: IMClientDelegate {
     
     func client(_ client: IMClient, event: IMClientEvent) {
-        
+        var args: [String: Any] = ["clientId": client.ID]
+        switch event {
+        case .sessionDidOpen:
+            self.invoke("onSessionOpen", args)
+        case .sessionDidResume:
+            self.invoke("onSessionResume", args)
+        case .sessionDidPause(error: let error):
+            args["error"] = self.error(error)
+            self.invoke("onSessionDisconnect", args)
+        case .sessionDidClose(error: let error):
+            args["error"] = self.error(error)
+            self.invoke("onSessionClose", args)
+        }
     }
     
     func client(_ client: IMClient, conversation: IMConversation, event: IMConversationEvent) {
@@ -854,7 +833,7 @@ extension IMClientDelegator: IMClientDelegate {
             args["members"] = conversation.members
             args["initBy"] = byClientID
             if let at = at {
-                args["udate"] = (LCDate(at).jsonValue as? [String: String])?["iso"]
+                args["udate"] = at.lcDate.isoString
             }
             self.invoke("onConversationMembersUpdate", args)
         case let .left(byClientID: byClientID, at: at):
@@ -862,7 +841,7 @@ extension IMClientDelegator: IMClientDelegate {
             args["members"] = conversation.members
             args["initBy"] = byClientID
             if let at = at {
-                args["udate"] = (LCDate(at).jsonValue as? [String: String])?["iso"]
+                args["udate"] = at.lcDate.isoString
             }
             self.invoke("onConversationMembersUpdate", args)
         case let .membersJoined(members: members, byClientID: byClientID, at: at):
@@ -871,7 +850,7 @@ extension IMClientDelegator: IMClientDelegate {
             args["members"] = conversation.members
             args["initBy"] = byClientID
             if let at = at {
-                args["udate"] = (LCDate(at).jsonValue as? [String: String])?["iso"]
+                args["udate"] = at.lcDate.isoString
             }
             self.invoke("onConversationMembersUpdate", args)
         case let .membersLeft(members: members, byClientID: byClientID, at: at):
@@ -880,21 +859,19 @@ extension IMClientDelegator: IMClientDelegate {
             args["members"] = conversation.members
             args["initBy"] = byClientID
             if let at = at {
-                args["udate"] = (LCDate(at).jsonValue as? [String: String])?["iso"]
+                args["udate"] = at.lcDate.isoString
             }
             self.invoke("onConversationMembersUpdate", args)
-        case .lastMessageUpdated:
-            if let message = conversation.lastMessage {
+        case .unreadMessageCountUpdated:
+            let count = conversation.unreadMessageCount
+            args["count"] = count
+            args["mention"] = conversation.isUnreadMessageContainMention
+            if count > 0,
+                let message = conversation.lastMessage {
                 args["message"] = self.encodingMessage(
                     clientID: client.ID,
                     conversationID: conversation.ID,
                     message: message)
-                self.invoke("onLastMessageUpdate", args)
-            }
-        case .unreadMessageCountUpdated:
-            args["count"] = conversation.unreadMessageCount
-            if conversation.isUnreadMessageContainMention {
-                args["mention"] = true
             }
             self.invoke("onUnreadMessageCountUpdate", args)
         case let .dataUpdated(updatingData: updatingData, updatedData: updatedData, byClientID: byClientID, at: at):
@@ -903,7 +880,7 @@ extension IMClientDelegator: IMClientDelegate {
             args["rawData"] = conversation.rawData
             args["initBy"] = byClientID
             if let at = at {
-                args["udate"] = (LCDate(at).jsonValue as? [String: String])?["iso"]
+                args["udate"] = at.lcDate.isoString
             }
             self.invoke("onConversationDataUpdate", args)
         case let .message(event: messageEvent):
@@ -916,14 +893,18 @@ extension IMClientDelegator: IMClientDelegate {
                 args["message"] = messageRawData
                 self.invoke("onMessageReceive", args)
             case let .updated(updatedMessage: message, reason: reason):
-                let messageRawData: [String: Any] = self.encodingMessage(
+                let messageRawData = self.encodingMessage(
                     clientID: client.ID,
                     conversationID: conversation.ID,
                     message: message)
+                if let recalledMessage = message as? IMRecalledMessage,
+                    recalledMessage.isRecall {
+                    args["recall"] = true
+                }
                 args["message"] = messageRawData
                 args["patchCode"] = reason?.code
                 args["patchReason"] = reason?.reason
-                self.invoke("onMessageUpdate", args)
+                self.invoke("onMessagePatch", args)
             case let .delivered(toClientID: toClientID, messageID: messageID, deliveredTimestamp: deliveredTimestamp):
                 args["id"] = messageID
                 args["t"] = Int(deliveredTimestamp)
@@ -950,7 +931,68 @@ extension IMClientDelegator: IMClientDelegate {
 extension IMClientDelegator: IMSignatureDelegate {
     
     func client(_ client: IMClient, action: IMSignature.Action, signatureHandler: @escaping (IMClient, IMSignature?) -> Void) {
-        
+        let handleSignResult: (Any?) -> Void = { result in
+            if let result = result as? [String: Any],
+                let sign = result["sign"] as? [String: Any],
+                let s = sign["s"] as? String,
+                let n = sign["n"] as? String,
+                let t = sign["t"] as? Int {
+                signatureHandler(client, IMSignature(
+                    signature: s,
+                    timestamp: Int64(t),
+                    nonce: n))
+            }
+        }
+        switch action {
+        case .open:
+            if self.isSignSessionOpen {
+                self.invoke("onSignSessionOpen", ["clientId": client.ID]) { (result) in
+                    handleSignResult(result)
+                }
+            } else {
+                signatureHandler(client, nil)
+            }
+        case let .createConversation(memberIDs: memberIDs):
+            if self.isSignConversation {
+                self.invoke("onSignConversation", [
+                    "clientId": client.ID,
+                    "targetIds": Array(memberIDs),
+                    "action": "create"])
+                { (result) in
+                    handleSignResult(result)
+                }
+            } else {
+                signatureHandler(client, nil)
+            }
+        case let .add(memberIDs: memberIDs, toConversation: conversation):
+            if self.isSignConversation {
+                self.invoke("onSignConversation", [
+                    "clientId": client.ID,
+                    "conversationId": conversation.ID,
+                    "targetIds": Array(memberIDs),
+                    "action": "invite"])
+                { (result) in
+                    handleSignResult(result)
+                }
+            } else {
+                signatureHandler(client, nil)
+            }
+        case let .remove(memberIDs: memberIDs, fromConversation: conversation):
+            if self.isSignConversation {
+                self.invoke("onSignConversation", [
+                    "clientId": client.ID,
+                    "conversationId": conversation.ID,
+                    "targetIds": Array(memberIDs),
+                    "action": "kick"])
+                { (result) in
+                    handleSignResult(result)
+                }
+            } else {
+                signatureHandler(client, nil)
+            }
+        default:
+            signatureHandler(client, nil)
+        }
     }
 }
 
