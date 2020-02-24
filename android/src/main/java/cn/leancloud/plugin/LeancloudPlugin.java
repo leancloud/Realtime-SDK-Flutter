@@ -19,7 +19,6 @@ import cn.leancloud.AVFile;
 import cn.leancloud.im.AVIMOptions;
 import cn.leancloud.im.Signature;
 import cn.leancloud.im.SignatureFactory;
-import cn.leancloud.im.v2.AVIMBinaryMessage;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMClientOpenOption;
 import cn.leancloud.im.v2.AVIMConversation;
@@ -559,10 +558,10 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
               }
             }
           });
-    } else if (call.method.equals(Common.Method_Conv_Update_Status)) {
-      boolean unreadMention = Common.getParamBoolean(call, Common.Param_Unread_Mention);
-      conversation.unreadMessagesMentioned();
-      result.success(Common.wrapSuccessResponse(0));
+//    } else if (call.method.equals(Common.Method_Conv_Update_Status)) {
+//      boolean unreadMention = Common.getParamBoolean(call, Common.Param_Unread_Mention);
+//      conversation.unreadMessagesMentioned();
+//      result.success(Common.wrapSuccessResponse(0));
     } else {
       result.notImplemented();
     }

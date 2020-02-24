@@ -42,7 +42,6 @@ public class Common {
   public static final String Method_Message_Receipted = "onMessageReceipt";
   public static final String Method_Message_Updated = "onMessageUpdate";
 
-  public static final String Method_Conv_Update_Status = "updateStatus";
   public static final String Method_Conv_Member_Updated = "onConversationMembersUpdate";
   public static final String Method_Conv_Updated = "onConversationDataUpdate";
   public static final String Method_Conv_UnreadCount_Updated = "onUnreadMessageCountUpdate";
