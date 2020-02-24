@@ -781,8 +781,17 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                     switch result {
                     case .success(value: let conversations):
                         var rawDatas: [[String: Any]] = []
-                        for item in conversations {
-                            rawDatas.append(item.rawData)
+                        for conversation in conversations {
+                            var rawData = conversation.rawData
+                            if let options = query.options,
+                                options.contains(.containLastMessage),
+                                let lastMessage = conversation.lastMessage {
+                                rawData["msg"] = self.encodingMessage(
+                                    clientID: self.client.ID,
+                                    conversationID: conversation.ID,
+                                    message: lastMessage)
+                            }
+                            rawDatas.append(rawData)
                         }
                         self.mainAsync(["success": rawDatas], callback)
                     case .failure(error: let error):
@@ -854,8 +863,16 @@ extension IMClientDelegator: IMClientDelegate {
             }
             self.invoke("onConversationMembersUpdate", args)
         case .unreadMessageCountUpdated:
-            args["count"] = conversation.unreadMessageCount
+            let count = conversation.unreadMessageCount
+            args["count"] = count
             args["mention"] = conversation.isUnreadMessageContainMention
+            if count > 0,
+                let message = conversation.lastMessage {
+                args["message"] = self.encodingMessage(
+                    clientID: client.ID,
+                    conversationID: conversation.ID,
+                    message: message)
+            }
             self.invoke("onUnreadMessageCountUpdate", args)
         case let .dataUpdated(updatingData: updatingData, updatedData: updatedData, byClientID: byClientID, at: at):
             args["attr"] = updatingData
