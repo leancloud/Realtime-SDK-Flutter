@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:core';
 import 'dart:math';
 import 'dart:typed_data';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:leancloud_plugin/leancloud_plugin.dart';
@@ -1277,13 +1279,24 @@ UnitTestCase queryConversation() => UnitTestCase(
       return [client];
     });
 
+String signWithHMACSHA1(String str) {
+  var key = utf8.encode('f7m5491orhbdquahbz57wf3zmnrlqnt6kage2ueumagfyosh');
+  var bytes = utf8.encode(str);
+  var hmacSha1 = new Hmac(sha1, key);
+  var digest = hmacSha1.convert(bytes);
+  return '$digest';
+}
+
 UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
     title: 'Signature Case: Client Open & Conversation Operation',
     testingLogic: (decrease) async {
-      String clientId = 'test-signature';
-      int timestamp = 1582602133901;
-      String clientId1 = clientId + '-1';
-      String clientId2 = clientId + '-2';
+      String clientId = uuid();
+      String clientId1 = clientId + '1';
+      String clientId2 = clientId + '2';
+      String appid = 's0g5kxj7ajtf6n2wt8fqty18p25gmvgrh7b430iuugsde212';
+      int timestamp = DateTime.now().millisecondsSinceEpoch;
+      String nonce = uuid();
+      String conversationId;
       // client
       Client client = Client(
         id: clientId,
@@ -1292,9 +1305,9 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
         }) async {
           assert(client != null);
           return Signature(
-            nonce: clientId,
+            nonce: nonce,
             timestamp: timestamp,
-            signature: '350579af56f981b0f6984177f4ef5b0d6563c034',
+            signature: signWithHMACSHA1('$appid:$clientId::$timestamp:$nonce'),
           );
         },
         signConversation: ({
@@ -1304,23 +1317,15 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
           List targetIds,
         }) async {
           assert(client != null);
-          if (action == 'invite') {
+          if (action == 'invite' || (action == 'kick')) {
             assert(conversation != null);
             assert(targetIds.length == 1);
             assert(targetIds.contains(clientId2));
             return Signature(
-              nonce: clientId,
+              nonce: nonce,
               timestamp: timestamp,
-              signature: '57332d2766ab7282e7ff292f52bede6fb9ae9e31',
-            );
-          } else if (action == 'kick') {
-            assert(conversation != null);
-            assert(targetIds.length == 1);
-            assert(targetIds.contains(clientId2));
-            return Signature(
-              nonce: clientId,
-              timestamp: timestamp,
-              signature: '1768e98f0dce55dc20dff74aec845590fdb35db0',
+              signature: signWithHMACSHA1(
+                  '$appid:$clientId:$conversationId:$clientId2:$timestamp:$nonce:$action'),
             );
           } else {
             assert(action == 'create');
@@ -1328,20 +1333,28 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
             assert(targetIds.contains(clientId));
             assert(targetIds.contains(clientId1));
             return Signature(
-              nonce: clientId,
+              nonce: nonce,
               timestamp: timestamp,
-              signature: 'ac0c98c764710b2550ede30acc91fb4e8007d54d',
+              signature: signWithHMACSHA1(
+                  '$appid:$clientId:$clientId:$clientId1:$timestamp:$nonce'),
             );
           }
         },
       );
       // open
       await client.open();
+      // check application
+      List<Conversation> conversations = await client.queryConversation(
+        where: '{\"objectId\":\"5e54967490aef5aa842ad327\"}',
+      );
+      assert(conversations.length == 1,
+          'maybe you should test with app id: $appid');
       // create
       Conversation conversation = await client.createConversation(
         members: [clientId, clientId1],
       );
-      assert(conversation.id == '5e54979590aef5aa842b0745');
+      assert(conversation.id != null);
+      conversationId = conversation.id;
       // add
       Map addResult = await conversation.updateMembers(
         members: [clientId2],
