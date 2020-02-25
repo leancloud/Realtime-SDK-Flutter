@@ -1281,7 +1281,7 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
     title: 'Signature Case: Client Open & Conversation Operation',
     testingLogic: (decrease) async {
       String clientId = 'test-signature';
-      int timestamp = 1581668447937;
+      int timestamp = 1582602133901;
       String clientId1 = clientId + '-1';
       String clientId2 = clientId + '-2';
       // client
@@ -1294,7 +1294,7 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
           return Signature(
             nonce: clientId,
             timestamp: timestamp,
-            signature: 'ad872fb259ff95121a3be6f7fc8209bc927cc1d3',
+            signature: '350579af56f981b0f6984177f4ef5b0d6563c034',
           );
         },
         signConversation: ({
@@ -1311,7 +1311,7 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
             return Signature(
               nonce: clientId,
               timestamp: timestamp,
-              signature: '5340039bb0bb03446365e26d8788bcadcf8c7d9f',
+              signature: '57332d2766ab7282e7ff292f52bede6fb9ae9e31',
             );
           } else if (action == 'kick') {
             assert(conversation != null);
@@ -1320,7 +1320,7 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
             return Signature(
               nonce: clientId,
               timestamp: timestamp,
-              signature: '823782f7251687726c2337fa9b4a91ff19d21f38',
+              signature: '1768e98f0dce55dc20dff74aec845590fdb35db0',
             );
           } else {
             assert(action == 'create');
@@ -1330,7 +1330,7 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
             return Signature(
               nonce: clientId,
               timestamp: timestamp,
-              signature: 'c473e608320c5f77252c5a4109bc48f57848a555',
+              signature: 'ac0c98c764710b2550ede30acc91fb4e8007d54d',
             );
           }
         },
@@ -1341,7 +1341,7 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
       Conversation conversation = await client.createConversation(
         members: [clientId, clientId1],
       );
-      assert(conversation.id == '5e46698f90aef5aa847a5a04');
+      assert(conversation.id == '5e54979590aef5aa842b0745');
       // add
       Map addResult = await conversation.updateMembers(
         members: [clientId2],
