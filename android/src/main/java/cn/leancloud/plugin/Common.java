@@ -37,15 +37,19 @@ public class Common {
   public static final String Method_Client_Offline = "onSessionClose";
   public static final String Method_Client_Disconnected = "onSessionDisconnect";
   public static final String Method_Client_Resumed = "onSessionResume";
+  public static final String Method_Client_Opened = "onSessionOpen";
 
   public static final String Method_Message_Received = "onMessageReceive";
   public static final String Method_Message_Receipted = "onMessageReceipt";
-  public static final String Method_Message_Updated = "onMessageUpdate";
+  public static final String Method_Message_Updated = "onMessagePatch";
 
-  public static final String Method_Conv_Update_Status = "updateStatus";
   public static final String Method_Conv_Member_Updated = "onConversationMembersUpdate";
   public static final String Method_Conv_Updated = "onConversationDataUpdate";
   public static final String Method_Conv_UnreadCount_Updated = "onUnreadMessageCountUpdate";
+  public static final String Method_Conv_LastReceipt_Timestamp_Updated = "onLastReceiptTimestampUpdate";
+
+  public static final String Method_Sign_SessionOpen = "onSignSessionOpen";
+  public static final String Method_Sign_Conversation = "onSignConversation";
 
   public static final String Param_Client_Id = "clientId";
   public static final String Param_ReOpen = "r";
@@ -59,6 +63,9 @@ public class Common {
   public static final String Param_Conv_Attributes = "attr";
   public static final String Param_Conv_TTL = "ttl";
   public static final String Param_Conv_Id = "conversationId";
+
+  public static final String Param_Conv_MaxACK_Timestamp = "maxAckTimestamp";
+  public static final String Param_Conv_MaxRead_Timestamp = "maxReadTimestamp";
 
   public static final String Param_Unread_Mention = "unreadMessageMention";
 
@@ -95,6 +102,7 @@ public class Common {
   public static final String Param_Message_Options = "options";
   public static final String Param_Message_File = "file";
   public static final String Param_Message_Id = "id";
+  public static final String Param_Message_Recall = "recall";
 
   public static final String Param_File_Path = "path";
   public static final String Param_File_Data = "data";

@@ -1,5 +1,7 @@
 package cn.leancloud.plugin;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import com.alibaba.fastjson.JSON;
@@ -19,7 +21,6 @@ import cn.leancloud.AVFile;
 import cn.leancloud.im.AVIMOptions;
 import cn.leancloud.im.Signature;
 import cn.leancloud.im.SignatureFactory;
-import cn.leancloud.im.v2.AVIMBinaryMessage;
 import cn.leancloud.im.v2.AVIMClient;
 import cn.leancloud.im.v2.AVIMClientOpenOption;
 import cn.leancloud.im.v2.AVIMConversation;
@@ -57,6 +58,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
   private final static String TAG = LeancloudPlugin.class.getSimpleName();
   private final static LeancloudPlugin _INSTANCE = new LeancloudPlugin();
   private static MethodChannel _CHANNEL = null;
+  private static Handler handler;
 
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
@@ -87,6 +89,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       AVIMMessageManager.setConversationEventHandler(new DefaultConversationEventHandler(_INSTANCE));
       AVIMClient.setClientEventHandler(new DefaultClientEventHandler(_INSTANCE));
       AVIMOptions.getGlobalOptions().setSignatureFactory(DefaultSignatureFactory.getInstance());
+      handler = new Handler(Looper.getMainLooper());
     }
   }
 
@@ -98,7 +101,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           if (null != signData && signData instanceof Map) {
             Map<String, Object> signMap = (Map<String, Object>)signData;
             String signatureString = (String) signMap.get("s");
-            int timestamp = (int) signMap.get("t");
+            long timestamp = (long) signMap.get("t");
             String nounce = (String) signMap.get("n");
             signature.setSignature(signatureString);
             signature.setTimestamp(timestamp);
@@ -109,33 +112,37 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
       @Override
       public Signature createSignature(String peerId, List<String> watchIds) throws SignatureException {
-        Map<String, Object> params = new HashMap<>();
+        final Map<String, Object> params = new HashMap<>();
         params.put(Common.Param_Client_Id, peerId);
         final Signature signature = new Signature();
         final CountDownLatch latch = new CountDownLatch(1);
-        _CHANNEL.invokeMethod("onSignSessionOpen", params, new Result() {
+        handler.post(new Runnable() {
           @Override
-          public void success(Object result) {
-            fillResult2Signature(result, signature);
-            latch.countDown();
-          }
+          public void run() {
+            _CHANNEL.invokeMethod(Common.Method_Sign_SessionOpen, params, new Result() {
+              @Override
+              public void success(Object result) {
+                fillResult2Signature(result, signature);
+                latch.countDown();
+              }
 
-          @Override
-          public void error(String errorCode, String errorMessage, Object errorDetails) {
-            Log.w(TAG, "failed to invoke session open signature. code=" + errorCode + ", message=" + errorMessage);
-            latch.countDown();
-          }
+              @Override
+              public void error(String errorCode, String errorMessage, Object errorDetails) {
+                Log.w(TAG, "failed to invoke session open signature. code=" + errorCode + ", message=" + errorMessage);
+                latch.countDown();
+              }
 
-          @Override
-          public void notImplemented() {
-            Log.w(TAG, "Session open signature not implemented.");
-            latch.countDown();
+              @Override
+              public void notImplemented() {
+                Log.w(TAG, "Session open signature not implemented.");
+                latch.countDown();
+              }
+            });
           }
         });
         try {
           latch.await(30, TimeUnit.SECONDS);
         } catch (InterruptedException ex) {
-
         }
         return signature;
       }
@@ -143,30 +150,35 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       @Override
       public Signature createConversationSignature(String conversationId, String clientId,
                                                    List<String> targetIds, String action) throws SignatureException {
-        Map<String, Object> params = new HashMap<>();
+        final Map<String, Object> params = new HashMap<>();
         params.put(Common.Param_Client_Id, clientId);
         params.put(Common.Param_Conv_Id, conversationId);
         params.put(Common.Param_Sign_TargetIds, targetIds);
         params.put(Common.Param_Sign_Action, action);
         final Signature signature = new Signature();
         final CountDownLatch latch = new CountDownLatch(1);
-        _CHANNEL.invokeMethod("onSignConversation", params, new Result() {
+        handler.post(new Runnable() {
           @Override
-          public void success(Object result) {
-            fillResult2Signature(result, signature);
-            latch.countDown();
-          }
+          public void run() {
+            _CHANNEL.invokeMethod(Common.Method_Sign_Conversation, params, new Result() {
+              @Override
+              public void success(Object result) {
+                fillResult2Signature(result, signature);
+                latch.countDown();
+              }
 
-          @Override
-          public void error(String errorCode, String errorMessage, Object errorDetails) {
-            Log.w(TAG, "failed to invoke conversation signature. code=" + errorCode + ", message=" + errorMessage);
-            latch.countDown();
-          }
+              @Override
+              public void error(String errorCode, String errorMessage, Object errorDetails) {
+                Log.w(TAG, "failed to invoke conversation signature. code=" + errorCode + ", message=" + errorMessage);
+                latch.countDown();
+              }
 
-          @Override
-          public void notImplemented() {
-            Log.w(TAG, "Conversation signature not implemented.");
-            latch.countDown();
+              @Override
+              public void notImplemented() {
+                Log.w(TAG, "Conversation signature not implemented.");
+                latch.countDown();
+              }
+            });
           }
         });
         try {
@@ -559,10 +571,10 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
               }
             }
           });
-    } else if (call.method.equals(Common.Method_Conv_Update_Status)) {
-      boolean unreadMention = Common.getParamBoolean(call, Common.Param_Unread_Mention);
-      conversation.unreadMessagesMentioned();
-      result.success(Common.wrapSuccessResponse(0));
+//    } else if (call.method.equals(Common.Method_Conv_Update_Status)) {
+//      boolean unreadMention = Common.getParamBoolean(call, Common.Param_Unread_Mention);
+//      conversation.unreadMessagesMentioned();
+//      result.success(Common.wrapSuccessResponse(0));
     } else {
       result.notImplemented();
     }
