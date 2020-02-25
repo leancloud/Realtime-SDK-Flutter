@@ -112,7 +112,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         params.put(Common.Param_Client_Id, peerId);
         final Signature signature = new Signature();
         final CountDownLatch latch = new CountDownLatch(1);
-        _CHANNEL.invokeMethod("onSignSessionOpen", params, new Result() {
+        _CHANNEL.invokeMethod(Common.Method_Sign_SessionOpen, params, new Result() {
           @Override
           public void success(Object result) {
             fillResult2Signature(result, signature);
@@ -149,7 +149,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         params.put(Common.Param_Sign_Action, action);
         final Signature signature = new Signature();
         final CountDownLatch latch = new CountDownLatch(1);
-        _CHANNEL.invokeMethod("onSignConversation", params, new Result() {
+        _CHANNEL.invokeMethod(Common.Method_Sign_Conversation, params, new Result() {
           @Override
           public void success(Object result) {
             fillResult2Signature(result, signature);
