@@ -9,6 +9,8 @@ import com.alibaba.fastjson.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,11 +39,13 @@ import cn.leancloud.im.v2.callback.AVIMConversationCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationCreatedCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationMemberCountCallback;
 import cn.leancloud.im.v2.callback.AVIMConversationQueryCallback;
+import cn.leancloud.im.v2.callback.AVIMMessageRecalledCallback;
 import cn.leancloud.im.v2.callback.AVIMMessageUpdatedCallback;
 import cn.leancloud.im.v2.callback.AVIMMessagesQueryCallback;
 import cn.leancloud.im.v2.callback.AVIMOperationFailure;
 import cn.leancloud.im.v2.callback.AVIMOperationPartiallySucceededCallback;
 import cn.leancloud.im.v2.messages.AVIMFileMessage;
+import cn.leancloud.im.v2.messages.AVIMRecalledMessage;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -196,16 +200,26 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     };
   }
 
+  private boolean isDeleteOperation(Object value) {
+    if (null != value && value instanceof Map) {
+      Object operation = ((Map<String, Object>) value).get("__op");
+      if (operation instanceof String) {
+        return "Delete".equalsIgnoreCase((String) operation);
+      }
+    }
+    return false;
+  }
+
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull final Result result) {
-    Log.d(TAG, "onMethodCall " + call.method);
+    Log.d(TAG, "onMethodCall " + call.method + "， args:" + call.arguments);
 
     if (call.method.equals("getPlatformVersion")) {
       result.success("Android " + android.os.Build.VERSION.RELEASE);
       return;
     }
 
-    String clientId = Common.getMethodParam(call, Common.Param_Client_Id);
+    final String clientId = Common.getMethodParam(call, Common.Param_Client_Id);
     if (StringUtil.isEmpty(clientId)) {
       result.success(Common.wrapException(Exception.ErrorCode_Invalid_Parameter,
           Exception.ErrorMsg_Invalid_ClientId));
@@ -280,6 +294,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         @Override
         public void done(AVIMConversation conversation, AVIMException e) {
           if (null != e) {
+            Log.d(TAG,"failed to create conv. cause:" + e.getMessage());
             result.success(Common.wrapException(e));
           } else {
             Map<String, Object> convData = Common.wrapConversation(conversation);
@@ -321,6 +336,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         @Override
         public void done(List<AVIMConversation> conversations, AVIMException e) {
           if (null != e) {
+            Log.d(TAG,"failed to query conv. cause:" + e.getMessage());
             result.success(Common.wrapException(e));
           } else {
             List<Map<String, Object>> queryResult = new ArrayList<>();
@@ -354,16 +370,21 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     }
 
     if (call.method.equals(Common.Method_Mute_Conversation)) {
-      String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
+      final String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
       AVIMConversationCallback callback = new AVIMConversationCallback() {
         @Override
         public void done(AVIMException e) {
           if (null != e) {
+            Log.d(TAG, "failed to mute/unmute conversation. cause:" + e.getMessage());
             result.success(Common.wrapException(e));
           } else {
-            // TODO: modify return data.
             Map<String, Object> operationResult = new HashMap<>();
-            operationResult.put("update", conversation.getUpdatedAt());
+            operationResult.put(Common.Param_Update_Time, conversation.getUpdatedAt().toString());
+            if (Common.Conv_Operation_Mute.equalsIgnoreCase(operation)) {
+              operationResult.put("mu", Arrays.asList(clientId));
+            } else if (Common.Conv_Operation_Unmute.equalsIgnoreCase(operation)) {
+              operationResult.put("mu", new ArrayList<>());
+            }
             result.success(Common.wrapSuccessResponse(operationResult));
           }
         }
@@ -383,7 +404,11 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         for (Map.Entry<String, Object> entry: updateData.entrySet()) {
           String key = entry.getKey();
           Object val = entry.getValue();
-          conversation.setAttribute(key, val);
+          if (isDeleteOperation(val)) {
+            conversation.remove(key);
+          } else {
+            conversation.setAttribute(key, val);
+          }
         }
         conversation.updateInfoInBackground(new AVIMConversationCallback() {
           @Override
@@ -405,7 +430,25 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
-            result.success(Common.wrapSuccessResponse(Common.wrapConversation(conversation)));
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("allowedPids", successfulClientIds);
+
+            if (null != failures) {
+              List<Map<String, Object>> failedList = new ArrayList<>();
+              for (AVIMOperationFailure f: failures) {
+                Map<String, Object> failedData = new HashMap<>();
+                failedData.put("pids", f.getMemberIds());
+                Map<String, String> errorMap = new HashMap<>();
+                errorMap.put("code", String.valueOf(f.getCode()));
+                errorMap.put("message", f.getReason());
+                failedData.put(Common.Param_Error, errorMap);
+                failedList.add(failedData);
+              }
+              resultMap.put("failedPids", failedList);
+            }
+            resultMap.put(Common.Param_Conv_Members, conversation.getMembers());
+            resultMap.put(Common.Param_Update_Time, new Date().toString());
+            result.success(Common.wrapSuccessResponse(resultMap));
           }
         }
       };
@@ -515,11 +558,14 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           format = (String) fileData.get(Common.Param_File_Format);
         }
         String name = null;
+        boolean keepFileName = false;
         if (fileData.containsKey(Common.Param_File_Name)) {
           name = (String) fileData.get(Common.Param_File_Name);
         }
         if (StringUtil.isEmpty(name)) {
           name = StringUtil.getRandomString(16);
+        } else {
+          keepFileName = true;
         }
         AVFile avFile = null;
         if (null != byteArray) {
@@ -530,7 +576,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           avFile = new AVFile(name, url);
         }
         if (null != avFile) {
-          ((AVIMFileMessage) message).attachAVFile(avFile);
+          ((AVIMFileMessage) message).attachAVFile(avFile, keepFileName);
           if (!StringUtil.isEmpty(format)) {
             Map<String, Object> metaData = ((AVIMFileMessage)message).getFileMetaData();
             if (null != metaData) {
@@ -555,22 +601,84 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
               }
             }
           });
-    } else if (call.method.equals(Common.Method_Update_Message)) {
-      // TODO: support additional file data.
+    } else if (call.method.equals(Common.Method_Patch_Message)) {
       Map<String, Object> oldMsgData = Common.getMethodParam(call, Common.Param_Message_Old);
       Map<String, Object> newMsgData = Common.getMethodParam(call, Common.Param_Message_New);
       AVIMMessage oldMessage = Common.parseMessage(oldMsgData);
       AVIMMessage newMessage = Common.parseMessage(newMsgData);
-      conversation.updateMessage(oldMessage, newMessage, new AVIMMessageUpdatedCallback() {
-            @Override
-            public void done(AVIMMessage message, AVException e) {
-              if (null != e) {
-                result.success(Common.wrapException(e));
-              } else {
-                result.success(Common.wrapSuccessResponse(Common.wrapMessage(message)));
-              }
+      boolean isRecall = Common.getParamBoolean(call, Common.Param_Message_Recall);
+      Map<String, Object> fileData = Common.getMethodParam(call, Common.Param_Message_File);
+      if (newMessage instanceof AVIMFileMessage && null != fileData) {
+        byte[] byteArray = null;
+        if (fileData.containsKey(Common.Param_File_Data)) {
+          byteArray = (byte[]) fileData.get(Common.Param_File_Data);
+        }
+        String localPath = null;
+        if (fileData.containsKey(Common.Param_File_Path)) {
+          localPath = (String) fileData.get(Common.Param_File_Path);
+        }
+        String url = null;
+        if (fileData.containsKey(Common.Param_File_Url)) {
+          url = (String) fileData.get(Common.Param_File_Url);
+        }
+        String format = null;
+        if (fileData.containsKey(Common.Param_File_Format)) {
+          format = (String) fileData.get(Common.Param_File_Format);
+        }
+        String name = null;
+        boolean keepFileName = false;
+        if (fileData.containsKey(Common.Param_File_Name)) {
+          name = (String) fileData.get(Common.Param_File_Name);
+        }
+        if (StringUtil.isEmpty(name)) {
+          name = StringUtil.getRandomString(16);
+        } else {
+          keepFileName = true;
+        }
+        AVFile avFile = null;
+        if (null != byteArray) {
+          avFile = new AVFile(name, byteArray);
+        } else if (!StringUtil.isEmpty(localPath)) {
+          avFile = new AVFile(name, new File(localPath));
+        } else if (!StringUtil.isEmpty(url)) {
+          avFile = new AVFile(name, url);
+        }
+        if (null != avFile) {
+          ((AVIMFileMessage) newMessage).attachAVFile(avFile, keepFileName);
+          if (!StringUtil.isEmpty(format)) {
+            Map<String, Object> metaData = ((AVIMFileMessage)newMessage).getFileMetaData();
+            if (null != metaData) {
+              metaData.put("format", format);
             }
-          });
+          }
+        } else {
+          Log.d(TAG, "invalid file param!!");
+        }
+      }
+      if (isRecall) {
+        conversation.recallMessage(oldMessage, new AVIMMessageRecalledCallback() {
+          @Override
+          public void done(AVIMRecalledMessage recalledMessage, AVException e) {
+            if (null != e) {
+              result.success(Common.wrapException(e));
+            } else {
+              result.success(Common.wrapSuccessResponse(Common.wrapMessage(recalledMessage)));
+            }
+          }
+        });
+      } else {
+        Log.d(TAG, "update message. old=" + oldMsgData + ", new=" + newMsgData);
+        conversation.updateMessage(oldMessage, newMessage, new AVIMMessageUpdatedCallback() {
+          @Override
+          public void done(AVIMMessage message, AVException e) {
+            if (null != e) {
+              result.success(Common.wrapException(e));
+            } else {
+              result.success(Common.wrapSuccessResponse(Common.wrapMessage(message)));
+            }
+          }
+        });
+      }
 //    } else if (call.method.equals(Common.Method_Conv_Update_Status)) {
 //      boolean unreadMention = Common.getParamBoolean(call, Common.Param_Unread_Mention);
 //      conversation.unreadMessagesMentioned();
