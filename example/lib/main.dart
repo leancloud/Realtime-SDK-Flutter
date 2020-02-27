@@ -1173,6 +1173,7 @@ UnitTestCase muteConversation() => UnitTestCase(
       String updatedAt = conversation.rawData['updatedAt'];
       assert(updatedAt != null);
       // unmute
+      await delay(seconds: 1);
       await conversation.muteToggle(op: 'unmute');
       assert(conversation.rawData['mu'].contains(client.id) == false);
       assert(conversation.rawData['updatedAt'] is String);
@@ -1238,6 +1239,7 @@ UnitTestCase updateConversation() => UnitTestCase(
       await delay();
       await client2.open();
       // recycle
+      await delay();
       return [client1, client2];
     });
 
