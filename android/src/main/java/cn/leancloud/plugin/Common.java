@@ -26,7 +26,7 @@ public class Common {
   public static final String Method_Query_Conversation = "queryConversation";
   public static final String Method_Send_Message = "sendMessage";
   public static final String Method_Read_Message = "readMessage";
-  public static final String Method_Update_Message = "updateMessage";
+  public static final String Method_Patch_Message = "patchMessage";
   public static final String Method_Get_Message_Receipt = "getMessageReceipt";
   public static final String Method_Query_Message = "queryMessage";
   public static final String Method_Update_Members = "updateMembers";

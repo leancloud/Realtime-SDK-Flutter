@@ -231,6 +231,9 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Conv_Id, conversation.getConversationId());
       param.put(Common.Param_Count, conversation.getUnreadMessagesCount());
       param.put(Common.Param_Mention, conversation.unreadMessagesMentioned());
+      if (conversation.getUnreadMessagesCount() > 0 && null != conversation.getLastMessage()) {
+        param.put(Common.Param_Message_Raw, Common.wrapMessage(conversation.getLastMessage()));
+      }
       this.listener.notify(Common.Method_Conv_UnreadCount_Updated, param);
     }
   }
