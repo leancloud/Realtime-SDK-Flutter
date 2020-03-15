@@ -6,7 +6,9 @@ var gChannel: FlutterMethodChannel!
 
 public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "leancloud_plugin", binaryMessenger: registrar.messenger())
+        let channel = FlutterMethodChannel(
+            name: "leancloud_plugin",
+            binaryMessenger: registrar.messenger())
         gChannel = channel
         let instance = SwiftLeancloudPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
@@ -36,12 +38,16 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                             isReconnect: isReconnect,
                             callback: result)
                     } catch {
-                        result(self.error(error))
+                        DispatchQueue.main.async {
+                            result(self.error(error))
+                        }
                     }
                 }
             } else {
                 guard let delegator = SwiftLeancloudPlugin.delegatorMap[clientId] else {
-                    result(LCError.clientNotFound(ID: clientId))
+                    DispatchQueue.main.async {
+                        result(LCError.clientNotFound(ID: clientId))
+                    }
                     return
                 }
                 switch call.method {
@@ -175,7 +181,7 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                     }
                 }
             } else {
-                fatalError()
+                fatalError("unknown type of conversation.")
             }
         } catch {
             self.mainAsync(self.error(error), callback)
@@ -345,7 +351,8 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                 typeableMessage = IMLocationMessage()
             case -127:
                 typeableMessage = IMRecalledMessage()
-            default: fatalError()
+            default:
+                fatalError()
             }
             typeMsgData.forEach { (key, value) in
                 if key == "_lctext" {
@@ -748,6 +755,12 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
     func queryConversation(parameters: [String: Any], callback: @escaping FlutterResult) {
         do {
             let query = self.client.conversationQuery
+            if let limit = parameters["limit"] as? Int {
+                query.limit = limit
+            }
+            if let flag = parameters["flag"] as? Int {
+                query.options = IMConversationQuery.Options(rawValue: flag)
+            }
             if let tempConvIds = parameters["tempConvIds"] as? [String] {
                 try query.getTemporaryConversations(by: Set(tempConvIds)) { (result) in
                     switch result {
@@ -768,14 +781,8 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                 if let sort = parameters["sort"] as? String {
                     try query.where(sort, .ascending)
                 }
-                if let limit = parameters["limit"] as? Int {
-                    query.limit = limit
-                }
                 if let skip = parameters["skip"] as? Int {
                     query.skip = skip
-                }
-                if let flag = parameters["flag"] as? Int {
-                    query.options = IMConversationQuery.Options(rawValue: flag)
                 }
                 try query.findConversations { (result) in
                     switch result {
@@ -815,10 +822,10 @@ extension IMClientDelegator: IMClientDelegate {
         case .sessionDidResume:
             self.invoke("onSessionResume", args)
         case .sessionDidPause(error: let error):
-            args["error"] = self.error(error)
+            args.merge(self.error(error)) { (current, _) in current }
             self.invoke("onSessionDisconnect", args)
         case .sessionDidClose(error: let error):
-            args["error"] = self.error(error)
+            args.merge(self.error(error)) { (current, _) in current }
             self.invoke("onSessionClose", args)
         }
     }

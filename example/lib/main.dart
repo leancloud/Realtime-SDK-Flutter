@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:leancloud_plugin/leancloud_plugin.dart';
 
 void main() => runApp(MyApp());
@@ -41,6 +42,7 @@ UnitTestCase clientOpenThenClose() => UnitTestCase(
       await client.close();
       // reopen
       await client.open();
+      // recycle
       return [client];
     });
 
@@ -52,76 +54,76 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
       // event
-      client1.onConversationInvite = ({
+      client1.onInvited = ({
         Client client,
         Conversation conversation,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
-          client1.onConversationInvite = null;
+          client1.onInvited = null;
           assert(client != null);
           assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
-      client1.onConversationMembersJoin = ({
+      client1.onMembersJoined = ({
         Client client,
         Conversation conversation,
         List members,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
-          client1.onConversationMembersJoin = null;
+          client1.onMembersJoined = null;
           assert(client != null);
           assert(conversation != null);
           assert(members.length == 2);
           assert(members.contains(client1.id));
           assert(members.contains(client2.id));
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
-      client2.onConversationInvite = ({
+      client2.onInvited = ({
         Client client,
         Conversation conversation,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
-          client2.onConversationInvite = null;
+          client2.onInvited = null;
           assert(client != null);
           assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
-      client2.onConversationMembersJoin = ({
+      client2.onMembersJoined = ({
         Client client,
         Conversation conversation,
         List members,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
-          client2.onConversationMembersJoin = null;
+          client2.onMembersJoined = null;
           assert(client != null);
           assert(conversation != null);
           assert(members.length == 2);
           assert(members.contains(client1.id));
           assert(members.contains(client2.id));
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
         } catch (e) {
@@ -133,51 +135,41 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
       await client2.open();
       // create unique conversation
       Conversation conversation1 = await client1.createConversation(
-        type: ConversationType.normalUnique,
-        members: [client1.id, client2.id],
+        members: {client1.id, client2.id},
       );
-      Map rawData1 = conversation1.rawData;
-      assert(rawData1['conv_type'] == 1);
-      String objectId = rawData1['objectId'];
-      assert(objectId != null);
-      String uniqueId = rawData1['uniqueId'];
-      assert(uniqueId != null);
-      List members1 = rawData1['m'];
-      assert(members1.length == 2);
-      assert(members1.contains(client1.id));
-      assert(members1.contains(client2.id));
-      assert(rawData1['unique'] == true);
-      assert(rawData1['name'] == null);
-      assert(rawData1['attr'] == null);
-      assert(rawData1['c'] == client1.id);
-      String createdAt = rawData1['createdAt'];
-      assert(createdAt != null);
+      assert(conversation1.rawData['conv_type'] == 1);
+      assert(conversation1.id != null);
+      assert(conversation1.uniqueID != null);
+      assert(conversation1.members.length == 2);
+      assert(conversation1.members.contains(client1.id));
+      assert(conversation1.members.contains(client2.id));
+      assert(conversation1.isUnique == true);
+      assert(conversation1.name == null);
+      assert(conversation1.attributes == null);
+      assert(conversation1.creator == client1.id);
+      assert(conversation1.createdAt != null);
       // query unique conversation from creation
       String name = uuid();
       String attrKey = uuid();
       String attrValue = uuid();
       Conversation conversation2 = await client1.createConversation(
-        type: ConversationType.normalUnique,
-        members: [client1.id, client2.id],
+        members: {client1.id, client2.id},
         name: name,
         attributes: {attrKey: attrValue},
       );
       assert(conversation2 == conversation1);
-      Map rawData2 = conversation2.rawData;
-      assert(rawData2['conv_type'] == 1);
-      assert(rawData2['objectId'] == objectId);
-      assert(rawData2['uniqueId'] == uniqueId);
-      List members2 = rawData2['m'];
-      assert(members2.length == 2);
-      assert(members2.contains(client1.id));
-      assert(members2.contains(client2.id));
-      assert(rawData2['unique'] == true);
-      assert(rawData2['name'] == name);
-      Map attr = rawData2['attr'];
-      assert(attr.length == 1);
-      assert(attr[attrKey] == attrValue);
-      assert(rawData2['c'] == client1.id);
-      assert(rawData2['createdAt'] == createdAt);
+      assert(conversation2.rawData['conv_type'] == 1);
+      assert(conversation2.id == conversation1.id);
+      assert(conversation2.uniqueID == conversation1.uniqueID);
+      assert(conversation2.members.length == 2);
+      assert(conversation2.members.contains(client1.id));
+      assert(conversation2.members.contains(client2.id));
+      assert(conversation2.isUnique == true);
+      assert(conversation2.name == name);
+      assert(conversation2.attributes.length == 1);
+      assert(conversation2.attributes[attrKey] == attrValue);
+      assert(conversation2.creator == client1.id);
+      assert(conversation2.createdAt == conversation1.createdAt);
       int count = await conversation2.countMembers();
       assert(count == 2);
       // recycle
@@ -194,25 +186,24 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
       String client3id = uuid();
       // event
       int client1OnConversationInvite = 2;
-      client1.onConversationInvite = ({
+      client1.onInvited = ({
         Client client,
         Conversation conversation,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) async {
         try {
           client1OnConversationInvite -= 1;
           if (client1OnConversationInvite <= 0) {
-            client1.onConversationInvite = null;
+            client1.onInvited = null;
           }
           assert(client != null);
           assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
-          List m = conversation.rawData['m'];
-          assert(m.length == 2);
-          assert(m.contains(client1.id));
-          assert(m.contains(client2.id));
+          assert(conversation.members.length == 2);
+          assert(conversation.members.contains(client1.id));
+          assert(conversation.members.contains(client2.id));
           if (client1OnConversationInvite == 1) {
             // join by create
             decrease(1);
@@ -224,223 +215,198 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
           decrease(-1, e: e);
         }
       };
-      client1.onConversationKick = ({
+      client1.onKicked = ({
         Client client,
         Conversation conversation,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) async {
         try {
-          client1.onConversationKick = null;
+          client1.onKicked = null;
           assert(client != null);
           assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
-          List m1 = conversation.rawData['m'];
-          assert(m1.length == 1);
-          assert(m1.contains(client2.id));
+          assert(conversation.members.length == 1);
+          assert(conversation.members.contains(client2.id));
           decrease(1);
-          Map result = await conversation.updateMembers(
-            members: [client1.id],
-            op: 'add',
-          );
-          List allowedPids = result['allowedPids'];
-          assert(allowedPids.length == 1);
-          assert(allowedPids.contains(client1.id));
-          List m2 = conversation.rawData['m'];
-          assert(m2.length == 2);
-          assert(m2.contains(client1.id));
-          assert(m2.contains(client2.id));
-          assert(result['udate'] is String);
+          MemberResult joinResult = await conversation.join();
+          assert(joinResult.allSucceeded);
+          assert(joinResult.succeededMembers.length == 1);
+          assert(joinResult.succeededMembers.contains(client1.id));
+          assert(conversation.members.length == 2);
+          assert(conversation.members.contains(client1.id));
+          assert(conversation.members.contains(client2.id));
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
       int client1OnConversationMembersJoin = 3;
-      client1.onConversationMembersJoin = ({
+      client1.onMembersJoined = ({
         Client client,
         Conversation conversation,
         List members,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) async {
         try {
           client1OnConversationMembersJoin -= 1;
           if (client1OnConversationMembersJoin <= 0) {
-            client1.onConversationMembersJoin = null;
+            client1.onMembersJoined = null;
           }
           assert(client != null);
           assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           if (client1OnConversationMembersJoin == 2) {
             // join by create
             assert(members.length == 2);
             assert(members.contains(client1.id));
             assert(members.contains(client2.id));
-            List m = conversation.rawData['m'];
-            assert(m.length == 2);
-            assert(m.contains(client1.id));
-            assert(m.contains(client2.id));
+            assert(conversation.members.length == 2);
+            assert(conversation.members.contains(client1.id));
+            assert(conversation.members.contains(client2.id));
             decrease(1);
           } else if (client1OnConversationMembersJoin == 1) {
             // rejoin
             assert(members.length == 1);
             assert(members.contains(client1.id));
-            List m = conversation.rawData['m'];
-            assert(m.length == 2);
-            assert(m.contains(client1.id));
-            assert(m.contains(client2.id));
+            assert(conversation.members.length == 2);
+            assert(conversation.members.contains(client1.id));
+            assert(conversation.members.contains(client2.id));
             decrease(1);
           } else if (client1OnConversationMembersJoin == 0) {
             // add new member
             assert(members.length == 1);
             assert(members.contains(client3id));
-            List m = conversation.rawData['m'];
-            assert(m.length == 3);
-            assert(m.contains(client1.id));
-            assert(m.contains(client2.id));
-            assert(m.contains(client3id));
+            assert(conversation.members.length == 3);
+            assert(conversation.members.contains(client1.id));
+            assert(conversation.members.contains(client2.id));
+            assert(conversation.members.contains(client3id));
             decrease(1);
           }
           if (client1OnConversationMembersJoin == 2) {
-            Map result = await conversation.updateMembers(
-              members: [client1.id],
-              op: 'remove',
-            );
-            List allowedPids = result['allowedPids'];
-            assert(allowedPids.length == 1);
-            assert(allowedPids.contains(client1.id));
-            List m = conversation.rawData['m'];
-            assert(m.length == 1);
-            assert(m.contains(client2.id));
-            assert(result['udate'] is String);
+            MemberResult quitResult = await conversation.quit();
+            assert(quitResult.allSucceeded);
+            assert(quitResult.succeededMembers.length == 1);
+            assert(quitResult.succeededMembers.contains(client1.id));
+            assert(conversation.members.length == 1);
+            assert(conversation.members.contains(client2.id));
             decrease(1);
           } else if (client1OnConversationMembersJoin == 1) {
-            Map result = await conversation.updateMembers(
-              members: [client3id],
-              op: 'add',
+            MemberResult addMemberResult = await conversation.addMembers(
+              members: {client3id},
             );
-            List allowedPids = result['allowedPids'];
-            assert(allowedPids.length == 1);
-            assert(allowedPids.contains(client3id));
-            List m = conversation.rawData['m'];
-            assert(m.length == 3);
-            assert(m.contains(client1.id));
-            assert(m.contains(client2.id));
-            assert(m.contains(client3id));
-            assert(result['udate'] is String);
+            assert(addMemberResult.allSucceeded);
+            assert(addMemberResult.succeededMembers.length == 1);
+            assert(addMemberResult.succeededMembers.contains(client3id));
+            assert(conversation.members.length == 3);
+            assert(conversation.members.contains(client1.id));
+            assert(conversation.members.contains(client2.id));
+            assert(conversation.members.contains(client3id));
             decrease(1);
           } else if (client1OnConversationMembersJoin == 0) {
-            Map result = await conversation.updateMembers(
-              members: [client3id],
-              op: 'remove',
+            MemberResult removeMemberResult = await conversation.removeMembers(
+              members: {client3id},
             );
-            List allowedPids = result['allowedPids'];
-            assert(allowedPids.length == 1);
-            assert(allowedPids.contains(client3id));
-            List m = conversation.rawData['m'];
-            assert(m.length == 2);
-            assert(m.contains(client1.id));
-            assert(m.contains(client2.id));
-            assert(result['udate'] is String);
+            assert(removeMemberResult.allSucceeded);
+            assert(removeMemberResult.succeededMembers.length == 1);
+            assert(removeMemberResult.succeededMembers.contains(client3id));
+            assert(conversation.members.length == 2);
+            assert(conversation.members.contains(client1.id));
+            assert(conversation.members.contains(client2.id));
             decrease(1);
           }
         } catch (e) {
           decrease(-1, e: e);
         }
       };
-      client1.onConversationMembersLeave = ({
+      client1.onMembersLeft = ({
         Client client,
         Conversation conversation,
         List members,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
-          client1.onConversationMembersLeave = null;
+          client1.onMembersLeft = null;
           assert(client != null);
           assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           assert(members.length == 1);
           assert(members.contains(client3id));
-          List m = conversation.rawData['m'];
-          assert(m.length == 2);
-          assert(m.contains(client1.id));
-          assert(m.contains(client2.id));
+          assert(conversation.members.length == 2);
+          assert(conversation.members.contains(client1.id));
+          assert(conversation.members.contains(client2.id));
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
-      client2.onConversationInvite = ({
+      client2.onInvited = ({
         Client client,
         Conversation conversation,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
-          client2.onConversationInvite = null;
+          client2.onInvited = null;
           assert(client != null);
           assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
-          List m = conversation.rawData['m'];
-          assert(m.length == 2);
-          assert(m.contains(client1.id));
-          assert(m.contains(client2.id));
+          assert(conversation.members.length == 2);
+          assert(conversation.members.contains(client1.id));
+          assert(conversation.members.contains(client2.id));
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
       int client2OnConversationMembersJoin = 3;
-      client2.onConversationMembersJoin = ({
+      client2.onMembersJoined = ({
         Client client,
         Conversation conversation,
         List members,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
           client2OnConversationMembersJoin -= 1;
           if (client2OnConversationMembersJoin <= 0) {
-            client2.onConversationMembersJoin = null;
+            client2.onMembersJoined = null;
           }
           assert(client != null);
           assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           if (client2OnConversationMembersJoin == 2) {
             // join by create
             assert(members.length == 2);
             assert(members.contains(client1.id));
             assert(members.contains(client2.id));
-            List m = conversation.rawData['m'];
-            assert(m.length == 2);
-            assert(m.contains(client1.id));
-            assert(m.contains(client2.id));
+            assert(conversation.members.length == 2);
+            assert(conversation.members.contains(client1.id));
+            assert(conversation.members.contains(client2.id));
             decrease(1);
           } else if (client2OnConversationMembersJoin == 1) {
             // rejoin
             assert(members.length == 1);
             assert(members.contains(client1.id));
-            List m = conversation.rawData['m'];
-            assert(m.length == 2);
-            assert(m.contains(client1.id));
-            assert(m.contains(client2.id));
+            assert(conversation.members.length == 2);
+            assert(conversation.members.contains(client1.id));
+            assert(conversation.members.contains(client2.id));
             decrease(1);
           } else if (client2OnConversationMembersJoin == 0) {
             // add new member
             assert(members.length == 1);
             assert(members.contains(client3id));
-            List m = conversation.rawData['m'];
-            assert(m.length == 3);
-            assert(m.contains(client1.id));
-            assert(m.contains(client2.id));
-            assert(m.contains(client3id));
+            assert(conversation.members.length == 3);
+            assert(conversation.members.contains(client1.id));
+            assert(conversation.members.contains(client2.id));
+            assert(conversation.members.contains(client3id));
             decrease(1);
           }
         } catch (e) {
@@ -448,38 +414,36 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
         }
       };
       int client2OnConversationMembersLeave = 2;
-      client2.onConversationMembersLeave = ({
+      client2.onMembersLeft = ({
         Client client,
         Conversation conversation,
         List members,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
           client2OnConversationMembersLeave -= 1;
           if (client2OnConversationMembersLeave <= 0) {
-            client2.onConversationMembersLeave = null;
+            client2.onMembersLeft = null;
           }
           assert(client != null);
           assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           if (client2OnConversationMembersLeave == 1) {
             // leave
             assert(members.length == 1);
             assert(members.contains(client1.id));
-            List m = conversation.rawData['m'];
-            assert(m.length == 1);
-            assert(m.contains(client2.id));
+            assert(conversation.members.length == 1);
+            assert(conversation.members.contains(client2.id));
             decrease(1);
           } else if (client2OnConversationMembersLeave == 0) {
             // remove new member
             assert(members.length == 1);
             assert(members.contains(client3id));
-            List m = conversation.rawData['m'];
-            assert(m.length == 2);
-            assert(m.contains(client1.id));
-            assert(m.contains(client2.id));
+            assert(conversation.members.length == 2);
+            assert(conversation.members.contains(client1.id));
+            assert(conversation.members.contains(client2.id));
             decrease(1);
           }
         } catch (e) {
@@ -494,26 +458,22 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
       String attrKey = uuid();
       String attrValue = uuid();
       Conversation conversation = await client1.createConversation(
-        type: ConversationType.normal,
-        members: [client1.id, client2.id],
+        isUnique: false,
+        members: {client1.id, client2.id},
         name: name,
         attributes: {attrKey: attrValue},
       );
-      Map rawData = conversation.rawData;
-      assert(rawData['conv_type'] == 1);
-      assert(rawData['objectId'] is String);
-      List members = rawData['m'];
-      assert(members.length == 2);
-      assert(members.contains(client1.id));
-      assert(members.contains(client2.id));
-      bool unique = rawData['unique'];
-      assert(unique == null || unique == false);
-      assert(rawData['name'] == name);
-      Map attr = rawData['attr'];
-      assert(attr.length == 1);
-      assert(attr[attrKey] == attrValue);
-      assert(rawData['c'] == client1.id);
-      assert(rawData['createdAt'] is String);
+      assert(conversation.rawData['conv_type'] == 1);
+      assert(conversation.id != null);
+      assert(conversation.members.length == 2);
+      assert(conversation.members.contains(client1.id));
+      assert(conversation.members.contains(client2.id));
+      assert(conversation.isUnique == false);
+      assert(conversation.name == name);
+      assert(conversation.attributes.length == 1);
+      assert(conversation.attributes[attrKey] == attrValue);
+      assert(conversation.creator == client1.id);
+      assert(conversation.createdAt != null);
       // recycle
       await delay();
       return [client1, client2];
@@ -530,23 +490,19 @@ UnitTestCase createTransientConversationAndCountMember() => UnitTestCase(
       String name = uuid();
       String attrKey = uuid();
       String attrValue = uuid();
-      Conversation conversation = await client.createConversation(
-        type: ConversationType.transient,
+      ChatRoom chatRoom = await client.createChatRoom(
         name: name,
         attributes: {attrKey: attrValue},
       );
-      Map rawData = conversation.rawData;
-      assert(rawData['conv_type'] == 2);
-      assert(rawData['objectId'] is String);
-      assert(rawData['tr'] == true);
-      assert(rawData['name'] == name);
-      Map attr = rawData['attr'];
-      assert(attr.length == 1);
-      assert(attr[attrKey] == attrValue);
-      assert(rawData['c'] == client.id);
-      assert(rawData['createdAt'] is String);
+      assert(chatRoom.rawData['conv_type'] == 2);
+      assert(chatRoom.id != null);
+      assert(chatRoom.name == name);
+      assert(chatRoom.attributes.length == 1);
+      assert(chatRoom.attributes[attrKey] == attrValue);
+      assert(chatRoom.creator == client.id);
+      assert(chatRoom.createdAt != null);
       await delay();
-      int count = await conversation.countMembers();
+      int count = await chatRoom.countMembers();
       assert(count == 1);
       // recycle
       return [client];
@@ -560,76 +516,76 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
       // event
-      client1.onConversationInvite = ({
+      client1.onInvited = ({
         Client client,
         Conversation conversation,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
-          client1.onConversationInvite = null;
+          client1.onInvited = null;
           assert(client != null);
-          assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(conversation is TemporaryConversation);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
-      client1.onConversationMembersJoin = ({
+      client1.onMembersJoined = ({
         Client client,
         Conversation conversation,
         List members,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
-          client1.onConversationMembersJoin = null;
+          client1.onMembersJoined = null;
           assert(client != null);
-          assert(conversation != null);
+          assert(conversation is TemporaryConversation);
           assert(members.length == 2);
           assert(members.contains(client1.id));
           assert(members.contains(client2.id));
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
-      client2.onConversationInvite = ({
+      client2.onInvited = ({
         Client client,
         Conversation conversation,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
-          client2.onConversationInvite = null;
+          client2.onInvited = null;
           assert(client != null);
-          assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(conversation is TemporaryConversation);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
-      client2.onConversationMembersJoin = ({
+      client2.onMembersJoined = ({
         Client client,
         Conversation conversation,
         List members,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
-          client2.onConversationMembersJoin = null;
+          client2.onMembersJoined = null;
           assert(client != null);
-          assert(conversation != null);
+          assert(conversation is TemporaryConversation);
           assert(members.length == 2);
           assert(members.contains(client1.id));
           assert(members.contains(client2.id));
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
         } catch (e) {
@@ -640,26 +596,23 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
       await client1.open();
       await client2.open();
       // create temporary conversation
-      Conversation conversation = await client1.createConversation(
-        type: ConversationType.temporary,
-        members: [client1.id, client2.id],
-        ttl: 3600,
+      TemporaryConversation temporaryConversation =
+          await client1.createTemporaryConversation(
+        members: {client1.id, client2.id},
+        timeToLive: 3600,
       );
-      Map rawData = conversation.rawData;
-      assert(rawData['conv_type'] == 4);
-      String objectId = rawData['objectId'];
-      assert(objectId.startsWith('_tmp:'));
-      List members = rawData['m'];
-      assert(members.length == 2);
-      assert(members.contains(client1.id));
-      assert(members.contains(client2.id));
-      assert(rawData['temp'] == true);
-      assert(rawData['ttl'] == 3600);
-      List<Conversation> conversations = await client2.queryConversation(
-        temporaryConversationIds: [conversation.id],
+      assert(temporaryConversation.rawData['conv_type'] == 4);
+      assert(temporaryConversation.id.startsWith('_tmp:'));
+      assert(temporaryConversation.members.length == 2);
+      assert(temporaryConversation.members.contains(client1.id));
+      assert(temporaryConversation.members.contains(client2.id));
+      assert(temporaryConversation.timeToLive == 3600);
+      List<TemporaryConversation> temporaryConversations =
+          await client2.conversationQuery().findTemporaryConversations(
+        temporaryConversationIDs: [temporaryConversation.id],
       );
-      assert(conversations.length == 1);
-      assert(conversations[0].id == conversation.id);
+      assert(temporaryConversations.length == 1);
+      assert(temporaryConversations[0].id == temporaryConversation.id);
       // recycle
       return [client1, client2];
     });
@@ -740,8 +693,8 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
       ) {
         assert(message.id != null);
         assert(message.sentTimestamp != null);
-        assert(message.conversationId == conversation.id);
-        assert(message.fromClientId == client1.id);
+        assert(message.conversationID == conversation.id);
+        assert(message.fromClientID == client1.id);
       };
       void Function(
         FileMessage,
@@ -754,7 +707,7 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
       };
       // event
       int client2OnMessageReceivedCount = 8;
-      client2.onMessageReceive = ({
+      client2.onMessage = ({
         Client client,
         Conversation conversation,
         Message message,
@@ -762,7 +715,7 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
         try {
           client2OnMessageReceivedCount -= 1;
           if (client2OnMessageReceivedCount <= 0) {
-            client2.onMessageReceive = null;
+            client2.onMessage = null;
           }
           assert(client != null);
           assert(conversation != null);
@@ -814,12 +767,12 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
             await delay();
             List<Message> messages1 = await conversation.queryMessage(
               startTimestamp: textMessage.sentTimestamp,
-              startMessageId: textMessage.id,
-              startClose: true,
+              startMessageID: textMessage.id,
+              startClosed: true,
               endTimestamp: fileMessage.sentTimestamp,
-              endMessageId: fileMessage.id,
-              endClose: false,
-              direction: 2,
+              endMessageID: fileMessage.id,
+              endClosed: false,
+              direction: MessageQueryDirection.oldToNew,
               limit: 100,
             );
             assert(messages1.length == 5);
@@ -827,8 +780,8 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
               Message sentMessage = sentMessages[index + 2];
               assert(value.sentTimestamp == sentMessage.sentTimestamp);
               assert(value.id == sentMessage.id);
-              assert(value.conversationId == sentMessage.conversationId);
-              assert(value.fromClientId == sentMessage.fromClientId);
+              assert(value.conversationID == sentMessage.conversationID);
+              assert(value.fromClientID == sentMessage.fromClientID);
               assert(value.runtimeType == sentMessage.runtimeType);
             });
             List<Message> messages2 = await conversation.queryMessage(
@@ -839,8 +792,8 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
             assert(messages2[0] is TextMessage);
             assert(messages2[0].id == textMessage.id);
             assert(messages2[0].sentTimestamp == textMessage.sentTimestamp);
-            assert(messages2[0].conversationId == textMessage.conversationId);
-            assert(messages2[0].fromClientId == textMessage.fromClientId);
+            assert(messages2[0].conversationID == textMessage.conversationID);
+            assert(messages2[0].fromClientID == textMessage.fromClientID);
             decrease(1);
           }
         } catch (e) {
@@ -852,7 +805,7 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
       await client2.open();
       // create
       Conversation conversation = await client1.createConversation(
-        members: [client1.id, client2.id],
+        members: {client1.id, client2.id},
       );
       // send string
       await conversation.send(message: stringMessage);
@@ -907,7 +860,7 @@ UnitTestCase readMessage() => UnitTestCase(
       await client1.open();
       // create
       Conversation conversation = await client1.createConversation(
-        members: [client1.id, client2.id],
+        members: {client1.id, client2.id},
       );
       // send
       Message message = Message();
@@ -918,14 +871,14 @@ UnitTestCase readMessage() => UnitTestCase(
       await delay();
       // event
       int client2OnConversationUnreadMessageCountUpdateCount = 2;
-      client2.onConversationUnreadMessageCountUpdate = ({
+      client2.onUnreadMessageCountUpdated = ({
         Client client,
         Conversation conversation,
       }) {
         try {
           client2OnConversationUnreadMessageCountUpdateCount -= 1;
           if (client2OnConversationUnreadMessageCountUpdateCount <= 0) {
-            client2.onConversationUnreadMessageCountUpdate = null;
+            client2.onUnreadMessageCountUpdated = null;
           }
           assert(client != null);
           assert(conversation != null);
@@ -934,8 +887,8 @@ UnitTestCase readMessage() => UnitTestCase(
             Message lastMessage = conversation.lastMessage;
             assert(lastMessage.id == message.id);
             assert(lastMessage.sentTimestamp == message.sentTimestamp);
-            assert(lastMessage.conversationId == message.conversationId);
-            assert(lastMessage.fromClientId == message.fromClientId);
+            assert(lastMessage.conversationID == message.conversationID);
+            assert(lastMessage.fromClientID == message.fromClientID);
             conversation.read();
             decrease(1);
           } else if (conversation.unreadMessageCount == 0) {
@@ -976,8 +929,8 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
           assert(conversation != null);
           assert(updatedMessage.id == oldMessage.id);
           assert(updatedMessage.sentTimestamp == oldMessage.sentTimestamp);
-          assert(updatedMessage.conversationId == oldMessage.conversationId);
-          assert(updatedMessage.fromClientId == oldMessage.fromClientId);
+          assert(updatedMessage.conversationID == oldMessage.conversationID);
+          assert(updatedMessage.fromClientID == oldMessage.fromClientID);
           assert(updatedMessage.patchedTimestamp != null);
           assert(updatedMessage is ImageMessage);
           if (updatedMessage is ImageMessage) {
@@ -1000,8 +953,8 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
           assert(conversation != null);
           assert(recalledMessage.id == oldMessage.id);
           assert(recalledMessage.sentTimestamp == oldMessage.sentTimestamp);
-          assert(recalledMessage.conversationId == oldMessage.conversationId);
-          assert(recalledMessage.fromClientId == oldMessage.fromClientId);
+          assert(recalledMessage.conversationID == oldMessage.conversationID);
+          assert(recalledMessage.fromClientID == oldMessage.fromClientID);
           assert(recalledMessage.patchedTimestamp != null);
           decrease(1);
         } catch (e) {
@@ -1013,7 +966,7 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
       await client2.open();
       // create
       Conversation conversation = await client1.createConversation(
-        members: [client1.id, client2.id],
+        members: {client1.id, client2.id},
       );
       // send
       await conversation.send(message: oldMessage);
@@ -1032,8 +985,8 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
       assert(updatedMessage == newMessage);
       assert(newMessage.id == oldMessage.id);
       assert(newMessage.sentTimestamp == oldMessage.sentTimestamp);
-      assert(newMessage.conversationId == oldMessage.conversationId);
-      assert(newMessage.fromClientId == oldMessage.fromClientId);
+      assert(newMessage.conversationID == oldMessage.conversationID);
+      assert(newMessage.fromClientID == oldMessage.fromClientID);
       assert(newMessage.patchedTimestamp != null);
       assert(newMessage.url != null);
       assert(newMessage.url.endsWith('/test.jpg'));
@@ -1044,8 +997,8 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
       );
       assert(recalledMessage.id == oldMessage.id);
       assert(recalledMessage.sentTimestamp == oldMessage.sentTimestamp);
-      assert(recalledMessage.conversationId == oldMessage.conversationId);
-      assert(recalledMessage.fromClientId == oldMessage.fromClientId);
+      assert(recalledMessage.conversationID == oldMessage.conversationID);
+      assert(recalledMessage.fromClientID == oldMessage.fromClientID);
       assert(recalledMessage.patchedTimestamp != null);
       // recycle
       return [client1, client2];
@@ -1062,37 +1015,47 @@ UnitTestCase messageReceipt() => UnitTestCase(
       Message message = Message();
       message.stringContent = uuid();
       // event
-      int client1OnMessageReceipt = 2;
-      client1.onMessageReceipt = ({
+      client1.onMessageDelivered = ({
         Client client,
         Conversation conversation,
-        String messageId,
-        int timestamp,
-        String byClientId,
-        bool isRead,
+        String messageID,
+        String toClientID,
+        DateTime atDate,
       }) async {
         try {
-          client1OnMessageReceipt -= 1;
-          if (client1OnMessageReceipt <= 0) {
-            client1.onMessageReceipt = null;
-          }
           assert(client != null);
           assert(conversation != null);
           if (message.id != null) {
-            assert(messageId == message.id);
+            assert(messageID == message.id);
           }
           if (message.sentTimestamp != null) {
-            assert(timestamp >= message.sentTimestamp);
+            assert(atDate.millisecondsSinceEpoch >= message.sentTimestamp);
           }
-          assert(byClientId == client2.id);
-          if (client1OnMessageReceipt == 1) {
-            assert(isRead == false);
-            decrease(1);
-          } else if (client1OnMessageReceipt == 0) {
-            assert(isRead == true);
-            await conversation.fetchReceiptTimestamps();
-            decrease(1);
+          assert(toClientID == client2.id);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      client1.onMessageRead = ({
+        Client client,
+        Conversation conversation,
+        String messageID,
+        String byClientID,
+        DateTime atDate,
+      }) async {
+        try {
+          assert(client != null);
+          assert(conversation != null);
+          if (message.id != null) {
+            assert(messageID == message.id);
           }
+          if (message.sentTimestamp != null) {
+            assert(atDate.millisecondsSinceEpoch >= message.sentTimestamp);
+          }
+          assert(byClientID == client2.id);
+          await conversation.fetchReceiptTimestamps();
+          decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
@@ -1105,7 +1068,9 @@ UnitTestCase messageReceipt() => UnitTestCase(
           client1.onLastDeliveredAtUpdated = null;
           assert(client != null);
           assert(conversation != null);
-          assert(conversation.lastDeliveredTimestamp >= message.sentTimestamp);
+          assert(conversation.lastDeliveredAt != null);
+          assert(conversation.lastDeliveredAt.millisecondsSinceEpoch >=
+              message.sentTimestamp);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
@@ -1119,19 +1084,21 @@ UnitTestCase messageReceipt() => UnitTestCase(
           client1.onLastReadAtUpdated = null;
           assert(client != null);
           assert(conversation != null);
-          assert(conversation.lastReadTimestamp >= message.sentTimestamp);
+          assert(conversation.lastReadAt != null);
+          assert(conversation.lastReadAt.millisecondsSinceEpoch >=
+              message.sentTimestamp);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
-      client2.onMessageReceive = ({
+      client2.onMessage = ({
         Client client,
         Conversation conversation,
         Message message,
       }) async {
         try {
-          client2.onMessageReceive = null;
+          client2.onMessage = null;
           await delay();
           await conversation.read();
           decrease(1);
@@ -1144,15 +1111,15 @@ UnitTestCase messageReceipt() => UnitTestCase(
       await client2.open();
       // create
       Conversation conversation = await client1.createConversation(
-        members: [client1.id, client2.id],
+        members: {client1.id, client2.id},
       );
       // send
       await conversation.send(
         message: message,
         receipt: true,
       );
-      // recycle
       await delay();
+      // recycle
       return [client1, client2];
     });
 
@@ -1165,19 +1132,20 @@ UnitTestCase muteConversation() => UnitTestCase(
       await client.open();
       // create
       Conversation conversation = await client.createConversation(
-        members: [client.id, uuid()],
+        members: {client.id, uuid()},
       );
       // mute
-      await conversation.muteToggle(op: 'mute');
-      assert(conversation.rawData['mu'].contains(client.id));
-      String updatedAt = conversation.rawData['updatedAt'];
+      await conversation.mute();
+      assert(conversation.isMuted);
+      DateTime updatedAt = conversation.updatedAt;
       assert(updatedAt != null);
+      await delay(seconds: 1);
       // unmute
       await delay(seconds: 1);
-      await conversation.muteToggle(op: 'unmute');
-      assert(conversation.rawData['mu'].contains(client.id) == false);
-      assert(conversation.rawData['updatedAt'] is String);
-      assert(conversation.rawData['updatedAt'] != updatedAt);
+      await conversation.unmute();
+      assert(conversation.isMuted == false);
+      assert(conversation.updatedAt != null);
+      assert(conversation.updatedAt != updatedAt);
       // recycle
       return [client];
     });
@@ -1192,27 +1160,27 @@ UnitTestCase updateConversation() => UnitTestCase(
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
       // event
-      client2.onConversationDataUpdate = ({
+      client2.onInfoUpdated = ({
         Client client,
         Conversation conversation,
         Map updatingAttributes,
         Map updatedAttributes,
-        String byClientId,
-        String atDate,
+        String byClientID,
+        DateTime atDate,
       }) {
         try {
-          client2.onConversationDataUpdate = null;
+          client2.onInfoUpdated = null;
           assert(client != null);
           assert(conversation != null);
-          assert(byClientId == client1.id);
+          assert(byClientID == client1.id);
           assert(atDate != null);
           assert(updatingAttributes.length == 2);
           assert(updatingAttributes['attr.set'] == setValue);
           assert(updatingAttributes['attr.unset']['__op'] == 'Delete');
           assert(updatedAttributes['attr']['set'] == setValue);
           assert(updatedAttributes['attr']['unset'] == null);
-          assert(conversation.rawData['attr']['set'] == setValue);
-          assert(conversation.rawData['attr']['unset'] == null);
+          assert(conversation.attributes['set'] == setValue);
+          assert(conversation.attributes['unset'] == null);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
@@ -1223,21 +1191,24 @@ UnitTestCase updateConversation() => UnitTestCase(
       await client2.open();
       // create
       Conversation conversation = await client1.createConversation(
-        members: [client1.id, client2.id],
+        members: {client1.id, client2.id},
         attributes: {'unset': unsetValue},
       );
-      assert(conversation.rawData['attr']['unset'] == unsetValue);
+      assert(conversation.attributes['unset'] == unsetValue);
       await delay();
       await client2.close();
       await delay();
-      await conversation.update(data: {
-        'attr.set': setValue,
-        'attr.unset': {'__op': 'Delete'},
-      });
-      assert(conversation.rawData['attr']['set'] == setValue);
-      assert(conversation.rawData['attr']['unset'] == null);
+      await conversation.updateInfo(
+        attributes: {
+          'attr.set': setValue,
+          'attr.unset': {'__op': 'Delete'},
+        },
+      );
+      assert(conversation.attributes['set'] == setValue);
+      assert(conversation.attributes['unset'] == null);
       await delay();
       await client2.open();
+      await delay();
       // recycle
       await delay();
       return [client1, client2];
@@ -1253,36 +1224,40 @@ UnitTestCase queryConversation() => UnitTestCase(
       await client.open();
       // create unique
       await client.createConversation(
-        type: ConversationType.normalUnique,
-        members: [clientId, uuid()],
+        isUnique: true,
+        members: {clientId, uuid()},
       );
       // create non-unique
       Conversation nonUniqueConversation = await client.createConversation(
-        type: ConversationType.normal,
-        members: [clientId, uuid()],
+        isUnique: false,
+        members: {clientId, uuid()},
       );
       Message message = Message();
       message.stringContent = uuid();
       await nonUniqueConversation.send(message: message);
       await delay();
-      List<Conversation> conversations = await client.queryConversation(
-        where: '{\"m\":\"$clientId\"}',
-        sort: 'createdAt',
-        limit: 1,
-        skip: 1,
-        flag: 3,
-      );
+      ConversationQuery query = client.conversationQuery();
+      query.whereString = '{\"m\":\"$clientId\"}';
+      query.sort = 'createdAt';
+      query.limit = 1;
+      query.skip = 1;
+      query.excludeMembers = true;
+      query.includeLastMessage = true;
+      List<Conversation> conversations = await query.find();
       assert(conversations.length == 1);
       assert(conversations[0].id == nonUniqueConversation.id);
-      assert(conversations[0].rawData['m'] == null);
+      assert(conversations[0].members == null);
       assert(conversations[0].lastMessage != null);
       assert(conversations[0].lastMessage != message);
       // recycle
       return [client];
     });
 
+String aID = 's0g5kxj7ajtf6n2wt8fqty18p25gmvgrh7b430iuugsde212';
+String mKey = 'f7m5491orhbdquahbz57wf3zmnrlqnt6kage2ueumagfyosh';
+
 String signWithHMACSHA1(String str) {
-  var key = utf8.encode('f7m5491orhbdquahbz57wf3zmnrlqnt6kage2ueumagfyosh');
+  var key = utf8.encode(mKey);
   var bytes = utf8.encode(str);
   var hmacSha1 = new Hmac(sha1, key);
   var digest = hmacSha1.convert(bytes);
@@ -1295,14 +1270,14 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
       String clientId = uuid();
       String clientId1 = clientId + '1';
       String clientId2 = clientId + '2';
-      String appid = 's0g5kxj7ajtf6n2wt8fqty18p25gmvgrh7b430iuugsde212';
+      String appid = aID;
       int timestamp = DateTime.now().millisecondsSinceEpoch;
       String nonce = uuid();
       String conversationId;
       // client
       Client client = Client(
         id: clientId,
-        signSessionOpen: ({
+        openSignatureHandler: ({
           Client client,
         }) async {
           assert(client != null);
@@ -1312,17 +1287,17 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
             signature: signWithHMACSHA1('$appid:$clientId::$timestamp:$nonce'),
           );
         },
-        signConversation: ({
+        conversationSignatureHandler: ({
           String action,
           Client client,
           Conversation conversation,
-          List targetIds,
+          List targetIDs,
         }) async {
           assert(client != null);
-          if (action == 'invite' || (action == 'kick')) {
+          if (action == 'invite' || action == 'kick') {
             assert(conversation != null);
-            assert(targetIds.length == 1);
-            assert(targetIds.contains(clientId2));
+            assert(targetIDs.length == 1);
+            assert(targetIDs.contains(clientId2));
             return Signature(
               nonce: nonce,
               timestamp: timestamp,
@@ -1331,9 +1306,9 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
             );
           } else {
             assert(action == 'create');
-            assert(targetIds.length == 2);
-            assert(targetIds.contains(clientId));
-            assert(targetIds.contains(clientId1));
+            assert(targetIDs.length == 2);
+            assert(targetIDs.contains(clientId));
+            assert(targetIDs.contains(clientId1));
             return Signature(
               nonce: nonce,
               timestamp: timestamp,
@@ -1346,33 +1321,91 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
       // open
       await client.open();
       // check application
-      List<Conversation> conversations = await client.queryConversation(
-        where: '{\"objectId\":\"5e54967490aef5aa842ad327\"}',
-      );
+      ConversationQuery query = client.conversationQuery();
+      query.whereString = '{\"objectId\":\"5e54967490aef5aa842ad327\"}';
+      List<Conversation> conversations = await query.find();
       assert(conversations.length == 1,
           'maybe you should test with app id: $appid');
       // create
       Conversation conversation = await client.createConversation(
-        members: [clientId, clientId1],
+        members: {clientId, clientId1},
       );
       assert(conversation.id != null);
       conversationId = conversation.id;
       // add
-      Map addResult = await conversation.updateMembers(
-        members: [clientId2],
-        op: 'add',
+      MemberResult addResult = await conversation.addMembers(
+        members: {clientId2},
       );
-      List addAllowedPids = addResult['allowedPids'];
-      assert(addAllowedPids.length == 1);
-      assert(addAllowedPids.contains(clientId2));
+      assert(addResult.allSucceeded);
+      assert(addResult.succeededMembers.length == 1);
+      assert(addResult.succeededMembers.contains(clientId2));
       // remove
-      Map removeResult = await conversation.updateMembers(
-        members: [clientId2],
-        op: 'remove',
+      MemberResult removeResult = await conversation.removeMembers(
+        members: {clientId2},
       );
-      List removeAllowedPids = removeResult['allowedPids'];
-      assert(removeAllowedPids.length == 1);
-      assert(removeAllowedPids.contains(clientId2));
+      assert(removeResult.allSucceeded);
+      assert(removeResult.succeededMembers.length == 1);
+      assert(removeResult.succeededMembers.contains(clientId2));
+      // recycle
+      return [client];
+    });
+
+UnitTestCase clientSessionClosed() => UnitTestCase(
+    title: 'Signature Case: Client Session Closed',
+    extraExpectedCount: 1,
+    testingLogic: (decrease) async {
+      String clientId = uuid();
+      String appid = aID;
+      int timestamp = DateTime.now().millisecondsSinceEpoch;
+      String nonce = uuid();
+      // client
+      Client client = Client(
+        id: clientId,
+        openSignatureHandler: ({
+          Client client,
+        }) async {
+          assert(client != null);
+          return Signature(
+            nonce: nonce,
+            timestamp: timestamp,
+            signature: signWithHMACSHA1('$appid:$clientId::$timestamp:$nonce'),
+          );
+        },
+      );
+      // event
+      client.onClosed = ({
+        Client client,
+        RTMException exception,
+      }) async {
+        try {
+          client.onClosed = null;
+          assert(exception.code == '4115');
+          // reopen
+          await client.open();
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      // open
+      await client.open();
+      // check application
+      ConversationQuery query = client.conversationQuery();
+      query.whereString = '{\"objectId\":\"5e54967490aef5aa842ad327\"}';
+      List<Conversation> conversations = await query.find();
+      assert(conversations.length == 1,
+          'maybe you should test with app id: $appid');
+      // kick
+      http.Response response = await http.post(
+        'https://s0g5kxj7.lc-cn-n1-shared.com/1.2/rtm/clients/$clientId/kick',
+        headers: {
+          'X-LC-Id': appid,
+          'X-LC-Key': '$mKey,master',
+          'Content-Type': 'application/json',
+        },
+        body: '{"reason":"test"}',
+      );
+      assert(response.statusCode == 200);
       // recycle
       return [client];
     });
@@ -1384,7 +1417,7 @@ class UnitTestCase {
   final Future<List<Client>> Function(
     void Function(
       int, {
-      Exception e,
+      dynamic e,
     }),
   ) testingLogic;
 
@@ -1441,7 +1474,7 @@ class UnitTestCase {
     try {
       this._clients = await this.testingLogic((
         int count, {
-        Exception e,
+        dynamic e,
       }) {
         if (e != null) {
           logException(e, title: this.title);
@@ -1477,24 +1510,25 @@ class UnitTestCase {
     Client client,
   ) {
     // session event
-    client.onOpen = null;
-    client.onResume = null;
-    client.onDisconnect = null;
-    client.onClose = null;
+    client.onOpened = null;
+    client.onResuming = null;
+    client.onDisconnected = null;
+    client.onClosed = null;
     // conversation
-    client.onConversationInvite = null;
-    client.onConversationKick = null;
-    client.onConversationMembersJoin = null;
-    client.onConversationMembersLeave = null;
-    client.onConversationDataUpdate = null;
-    client.onConversationUnreadMessageCountUpdate = null;
+    client.onInvited = null;
+    client.onKicked = null;
+    client.onMembersJoined = null;
+    client.onMembersLeft = null;
+    client.onInfoUpdated = null;
+    client.onUnreadMessageCountUpdated = null;
     client.onLastReadAtUpdated = null;
     client.onLastDeliveredAtUpdated = null;
     // message
-    client.onMessageReceive = null;
+    client.onMessage = null;
     client.onMessageUpdated = null;
     client.onMessageRecalled = null;
-    client.onMessageReceipt = null;
+    client.onMessageDelivered = null;
+    client.onMessageRead = null;
     client.close();
   }
 }
@@ -1521,6 +1555,7 @@ class _MyAppState extends State<MyApp> {
   ];
   List<UnitTestCase> signatureUnitCases = [
     signClientOpenAndConversationOperation(),
+    clientSessionClosed(),
   ];
   List<UnitTestCase> allUnitCases = [];
 
