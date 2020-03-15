@@ -1141,6 +1141,7 @@ UnitTestCase muteConversation() => UnitTestCase(
       assert(updatedAt != null);
       await delay(seconds: 1);
       // unmute
+      await delay(seconds: 1);
       await conversation.unmute();
       assert(conversation.isMuted == false);
       assert(conversation.updatedAt != null);
@@ -1209,6 +1210,7 @@ UnitTestCase updateConversation() => UnitTestCase(
       await client2.open();
       await delay();
       // recycle
+      await delay();
       return [client1, client2];
     });
 
