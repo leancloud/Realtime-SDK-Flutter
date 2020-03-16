@@ -5,9 +5,13 @@ import cn.leancloud.AVOSCloud;
 import io.flutter.app.FlutterApplication;
 
 public class MyApplication extends FlutterApplication {
-  private static final String LC_App_Id = "s0g5kxj7ajtf6n2wt8fqty18p25gmvgrh7b430iuugsde212";
-  private static final String LC_App_Key = "hc7jpfubg5vaurjlezxhfr1t9pqb9w8tfw0puz1g83vl9nwz";
-  private static final String LC_Server_Url = "https://s0g5kxj7.lc-cn-n1-shared.com";
+//  private static final String LC_App_Id = "s0g5kxj7ajtf6n2wt8fqty18p25gmvgrh7b430iuugsde212";
+//  private static final String LC_App_Key = "hc7jpfubg5vaurjlezxhfr1t9pqb9w8tfw0puz1g83vl9nwz";
+//  private static final String LC_Server_Url = "https://s0g5kxj7.lc-cn-n1-shared.com";
+
+  private static final String LC_App_Id = "heQFQ0SwoQqiI3gEAcvKXjeR-gzGzoHsz";
+  private static final String LC_App_Key = "lNSjPPPDohJjYMJcQSxi9qAm";
+  private static final String LC_Server_Url = "https://heqfq0sw.lc-cn-n1-shared.com";
 
   @Override
   public void onCreate() {
