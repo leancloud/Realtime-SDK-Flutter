@@ -1,7 +1,7 @@
 name: leancloud_plugin
-description: A new flutter plugin for LeanCloud.
-version: 0.0.1
-author: eng@leancloud.rocks
+description: A flutter plugin for LeanCloud real-time message service.
+version: 1.0.0-beta.1
+author: support@leancloud.rocks
 homepage: https://leancloud.cn
 
 environment:
