@@ -156,7 +156,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
                                                    List<String> targetIds, String action) throws SignatureException {
         final Map<String, Object> params = new HashMap<>();
         params.put(Common.Param_Client_Id, clientId);
-        params.put(Common.Param_Conv_Id, conversationId);
+        if (!StringUtil.isEmpty(conversationId)) {
+          params.put(Common.Param_Conv_Id, conversationId);
+        }
         params.put(Common.Param_Sign_TargetIds, targetIds);
         params.put(Common.Param_Sign_Action, action);
         final Signature signature = new Signature();
@@ -188,6 +190,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         try {
           latch.await(30, TimeUnit.SECONDS);
         } catch (InterruptedException ex) {
+          Log.w(TAG, "conversation sign timeout. cause: " + ex.getMessage());
         }
         return signature;
       }
