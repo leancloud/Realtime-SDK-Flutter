@@ -56,12 +56,17 @@ flutter {
 }
 
 dependencies {
-    implementation('cn.leancloud:realtime-android:6.4.0') {
+    implementation('cn.leancloud:realtime-android:6.4.2') {
         exclude group: 'com.alibaba', module: 'fastjson'
         exclude group: 'org.ligboy.retrofit2', module: 'converter-fastjson'
         exclude group: 'cn.leancloud', module: 'realtime-core'
     }
-    implementation('cn.leancloud:realtime-core:6.4.0') {
+    implementation('cn.leancloud:storage-android:6.4.2') {
+        exclude group: 'com.alibaba', module: 'fastjson'
+        exclude group: 'org.ligboy.retrofit2', module: 'converter-fastjson'
+        exclude group: 'cn.leancloud', module: 'realtime-core'
+    }
+    implementation('cn.leancloud:realtime-core:6.4.2') {
         exclude group: 'com.alibaba', module: 'fastjson'
         exclude group: 'org.ligboy.retrofit2', module: 'converter-fastjson'
     }
