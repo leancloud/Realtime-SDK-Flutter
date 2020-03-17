@@ -3,7 +3,7 @@
 # Run `pod lib lint leancloud_plugin.podspec' to validate before publishing.
 #
 Pod::Spec.new do |s|
-  s.name             = 'leancloud_plugin'
+  s.name             = 'leancloud_official_plugin'
   s.version          = '0.0.1'
   s.summary          = 'A new flutter plugin project.'
   s.description      = <<-DESC
