@@ -2,6 +2,7 @@ package cn.leancloud.plugin;
 
 import com.alibaba.fastjson.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -22,6 +23,7 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
   private static final String Member_Event_Other_Left = "members-left";
 
   private IMEventNotification listener;
+
 
   public DefaultConversationEventHandler(IMEventNotification listener) {
     this.listener = listener;
@@ -48,8 +50,7 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Conv_Members, members);
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, kickedBy);
-      // TODO: change udate.
-      param.put(Common.Param_Update_Time, new Date().toString());
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
       this.listener.notify(Common.Method_Conv_Member_Updated, param);
     }
   }
@@ -75,8 +76,7 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Conv_Members, members);
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, invitedBy);
-      // TODO: change udate.
-      param.put(Common.Param_Update_Time, new Date().toString());
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
       this.listener.notify(Common.Method_Conv_Member_Updated, param);
     }
   }
@@ -100,8 +100,7 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, kickedBy);
-      // TODO: change udate.
-      param.put(Common.Param_Update_Time, new Date().toString());
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
       this.listener.notify(Common.Method_Conv_Member_Updated, param);
     }
   }
@@ -125,8 +124,7 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, operator);
-      // TODO: change udate.
-      param.put(Common.Param_Update_Time, new Date().toString());
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
       this.listener.notify(Common.Method_Conv_Member_Updated, param);
     }
   }
@@ -330,7 +328,7 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Operator, operator);
       param.put(Common.Param_Conv_Attributes, attr);
       param.put(Common.Param_RawData, Common.wrapConversation(conversation));
-      param.put(Common.Param_Update_Time, new Date().toString());
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
       this.listener.notify(Common.Method_Conv_Updated, param);
     }
   }
