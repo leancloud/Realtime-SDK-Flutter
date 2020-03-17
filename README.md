@@ -15,12 +15,14 @@ which offers tutorials, samples, guidance on mobile development, and a full API 
 
 ### Adding dependency
 
-Following this [document](https://flutter.dev/docs/development/packages-and-plugins/using-packages) to add **leancloud_plugin** to your app, like this:
+1. Following this [document](https://flutter.dev/docs/development/packages-and-plugins/using-packages) to add **leancloud_plugin** to your app, like this:
 
-```
-dependencies:
-  leancloud_plugin: '>=x.y.z <(x+1).0.0'    # Recommend using up-to-next-major policy.
-```
+    ```
+    dependencies:
+      leancloud_plugin: '>=x.y.z <(x+1).0.0'    # Recommend using up-to-next-major policy.
+    ```
+
+2. Using [Gradle](https://gradle.org/) and [CocoaPods](https://cocoapods.org) to add platform-specific dependencies.
 
 ### Initialization
 
@@ -73,7 +75,7 @@ dependencies:
 
 ### Run
 
-Example:
+After initialization, you can write some sample code and run it to check whether initializing success, like this:
 
 ```dart
 // new an IM client
