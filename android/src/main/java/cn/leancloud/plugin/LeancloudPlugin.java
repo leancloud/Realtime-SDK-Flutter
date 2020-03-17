@@ -382,7 +382,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
             result.success(Common.wrapException(e));
           } else {
             Map<String, Object> operationResult = new HashMap<>();
-            operationResult.put(Common.Param_Update_Time, conversation.getUpdatedAt().toString());
+            operationResult.put(Common.Param_Update_Time, StringUtil.stringFromDate(conversation.getUpdatedAt()));
             if (Common.Conv_Operation_Mute.equalsIgnoreCase(operation)) {
               operationResult.put("mu", Arrays.asList(clientId));
             } else if (Common.Conv_Operation_Unmute.equalsIgnoreCase(operation)) {
@@ -450,7 +450,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
               resultMap.put("failedPids", failedList);
             }
             resultMap.put(Common.Param_Conv_Members, conversation.getMembers());
-            resultMap.put(Common.Param_Update_Time, new Date().toString());
+            resultMap.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
             result.success(Common.wrapSuccessResponse(resultMap));
           }
         }
