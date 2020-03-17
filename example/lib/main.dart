@@ -7,7 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:leancloud_plugin/leancloud_plugin.dart';
+import 'package:leancloud_official_plugin/leancloud_plugin.dart';
 
 void main() => runApp(MyApp());
 

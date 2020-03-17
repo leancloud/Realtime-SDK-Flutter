@@ -1,6 +1,6 @@
-# leancloud_plugin
+# leancloud_official_plugin
 
-A flutter plugin for [LeanCloud](https://www.leancloud.cn) real-time message service based on [LeanCloud-Swift-SDK](https://github.com/leancloud/swift-sdk) and [LeanCloud-Java-SDK](https://github.com/leancloud/java-unified-sdk).
+An official flutter plugin for [LeanCloud](https://www.leancloud.cn) real-time message service based on [LeanCloud-Swift-SDK](https://github.com/leancloud/swift-sdk) and [LeanCloud-Java-SDK](https://github.com/leancloud/java-unified-sdk).
 
 ## Flutter Getting Started
 
@@ -15,20 +15,20 @@ which offers tutorials, samples, guidance on mobile development, and a full API 
 
 ### Adding dependency
 
-1. Following this [document](https://flutter.dev/docs/development/packages-and-plugins/using-packages) to add **leancloud_plugin** to your app, like this:
+1. Following this [document](https://flutter.dev/docs/development/packages-and-plugins/using-packages) to add **leancloud_official_plugin** to your app, like this:
 
     ```
     dependencies:
-      leancloud_plugin: '>=x.y.z <(x+1).0.0'    # Recommend using up-to-next-major policy.
+      leancloud_official_plugin: '>=x.y.z <(x+1).0.0'    # Recommend using up-to-next-major policy.
     ```
 
 2. Using [Gradle](https://gradle.org/) and [CocoaPods](https://cocoapods.org) to add platform-specific dependencies.
 
 ### Initialization
 
-1. import `package:leancloud_plugin/leancloud_plugin.dart` in `lib/main.dart` of your project, like this:
+1. import `package:leancloud_official_plugin/leancloud_plugin.dart` in `lib/main.dart` of your project, like this:
     ```dart
-    import 'package:leancloud_plugin/leancloud_plugin.dart';
+    import 'package:leancloud_official_plugin/leancloud_plugin.dart';
     ```
 
 2. import `cn.leancloud.AVOSCloud` and `cn.leancloud.AVLogger` in `YourApplication.java` of your project, then set up ***ID***, ***Key*** and ***URL***, like this:

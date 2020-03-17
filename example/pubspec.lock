@@ -102,7 +102,7 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.16.1"
-  leancloud_plugin:
+  leancloud_official_plugin:
     dependency: "direct dev"
     description:
       path: ".."
