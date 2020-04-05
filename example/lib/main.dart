@@ -1321,8 +1321,15 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
       // open
       await client.open();
       // check application
+      List<String> objectIDs = ['5e54967490aef5aa842ad327'];
       ConversationQuery query = client.conversationQuery();
-      query.whereString = '{\"objectId\":\"5e54967490aef5aa842ad327\"}';
+      Map whereMap = {
+        'objectId': {
+          '\$in': objectIDs,
+        }
+      };
+      query.whereString = jsonEncode(whereMap);
+      query.limit = objectIDs.length;
       List<Conversation> conversations = await query.find();
       assert(conversations.length == 1,
           'maybe you should test with app id: $appid');
