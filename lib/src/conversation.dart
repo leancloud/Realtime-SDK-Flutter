@@ -259,11 +259,18 @@ class Conversation with _Utilities {
       fileMap['name'] = message._fileName;
       args['file'] = fileMap;
     }
-    final Map rawData = await call(
-      method: 'sendMessage',
-      arguments: args,
-    );
-    message._loadMap(rawData);
+    message._status = MessageStatus.sending;
+    try {
+      final Map rawData = await call(
+        method: 'sendMessage',
+        arguments: args,
+      );
+      message._loadMap(rawData);
+      message._status = MessageStatus.sent;
+    } catch (e) {
+      message._status = MessageStatus.failed;
+      rethrow;
+    }
     _updateLastMessage(
       message: message,
     );

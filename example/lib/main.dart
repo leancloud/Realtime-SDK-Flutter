@@ -695,6 +695,8 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
         assert(message.sentTimestamp != null);
         assert(message.conversationID == conversation.id);
         assert(message.fromClientID == client1.id);
+        assert(MessageStatus.values.indexOf(message.status) >=
+            MessageStatus.sent.index);
       };
       void Function(
         FileMessage,
@@ -808,6 +810,7 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
         members: {client1.id, client2.id},
       );
       // send string
+      assert(stringMessage.status == MessageStatus.none);
       await conversation.send(message: stringMessage);
       assertMessage(stringMessage, conversation);
       assert(stringMessage.stringContent != null);
@@ -1029,7 +1032,11 @@ UnitTestCase messageReceipt() => UnitTestCase(
             assert(messageID == message.id);
           }
           if (message.sentTimestamp != null) {
-            assert(atDate.millisecondsSinceEpoch >= message.sentTimestamp);
+            int deliveredTimestamp = atDate.millisecondsSinceEpoch;
+            assert(deliveredTimestamp >= message.sentTimestamp);
+            message.deliveredTimestamp = deliveredTimestamp;
+            assert(MessageStatus.values.indexOf(message.status) >=
+                MessageStatus.delivered.index);
           }
           assert(toClientID == client2.id);
           decrease(1);
@@ -1051,7 +1058,11 @@ UnitTestCase messageReceipt() => UnitTestCase(
             assert(messageID == message.id);
           }
           if (message.sentTimestamp != null) {
-            assert(atDate.millisecondsSinceEpoch >= message.sentTimestamp);
+            int readTimestamp = atDate.millisecondsSinceEpoch;
+            assert(readTimestamp >= message.sentTimestamp);
+            message.readTimestamp = readTimestamp;
+            assert(MessageStatus.values.indexOf(message.status) >=
+                MessageStatus.read.index);
           }
           assert(byClientID == client2.id);
           await conversation.fetchReceiptTimestamps();
@@ -1159,7 +1170,16 @@ UnitTestCase updateConversation() => UnitTestCase(
       // client
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
+      Conversation conversationTestingMessageSendFailed;
       // event
+      client2.onInvited = ({
+        Client client,
+        Conversation conversation,
+        String byClientID,
+        DateTime atDate,
+      }) {
+        conversationTestingMessageSendFailed = conversation;
+      };
       client2.onInfoUpdated = ({
         Client client,
         Conversation conversation,
@@ -1197,6 +1217,11 @@ UnitTestCase updateConversation() => UnitTestCase(
       assert(conversation.attributes['unset'] == unsetValue);
       await delay();
       await client2.close();
+      TextMessage failedMessage = TextMessage.from(text: 'failed');
+      try {
+        await conversationTestingMessageSendFailed.send(message: failedMessage);
+      } catch (e) {}
+      assert(failedMessage.status == MessageStatus.failed);
       await delay();
       await conversation.updateInfo(
         attributes: {
@@ -1321,8 +1346,15 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
       // open
       await client.open();
       // check application
+      List<String> objectIDs = ['5e54967490aef5aa842ad327'];
       ConversationQuery query = client.conversationQuery();
-      query.whereString = '{\"objectId\":\"5e54967490aef5aa842ad327\"}';
+      Map whereMap = {
+        'objectId': {
+          '\$in': objectIDs,
+        }
+      };
+      query.whereString = jsonEncode(whereMap);
+      query.limit = objectIDs.length;
       List<Conversation> conversations = await query.find();
       assert(conversations.length == 1,
           'maybe you should test with app id: $appid');

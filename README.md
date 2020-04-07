@@ -31,16 +31,18 @@ which offers tutorials, samples, guidance on mobile development, and a full API 
     import 'package:leancloud_official_plugin/leancloud_plugin.dart';
     ```
 
-2. import `cn.leancloud.AVOSCloud` and `cn.leancloud.AVLogger` in `YourApplication.java` of your project, then set up ***ID***, ***Key*** and ***URL***, like this:
+2. import `cn.leancloud.AVOSCloud`, `cn.leancloud.AVLogger` and `cn.leancloud.im.AVIMOptions` in `YourApplication.java` of your project, then set up ***ID***, ***Key*** and ***URL***, like this:
     ```java
     import io.flutter.app.FlutterApplication;
     import cn.leancloud.AVOSCloud;
     import cn.leancloud.AVLogger;
+    import cn.leancloud.im.AVIMOptions;
 
     public class YourApplication extends FlutterApplication {
       @Override
       public void onCreate() {
         super.onCreate();
+        AVIMOptions.getGlobalOptions().setUnreadNotificationEnabled(true);
         AVOSCloud.setLogLevel(AVLogger.Level.DEBUG);
         AVOSCloud.initialize(this, YOUR_LC_APP_ID, YOUR_LC_APP_KEY, YOUR_LC_SERVER_URL);
       }
@@ -73,13 +75,34 @@ which offers tutorials, samples, guidance on mobile development, and a full API 
     }
     ```
 
-### Run
+### Sample Code
 
 After initialization, you can write some sample code and run it to check whether initializing success, like this:
+
+#### Open
 
 ```dart
 // new an IM client
 Client client = Client(id: CLIENT_ID);
 // open it
 await client.open();
+```
+
+#### Query Conversations
+
+```dart
+// the ID of the conversation instance list
+List<String> objectIDs = [...];
+// new query from an opened client
+ConversationQuery query = client.conversationQuery();
+// set query condition
+Map whereMap = {
+  'objectId': {
+    '\$in': objectIDs,
+  }
+};
+query.whereString = jsonEncode(whereMap);
+query.limit = objectIDs.length;
+// do the query
+List<Conversation> conversations = await query.find();
 ```

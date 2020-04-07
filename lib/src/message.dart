@@ -1,5 +1,26 @@
 part of leancloud_plugin;
 
+/// The status for [Message].
+enum MessageStatus {
+  /// means fail to send.
+  failed,
+
+  /// initial state.
+  none,
+
+  /// means in sending.
+  sending,
+
+  /// means have been sent successfully, [Message.sentTimestamp] will not be `null`.
+  sent,
+
+  /// means have been delivered to other successfully, [Message.deliveredTimestamp] will not be `null`.
+  delivered,
+
+  /// means have been read by other successfully, [Message.readTimestamp] will not be `null`.
+  read,
+}
+
 /// IM Message of RTM Plugin.
 class Message with _Utilities {
   /// The [Conversation.id] of the [Conversation] which the [Message] belong to.
@@ -7,6 +28,19 @@ class Message with _Utilities {
 
   /// The ID of the [Message].
   String get id => _id;
+
+  /// The status of the [Message].
+  MessageStatus get status {
+    var value = _status;
+    if (value == MessageStatus.sent) {
+      if (readTimestamp != null) {
+        value = MessageStatus.read;
+      } else if (deliveredTimestamp != null) {
+        value = MessageStatus.delivered;
+      }
+    }
+    return value;
+  }
 
   /// The timestamp when send the [Message], unit is millisecond.
   int get sentTimestamp => _timestamp;
@@ -56,6 +90,7 @@ class Message with _Utilities {
   int _timestamp;
   int _patchedTimestamp;
   bool _transient;
+  MessageStatus _status = MessageStatus.none;
 
   /// To create a new [Message].
   Message();
@@ -80,6 +115,7 @@ class Message with _Utilities {
     if (jsonString != null) {
       message.stringContent = jsonString;
     }
+    message._status = MessageStatus.sent;
     return message;
   }
 
