@@ -1,5 +1,5 @@
 PODS:
-  - Alamofire (5.0.4)
+  - Alamofire (5.1.0)
   - Flutter (1.0.0)
   - LeanCloud/Foundation (17.5.2):
     - Alamofire (~> 5.0)
@@ -31,7 +31,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/leancloud_official_plugin/ios"
 
 SPEC CHECKSUMS:
-  Alamofire: 0fe5fd24b4298dc377a6550da7d5f1b30e286fcb
+  Alamofire: 9d5c5f602928e512395b30950c5984eca840093c
   Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
   LeanCloud: cbb1c70dbc9a858992e69510d17ba716695e69f5
   leancloud_official_plugin: ceb817795578f83f4d250542b858b6bb7e3d6ea6
