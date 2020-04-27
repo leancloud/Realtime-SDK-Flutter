@@ -1262,8 +1262,12 @@ UnitTestCase queryConversation() => UnitTestCase(
       await nonUniqueConversation.send(message: message);
       await delay();
       ConversationQuery query = client.conversationQuery();
-      query.whereString = '{\"m\":\"$clientId\"}';
-      query.sort = 'createdAt';
+      query.whereContainedIn(
+        'm',
+        [clientId],
+      ).orderByAscending(
+        'createdAt',
+      );
       query.limit = 1;
       query.skip = 1;
       query.excludeMembers = true;
@@ -1346,15 +1350,9 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
       // open
       await client.open();
       // check application
-      List<String> objectIDs = ['5e54967490aef5aa842ad327'];
       ConversationQuery query = client.conversationQuery();
-      Map whereMap = {
-        'objectId': {
-          '\$in': objectIDs,
-        }
-      };
-      query.whereString = jsonEncode(whereMap);
-      query.limit = objectIDs.length;
+      query.whereEqualTo('objectId', '5e54967490aef5aa842ad327');
+      query.limit = 1;
       List<Conversation> conversations = await query.find();
       assert(conversations.length == 1,
           'maybe you should test with app id: $appid');
@@ -1423,7 +1421,10 @@ UnitTestCase clientSessionClosed() => UnitTestCase(
       await client.open();
       // check application
       ConversationQuery query = client.conversationQuery();
-      query.whereString = '{\"objectId\":\"5e54967490aef5aa842ad327\"}';
+      query.whereEqualTo(
+        'objectId',
+        '5e54967490aef5aa842ad327',
+      );
       List<Conversation> conversations = await query.find();
       assert(conversations.length == 1,
           'maybe you should test with app id: $appid');
