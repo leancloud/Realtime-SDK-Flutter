@@ -124,8 +124,10 @@ mixin _Utilities {
     return result['success'];
   }
 
-  static final DateFormat isoDateFormat =
-      DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+  static final DateFormat isoDateFormat = DateFormat(
+    "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+    'en_US',
+  );
 
   DateTime parseIsoString(String isoString) {
     DateTime date;
