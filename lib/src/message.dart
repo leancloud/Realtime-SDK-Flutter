@@ -217,7 +217,11 @@ class TypedMessage extends Message {
     TypedMessage Function() constructor,
   ) {
     var instance = constructor();
-    assert(instance.type > 0);
+    if (instance.type < 1) {
+      throw ArgumentError(
+        'type should be a positive number',
+      );
+    }
     TypedMessage._classMap[instance.type] = constructor;
   }
 
@@ -441,7 +445,16 @@ class LocationMessage extends TypedMessage {
     @required double latitude,
     @required double longitude,
   }) {
-    assert(latitude != null && longitude != null);
+    if (latitude == null) {
+      throw ArgumentError.notNull(
+        'latitude',
+      );
+    }
+    if (longitude == null) {
+      throw ArgumentError.notNull(
+        'longitude',
+      );
+    }
     _locationMap = {
       'latitude': latitude,
       'longitude': longitude,
@@ -507,7 +520,21 @@ class FileMessage extends TypedMessage {
     String format,
     String name,
   }) {
-    assert(path != null || binaryData != null || url != null);
+    int count = 0;
+    if (path != null) {
+      count += 1;
+    }
+    if (binaryData != null) {
+      count += 1;
+    }
+    if (url != null) {
+      count += 1;
+    }
+    if (count != 1) {
+      throw ArgumentError(
+        'must provide only one of parameters in [path], [binaryData] and [url].',
+      );
+    }
     _filePath = path;
     _fileData = binaryData;
     _fileUrl = url;

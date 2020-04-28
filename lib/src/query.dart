@@ -289,8 +289,12 @@ class ConversationQuery with _Utilities {
   Future<List<TemporaryConversation>> findTemporaryConversations({
     @required List<String> temporaryConversationIDs,
   }) async {
-    assert(temporaryConversationIDs.isNotEmpty &&
-        temporaryConversationIDs.length <= 100);
+    if (temporaryConversationIDs.isEmpty ||
+        temporaryConversationIDs.length > 100) {
+      throw ArgumentError(
+        'temporaryConversationIDs.length should in [1...100].',
+      );
+    }
     return await _find(
       temporaryConversationIDs: temporaryConversationIDs,
     );

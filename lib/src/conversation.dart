@@ -224,7 +224,11 @@ class Conversation with _Utilities {
     MessagePriority priority,
     Map pushData,
   }) async {
-    assert(message != null);
+    if (message == null) {
+      throw ArgumentError.notNull(
+        'message',
+      );
+    }
     var options = {};
     if (receipt ?? false) {
       options['receipt'] = true;
@@ -299,7 +303,11 @@ class Conversation with _Utilities {
     @required Message oldMessage,
     @required Message newMessage,
   }) async {
-    assert(newMessage != null);
+    if (newMessage == null) {
+      throw ArgumentError.notNull(
+        'newMessage',
+      );
+    }
     return await _patchMessage(
       oldMessage: oldMessage,
       newMessage: newMessage,
@@ -404,7 +412,11 @@ class Conversation with _Utilities {
       args['direction'] = direction.index + 1;
     }
     if (limit != null) {
-      assert(limit >= 1 && limit <= 100);
+      if (limit < 1 || limit > 100) {
+        throw ArgumentError(
+          'limit should in [1...100].',
+        );
+      }
       args['limit'] = limit;
     }
     if (type != null) {
@@ -493,7 +505,11 @@ class Conversation with _Utilities {
   Future<void> updateInfo({
     @required Map<String, dynamic> attributes,
   }) async {
-    assert(attributes.isNotEmpty);
+    if (attributes.isEmpty) {
+      throw ArgumentError(
+        'attributes should not be empty.',
+      );
+    }
     var args = {
       'clientId': client.id,
       'conversationId': id,
@@ -522,7 +538,11 @@ class Conversation with _Utilities {
     Message newMessage,
     bool recall = false,
   }) async {
-    assert(oldMessage != null);
+    if (oldMessage == null) {
+      throw ArgumentError.notNull(
+        'oldMessage',
+      );
+    }
     var args = {
       'clientId': client.id,
       'conversationId': id,
@@ -564,7 +584,11 @@ class Conversation with _Utilities {
     @required List<String> members,
     @required String op,
   }) async {
-    assert(members.isNotEmpty);
+    if (members.isEmpty) {
+      throw ArgumentError(
+        'members should not be empty.',
+      );
+    }
     assert(op == 'add' || op == 'remove');
     var args = {
       'clientId': client.id,

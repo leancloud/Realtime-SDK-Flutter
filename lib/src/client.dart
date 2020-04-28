@@ -162,7 +162,13 @@ class RTMException implements Exception {
     @required this.code,
     this.message,
     this.details,
-  }) : assert(code != null);
+  }) {
+    if (code == null) {
+      throw ArgumentError.notNull(
+        'code',
+      );
+    }
+  }
 
   @override
   String toString() => '\nLC.RTM.Exception('
@@ -188,9 +194,23 @@ class Signature {
     @required this.signature,
     @required this.timestamp,
     @required this.nonce,
-  })  : assert(signature != null),
-        assert(timestamp != null),
-        assert(nonce != null);
+  }) {
+    if (signature == null) {
+      throw ArgumentError.notNull(
+        'signature',
+      );
+    }
+    if (timestamp == null) {
+      throw ArgumentError.notNull(
+        'timestamp',
+      );
+    }
+    if (nonce == null) {
+      throw ArgumentError.notNull(
+        'nonce',
+      );
+    }
+  }
 
   @override
   String toString() => '\nLC.RTM.Signature('
@@ -403,9 +423,14 @@ class Client with _Utilities {
       String action,
     })
         conversationSignatureHandler,
-  })  : assert(id != null),
-        _openSignatureHandler = openSignatureHandler,
-        _conversationSignatureHandler = conversationSignatureHandler;
+  })  : _openSignatureHandler = openSignatureHandler,
+        _conversationSignatureHandler = conversationSignatureHandler {
+    if (id == null) {
+      throw ArgumentError.notNull(
+        'id',
+      );
+    }
+  }
 
   /// To start IM service.
   ///
