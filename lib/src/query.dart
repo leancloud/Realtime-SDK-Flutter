@@ -15,12 +15,14 @@ class ConversationQuery with _Utilities {
   /// ```
   ///
   /// ***Important:***
+  /// If you set this value, it will overwrite the condition you set with where method, like [ConversationQuery.whereEqualTo] and so on.
   /// The default value is `'{"m": clientID}'`, the `clientID` is [ConversationQuery.client.id], it means [Conversation.members] contains `clientID`.
   String whereString;
 
   /// The order by the key of [Conversation].
   ///
   /// ***Important:***
+  /// If you set this value, it will overwrite the condition you set with order method, like [ConversationQuery.orderByAscending] and so on.
   /// The default value is `-lm`, means the timestamp of the [Conversation.lastMessage] from newest to oldest.
   String sort;
 
@@ -38,6 +40,7 @@ class ConversationQuery with _Utilities {
 
   _LCCompositionalCondition condition = _LCCompositionalCondition();
 
+  /// The value corresponding to [key] is equal to [value], or the array corresponding to [key] contains [value].
   ConversationQuery whereEqualTo(
     String key,
     dynamic value,
@@ -46,6 +49,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The value corresponding to [key] is not equal to [value], or the array corresponding to [key] does not contain [value].
   ConversationQuery whereNotEqualTo(
     String key,
     dynamic value,
@@ -54,6 +58,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// [values] contains value corresponding to [key], or [values] contains at least one element in the array corresponding to [key].
   ConversationQuery whereContainedIn(
     String key,
     List values,
@@ -62,6 +67,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// [values] does not contain value corresponding to [key], or the field corresponding to [key] does not exist.
   ConversationQuery whereNotContainedIn(
     String key,
     List values,
@@ -70,6 +76,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The array corresponding to [key] contains all elements in [values].
   ConversationQuery whereContainsAll(
     String key,
     List values,
@@ -78,6 +85,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The field corresponding to [key] exists.
   ConversationQuery whereExists(
     String key,
   ) {
@@ -85,6 +93,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The field corresponding to [key] does not exist.
   ConversationQuery whereDoesNotExist(
     String key,
   ) {
@@ -92,6 +101,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The size of the array corresponding to [key] is equal to [size].
   ConversationQuery whereSizeEqualTo(
     String key,
     int size,
@@ -100,6 +110,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The value corresponding to [key] is greater than [value].
   ConversationQuery whereGreaterThan(
     String key,
     dynamic value,
@@ -108,6 +119,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The value corresponding to [key] is greater than or equal to [value].
   ConversationQuery whereGreaterThanOrEqualTo(
     String key,
     dynamic value,
@@ -116,6 +128,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The value corresponding to [key] is less than [value].
   ConversationQuery whereLessThan(
     String key,
     dynamic value,
@@ -124,6 +137,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The value corresponding to [key] is less than or equal to [value].
   ConversationQuery whereLessThanOrEqualTo(
     String key,
     dynamic value,
@@ -132,6 +146,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The string corresponding to [key] has a [prefix].
   ConversationQuery whereStartsWith(
     String key,
     String prefix,
@@ -140,6 +155,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The string corresponding to [key] has a [suffix].
   ConversationQuery whereEndsWith(
     String key,
     String suffix,
@@ -148,6 +164,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The string corresponding to [key] has a [subString].
   ConversationQuery whereContains(
     String key,
     String subString,
@@ -156,6 +173,10 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The string corresponding to [key] matches [regex].
+  /// [modifiers] reference:
+  ///   * chinese: https://leancloud.cn/docs/rest_api.html#hash840042035
+  ///   * english: https://docs.mongodb.com/manual/reference/operator/query/regex/#op._S_options
   ConversationQuery whereMatches(
     String key,
     String regex, {
@@ -165,22 +186,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
-  ConversationQuery whereMatchesQuery(
-    String key,
-    ConversationQuery query,
-  ) {
-    condition.whereMatchesQuery(key, query);
-    return this;
-  }
-
-  ConversationQuery whereDoesNotMatchQuery(
-    String key,
-    ConversationQuery query,
-  ) {
-    condition.whereDoesNotMatchQuery(key, query);
-    return this;
-  }
-
+  /// The ascending order by the value corresponding to [key], support for multi-field sorting with comma.
   ConversationQuery orderByAscending(
     String key,
   ) {
@@ -188,6 +194,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// The descending order by the value corresponding to [key], support for multi-field sorting with comma.
   ConversationQuery orderByDescending(
     String key,
   ) {
@@ -195,6 +202,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// Adding a ascending order by the value corresponding to [key] to the order.
   ConversationQuery addAscendingOrder(
     String key,
   ) {
@@ -202,6 +210,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// Adding a descending order by the value corresponding to [key] to the order.
   ConversationQuery addDescendingOrder(
     String key,
   ) {
@@ -209,6 +218,7 @@ class ConversationQuery with _Utilities {
     return this;
   }
 
+  /// Performs a logical AND operation on an array of one or more queries.
   static ConversationQuery and(
     List<ConversationQuery> queries,
   ) {
@@ -231,6 +241,7 @@ class ConversationQuery with _Utilities {
     return compositionQuery;
   }
 
+  /// Performs a logical OR operation on an array of one or more queries.
   static ConversationQuery or(
     List<ConversationQuery> queries,
   ) {
