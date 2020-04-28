@@ -28,7 +28,7 @@ which offers tutorials, samples, guidance on mobile development, and a full API 
       * do `$ cd ios/` 
       * then `$ pod update` or `$ pod install --repo-update`
     * *Gradle*
-      * TODO
+      * [reference](https://leancloud.cn/docs/sdk_setup-java.html#hash260111001)
 
 ### Initialization
 
@@ -167,11 +167,9 @@ it's optional, so if you no need of push service, you can ignore this section.
     }
     ```
 
-* Android
+* Android 
 
-    ```java
-    TODO
-    ```
+    [reference](https://leancloud.cn/docs/android_push_guide.html)
 
 ## Sample Code
 
