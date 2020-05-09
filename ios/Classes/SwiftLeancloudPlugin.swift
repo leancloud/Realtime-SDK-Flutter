@@ -264,7 +264,13 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         } else if let data = message.content?.data {
             messageData["binaryMsg"] = FlutterStandardTypedData(bytes: data)
         } else if let msg = message.content?.string {
-            messageData["msg"] = msg
+            if msg.contains("_lctype"),
+                let msgData = msg.data(using: .utf8),
+                let typeMsgData = try? JSONSerialization.jsonObject(with: msgData) as? [String: Any] {
+                messageData["typeMsgData"] = typeMsgData
+            } else {
+                messageData["msg"] = msg
+            }
         }
         return messageData
     }
@@ -304,7 +310,8 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                         typeableMessage = IMVideoMessage(data: data.data, format: fileFormat)
                     case -6:
                         typeableMessage = IMFileMessage(data: data.data, format: fileFormat)
-                    default: fatalError()
+                    default:
+                        fatalError()
                     }
                 } else if let path = fileData?["path"] as? String {
                     switch msgType {
@@ -316,7 +323,8 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                         typeableMessage = IMVideoMessage(filePath: path, format: fileFormat)
                     case -6:
                         typeableMessage = IMFileMessage(filePath: path, format: fileFormat)
-                    default: fatalError()
+                    default:
+                        fatalError()
                     }
                 } else if let urlString = fileData?["url"] as? String,
                     let url = URL(string: urlString) {
@@ -329,7 +337,8 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                         typeableMessage = IMVideoMessage(url: url, format: fileFormat)
                     case -6:
                         typeableMessage = IMFileMessage(url: url, format: fileFormat)
-                    default: fatalError()
+                    default:
+                        fatalError()
                     }
                 } else {
                     switch msgType {
@@ -341,7 +350,8 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                         typeableMessage = IMVideoMessage()
                     case -6:
                         typeableMessage = IMFileMessage()
-                    default: fatalError()
+                    default:
+                        fatalError()
                     }
                 }
                 if let name = fileData?["name"] as? String {
@@ -352,20 +362,21 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
             case -127:
                 typeableMessage = IMRecalledMessage()
             default:
-                fatalError()
+                typeableMessage = IMCategorizedMessage()
             }
             typeMsgData.forEach { (key, value) in
-                if key == "_lctext" {
+                switch key {
+                case "_lctext":
                     typeableMessage.text = value as? String
-                } else if key == "_lcattrs"  {
+                case "_lcattrs":
                     typeableMessage.attributes = value as? [String: Any]
-                } else if key == "_lcloc" {
+                case "_lcloc":
                     if let location = value as? [String: Any],
                         let latitude = location["latitude"] as? Double,
                         let longitude = location["longitude"] as? Double {
                         typeableMessage.location = LCGeoPoint(latitude: latitude, longitude: longitude)
                     }
-                } else {
+                default:
                     typeableMessage[key] = value
                 }
             }

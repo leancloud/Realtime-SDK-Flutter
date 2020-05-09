@@ -29,6 +29,20 @@ void logException(dynamic e, {String title}) {
   }
 }
 
+class RegisteredMessage extends TypedMessage {
+  @override
+  int get type => 1;
+
+  RegisteredMessage() : super();
+}
+
+class UnregisteredMessage extends TypedMessage {
+  @override
+  int get type => 2;
+
+  UnregisteredMessage() : super();
+}
+
 UnitTestCase clientOpenThenClose() => UnitTestCase(
     title: 'Case: Client Open then Close',
     testingLogic: (decrease) async {
@@ -852,6 +866,58 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
       return [client1, client2];
     });
 
+UnitTestCase sendAndReceiveCustomMessage() => UnitTestCase(
+    title: 'Case: Send & Receive Custom Message',
+    extraExpectedCount: 2,
+    testingLogic: (decrease) async {
+      // register custom message
+      TypedMessage.register(() => RegisteredMessage());
+      // client
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+      // event
+      int client2OnMessageCount = 2;
+      client2.onMessage = ({
+        Client client,
+        Conversation conversation,
+        Message message,
+      }) {
+        try {
+          client2OnMessageCount -= 1;
+          if (client2OnMessageCount <= 0) {
+            client2.onMessage = null;
+          }
+          assert(client != null);
+          assert(conversation != null);
+          if (client2OnMessageCount == 1) {
+            assert(message.runtimeType == RegisteredMessage);
+            decrease(1);
+          } else if (client2OnMessageCount == 0) {
+            assert(message.runtimeType == Message);
+            assert(message.stringContent.contains('_lctype'));
+            decrease(1);
+          }
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      // open clients
+      await client1.open();
+      await client2.open();
+      // create
+      Conversation conversation = await client1.createConversation(
+        members: {client1.id, client2.id},
+      );
+      // send registered custom message
+      RegisteredMessage registeredMessage = RegisteredMessage();
+      await conversation.send(message: registeredMessage);
+      // send unregistered custom message
+      UnregisteredMessage unregisteredMessage = UnregisteredMessage();
+      await conversation.send(message: unregisteredMessage);
+      // recycle
+      return [client1, client2];
+    });
+
 UnitTestCase readMessage() => UnitTestCase(
     title: 'Case: Read Message',
     extraExpectedCount: 2,
@@ -1579,6 +1645,7 @@ class _MyAppState extends State<MyApp> {
     createTransientConversationAndCountMember(),
     createAndQueryTemporaryConversation(),
     sendAndQueryMessage(),
+    sendAndReceiveCustomMessage(),
     readMessage(),
     updateAndRecallMessage(),
     messageReceipt(),
