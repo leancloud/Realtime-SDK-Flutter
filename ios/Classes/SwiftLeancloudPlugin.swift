@@ -266,7 +266,8 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         } else if let msg = message.content?.string {
             if msg.contains("_lctype"),
                 let msgData = msg.data(using: .utf8),
-                let typeMsgData = try? JSONSerialization.jsonObject(with: msgData) as? [String: Any] {
+                let typeMsgData = try? JSONSerialization.jsonObject(with: msgData) as? [String: Any],
+                let _ = typeMsgData["_lctype"] as? Int {
                 messageData["typeMsgData"] = typeMsgData
             } else {
                 messageData["msg"] = msg
