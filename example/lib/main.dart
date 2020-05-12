@@ -1417,7 +1417,10 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
       await client.open();
       // check application
       ConversationQuery query = client.conversationQuery();
-      query.whereEqualTo('objectId', '5e54967490aef5aa842ad327');
+      query.whereEqualTo(
+        'objectId',
+        '5e54967490aef5aa842ad327',
+      );
       query.limit = 1;
       List<Conversation> conversations = await query.find();
       assert(conversations.length == 1,
