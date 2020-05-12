@@ -192,12 +192,10 @@ List<String> objectIDs = [...];
 // new query from an opened client
 ConversationQuery query = client.conversationQuery();
 // set query condition
-Map whereMap = {
-  'objectId': {
-    '\$in': objectIDs,
-  }
-};
-query.whereString = jsonEncode(whereMap);
+query.whereContainedIn(
+  'objectId',
+  objectIDs,
+);
 query.limit = objectIDs.length;
 // do the query
 List<Conversation> conversations = await query.find();
