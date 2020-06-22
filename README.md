@@ -138,21 +138,9 @@ it's optional, so if you no need of push service, you can ignore this section.
         /* 
         set APNs deviceToken and Team ID.
         */
-        LCApplication.default.currentInstallation
-            .set(
-                deviceToken: deviceToken,
-                apnsTeamId: YOUR_APNS_TEAM_ID)
-        /* 
-        add `client-id` to `channels`, you can use flutter platform channels to pass `client-id` from flutter to native platform.
-
-        flutter platform channels reference: 
-            https://flutter.dev/docs/development/platform-integration/platform-channels
-        */
-        try LCApplication.default.currentInstallation
-            .append(
-                "channels",
-                element: YOUR_CLIENT_ID,
-                unique: true)
+        LCApplication.default.currentInstallation.set(
+            deviceToken: deviceToken,
+            apnsTeamId: YOUR_APNS_TEAM_ID)
         /* 
         save to LeanCloud.
         */
