@@ -42,11 +42,20 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        release {
+            storeFile file("../release-key.keystore")
+            storePassword '123456'
+            keyAlias 'rtm-sample'
+            keyPassword '123456'
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
 }
@@ -56,13 +65,13 @@ flutter {
 }
 
 dependencies {
-    implementation('cn.leancloud:realtime-android:6.5.3') {
+    implementation('cn.leancloud:realtime-android:6.5.5') {
         exclude group: 'cn.leancloud', module: 'realtime-core'
     }
-    implementation('cn.leancloud:storage-android:6.5.3') {
+    implementation('cn.leancloud:storage-android:6.5.5') {
         exclude group: 'cn.leancloud', module: 'realtime-core'
     }
-    implementation 'cn.leancloud:realtime-core:6.5.3'
+    implementation 'cn.leancloud:realtime-core:6.5.5'
     implementation 'io.reactivex.rxjava2:rxandroid:2.1.1'
 
     testImplementation 'junit:junit:4.12'
