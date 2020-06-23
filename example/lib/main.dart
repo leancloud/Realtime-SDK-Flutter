@@ -918,6 +918,34 @@ UnitTestCase sendAndReceiveCustomMessage() => UnitTestCase(
       return [client1, client2];
     });
 
+UnitTestCase sendMessageToUnrelatedConversation() => UnitTestCase(
+    title: 'Case: Send Message to Unrelated Conversation',
+    extraExpectedCount: 1,
+    testingLogic: (decrease) async {
+      // client
+      Client client1 = Client(id: uuid());
+      // open
+      await client1.open();
+      // create conversation
+      Conversation conversation = await client1.createConversation(
+        members: {client1.id, uuid()},
+      );
+      // quit
+      MemberResult result = await conversation.quit();
+      assert(result.allSucceeded);
+      // send message
+      TextMessage textMessage = TextMessage();
+      textMessage.text = uuid();
+      try {
+        await conversation.send(message: textMessage);
+      } catch (e) {
+        decrease(1);
+        assert(e is RTMException);
+      }
+      // recycle
+      return [client1];
+    });
+
 UnitTestCase readMessage() => UnitTestCase(
     title: 'Case: Read Message',
     extraExpectedCount: 2,
@@ -1649,6 +1677,7 @@ class _MyAppState extends State<MyApp> {
     createAndQueryTemporaryConversation(),
     sendAndQueryMessage(),
     sendAndReceiveCustomMessage(),
+    sendMessageToUnrelatedConversation(),
     readMessage(),
     updateAndRecallMessage(),
     messageReceipt(),
