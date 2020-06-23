@@ -1,3 +1,9 @@
+## 1.0.0-beta.5
+
+* Fix message ACK error handling not right
+  * Swift SDK >= *17.5.6*
+  * Java SDK >= *6.5.8*
+
 ## 1.0.0-beta.4
 
 * Fix not support custom typed message
