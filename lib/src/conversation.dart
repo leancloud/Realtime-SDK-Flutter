@@ -109,6 +109,12 @@ class Conversation with _Utilities {
   /// The last [Message] in the [Conversation].
   Message get lastMessage => _lastMessage;
 
+  /// The timestamp of the last [Message] in the [Conversation].
+  int get lastMessageTimestamp => _lastMessage.sentTimestamp;
+
+  /// The date of the last [Message] in the [Conversation].
+  DateTime get lastMessageDate => _lastMessage.sentDate;
+
   /// The last date of the [Message] which has been delivered to other [Client].
   DateTime get lastDeliveredAt => parseMilliseconds(_lastDeliveredTimestamp);
 
