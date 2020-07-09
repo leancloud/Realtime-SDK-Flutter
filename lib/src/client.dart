@@ -582,9 +582,9 @@ class Client with _Utilities {
     @required String conversationID,
   }) async {
     assert(conversationID != null);
-    Conversation conversation = conversationMap[conversationID];
-    if (conversation != null) {
-      return conversation;
+    Conversation existedConversation = conversationMap[conversationID];
+    if (existedConversation != null) {
+      return existedConversation;
     }
     var args = {
       'clientId': id,
@@ -594,11 +594,16 @@ class Client with _Utilities {
       method: 'getConversation',
       arguments: args,
     );
-    conversation = Conversation._newInstance(
-      client: this,
-      rawData: rawData,
-    );
-    conversationMap[conversation.id] = conversation;
+    Conversation conversation = conversationMap[conversationID];
+    if (conversation != null) {
+      conversation._rawData = rawData;
+    } else {
+      conversation = Conversation._newInstance(
+        client: this,
+        rawData: rawData,
+      );
+      conversationMap[conversationID] = conversation;
+    }
     return conversation;
   }
 
