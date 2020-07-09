@@ -889,6 +889,8 @@ UnitTestCase sendAndReceiveCustomMessage() => UnitTestCase(
           }
           assert(client != null);
           assert(conversation != null);
+          assert(conversation.lastMessageTimestamp > 0);
+          assert(conversation.lastMessageDate != null);
           if (client2OnMessageCount == 1) {
             assert(message.runtimeType == RegisteredMessage);
             decrease(1);
