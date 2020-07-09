@@ -103,6 +103,7 @@ public class Common {
   public static final String Param_Message_File = "file";
   public static final String Param_Message_Id = "id";
   public static final String Param_Message_Recall = "recall";
+  public static final String Param_Message_Transient = "transient";
 
   public static final String Param_File_Path = "path";
   public static final String Param_File_Data = "data";
