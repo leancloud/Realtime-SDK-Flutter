@@ -948,9 +948,59 @@ UnitTestCase sendMessageToUnrelatedConversation() => UnitTestCase(
       return [client1];
     });
 
+UnitTestCase sendAndReceiveTransientMessage() => UnitTestCase(
+    title: 'Case: Send & Receive Transient Message',
+    extraExpectedCount: 1,
+    testingLogic: (decrease) async {
+      // client
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+      // event
+      client2.onUnreadMessageCountUpdated = ({
+        Client client,
+        Conversation conversation,
+      }) {
+        throw Exception("should never happen");
+      };
+      client2.onMessage = ({
+        Client client,
+        Conversation conversation,
+        Message message,
+      }) {
+        try {
+          client2.onMessage = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(conversation.lastMessage == null);
+          assert(message.isTransient);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      // open clients
+      await client1.open();
+      await client2.open();
+      // create
+      Conversation conversation = await client1.createConversation(
+        members: {client1.id, client2.id},
+      );
+      // send transient custom message
+      Message transientMessage = Message();
+      transientMessage.stringContent = uuid();
+      await conversation.send(
+        message: transientMessage,
+        transient: true,
+      );
+      assert(transientMessage.isTransient);
+      assert(conversation.lastMessage == null);
+      // recycle
+      return [client1, client2];
+    });
+
 UnitTestCase readMessage() => UnitTestCase(
     title: 'Case: Read Message',
-    extraExpectedCount: 2,
+    extraExpectedCount: 4,
     testingLogic: (decrease) async {
       // client
       Client client1 = Client(id: uuid());
@@ -969,11 +1019,34 @@ UnitTestCase readMessage() => UnitTestCase(
       await conversation.send(message: message);
       await delay();
       // event
+      client1.onUnreadMessageCountUpdated = ({
+        Client client,
+        Conversation conversation,
+      }) {
+        try {
+          assert(conversation.unreadMessageCount == 1);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      client1.onMessage = ({
+        Client client,
+        Conversation conversation,
+        Message message,
+      }) {
+        try {
+          assert(conversation.unreadMessageCount == 1);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
       int client2OnConversationUnreadMessageCountUpdateCount = 2;
       client2.onUnreadMessageCountUpdated = ({
         Client client,
         Conversation conversation,
-      }) {
+      }) async {
         try {
           client2OnConversationUnreadMessageCountUpdateCount -= 1;
           if (client2OnConversationUnreadMessageCountUpdateCount <= 0) {
@@ -992,6 +1065,9 @@ UnitTestCase readMessage() => UnitTestCase(
             decrease(1);
           } else if (conversation.unreadMessageCount == 0) {
             assert(conversation.unreadMessageMentioned == false);
+            Message message = Message();
+            message.stringContent = uuid();
+            await conversation.send(message: message);
             decrease(1);
           }
         } catch (e) {
@@ -1680,6 +1756,7 @@ class _MyAppState extends State<MyApp> {
     sendAndQueryMessage(),
     sendAndReceiveCustomMessage(),
     sendMessageToUnrelatedConversation(),
+    sendAndReceiveTransientMessage(),
     readMessage(),
     updateAndRecallMessage(),
     messageReceipt(),

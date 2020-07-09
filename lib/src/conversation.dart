@@ -241,6 +241,7 @@ class Conversation with _Utilities {
     }
     if (will ?? false) {
       options['will'] = true;
+      message._will = true;
     }
     if (_type == _ConversationType.transient && priority != null) {
       options['priority'] = priority.index + 1;
@@ -850,12 +851,17 @@ class Conversation with _Utilities {
   void _updateLastMessage({
     @required Message message,
   }) {
-    if (lastMessage == null) {
-      _lastMessage = message;
-    } else if (lastMessage.sentTimestamp != null &&
-        message.sentTimestamp != null &&
-        message.sentTimestamp >= lastMessage.sentTimestamp) {
-      _lastMessage = message;
+    bool notTransient = ((message.isTransient ?? false) == false);
+    bool notWill = ((message._will ?? false) == false);
+    bool notTransientConversation = (_type != _ConversationType.transient);
+    if (notTransient && notWill && notTransientConversation) {
+      if (lastMessage == null) {
+        _lastMessage = message;
+      } else if (lastMessage.sentTimestamp != null &&
+          message.sentTimestamp != null &&
+          message.sentTimestamp >= lastMessage.sentTimestamp) {
+        _lastMessage = message;
+      }
     }
   }
 }
