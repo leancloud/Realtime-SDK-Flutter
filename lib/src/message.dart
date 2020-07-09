@@ -83,6 +83,9 @@ class Message with _Utilities {
   /// The binary content of the [Message].
   Uint8List binaryContent;
 
+  /// Indicates whether this [Message] is transient.
+  bool get isTransient => _transient;
+
   String _conversationID;
   String _id;
   String _fromClientID;
@@ -90,6 +93,7 @@ class Message with _Utilities {
   int _timestamp;
   int _patchedTimestamp;
   bool _transient;
+  bool _will;
   MessageStatus _status = MessageStatus.none;
 
   /// To create a new [Message].
