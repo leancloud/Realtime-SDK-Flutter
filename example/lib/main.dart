@@ -1000,7 +1000,7 @@ UnitTestCase sendAndReceiveTransientMessage() => UnitTestCase(
 
 UnitTestCase readMessage() => UnitTestCase(
     title: 'Case: Read Message',
-    extraExpectedCount: 2,
+    extraExpectedCount: 4,
     testingLogic: (decrease) async {
       // client
       Client client1 = Client(id: uuid());
@@ -1019,11 +1019,34 @@ UnitTestCase readMessage() => UnitTestCase(
       await conversation.send(message: message);
       await delay();
       // event
+      client1.onUnreadMessageCountUpdated = ({
+        Client client,
+        Conversation conversation,
+      }) {
+        try {
+          assert(conversation.unreadMessageCount == 1);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      client1.onMessage = ({
+        Client client,
+        Conversation conversation,
+        Message message,
+      }) {
+        try {
+          assert(conversation.unreadMessageCount == 1);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
       int client2OnConversationUnreadMessageCountUpdateCount = 2;
       client2.onUnreadMessageCountUpdated = ({
         Client client,
         Conversation conversation,
-      }) {
+      }) async {
         try {
           client2OnConversationUnreadMessageCountUpdateCount -= 1;
           if (client2OnConversationUnreadMessageCountUpdateCount <= 0) {
@@ -1042,6 +1065,9 @@ UnitTestCase readMessage() => UnitTestCase(
             decrease(1);
           } else if (conversation.unreadMessageCount == 0) {
             assert(conversation.unreadMessageMentioned == false);
+            Message message = Message();
+            message.stringContent = uuid();
+            await conversation.send(message: message);
             decrease(1);
           }
         } catch (e) {
