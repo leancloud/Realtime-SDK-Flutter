@@ -591,9 +591,13 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         }
       }
       AVIMMessageOption option = Common.parseMessageOption(optionData);
-      if (null != option && msgData.containsKey("transient")) {
+
+      if (msgData.containsKey(Common.Param_Message_Transient)) {
+        if (null == option) {
+          option = new AVIMMessageOption();
+        }
         try {
-          boolean isTransient = (boolean)msgData.get("transient");
+          boolean isTransient = (boolean)msgData.get(Common.Param_Message_Transient);
           option.setTransient(isTransient);
         } catch (java.lang.Exception ex) {
           Log.w(TAG, "invalid transient param. cause: " + ex.getMessage());

@@ -5,6 +5,7 @@ import android.os.Build;
 
 import cn.leancloud.AVLogger;
 import cn.leancloud.AVOSCloud;
+import cn.leancloud.im.AVIMOptions;
 import cn.leancloud.push.PushService;
 import io.flutter.app.FlutterApplication;
 
@@ -24,6 +25,7 @@ public class MyApplication extends FlutterApplication {
     super.onCreate();
     AVOSCloud.setLogLevel(AVLogger.Level.DEBUG);
     AVOSCloud.initialize(this, LC_App_Id, LC_App_Key, LC_Server_Url);
+    AVIMOptions.getGlobalOptions().setUnreadNotificationEnabled(true);
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       PushService.createNotificationChannel(this, defaultChannelId, defaultChannelName,
