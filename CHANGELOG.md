@@ -1,3 +1,12 @@
+## 1.0.0-beta.6
+
+* Add timestamp and date of last message properties for conversation
+* Add transient property for message
+* Fix transient message update unread message count
+  * Java SDK >= *6.5.9*
+* Fix multiple instance of conversation
+  * Swift SDK >= *17.5.7*
+
 ## 1.0.0-beta.5
 
 * Fix message ACK error handling not right
