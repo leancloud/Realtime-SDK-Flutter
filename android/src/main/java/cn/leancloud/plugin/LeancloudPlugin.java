@@ -85,7 +85,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
   }
 
   private static void _initialize(BinaryMessenger messenger, String name) {
-    if (null == _CHANNEL) {
+//    if (null == _CHANNEL) {
       _CHANNEL = new MethodChannel(messenger, "leancloud_plugin", new StandardMethodCodec(new LeanCloudMessageCodec()));
       _CHANNEL.setMethodCallHandler(_INSTANCE);
 
@@ -94,7 +94,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       AVIMClient.setClientEventHandler(new DefaultClientEventHandler(_INSTANCE));
       AVIMOptions.getGlobalOptions().setSignatureFactory(DefaultSignatureFactory.getInstance());
       handler = new Handler(Looper.getMainLooper());
-    }
+//    }
   }
 
   private SignatureFactory generateSignatureFactory() {
@@ -705,6 +705,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
   @Override
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
+    Log.d(TAG, "LeancloudPlugin.onDetachedFromEngine called.");
   }
 
   public void notify(String method, Object param) {
