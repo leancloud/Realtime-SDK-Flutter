@@ -1,6 +1,6 @@
 name: leancloud_official_plugin
 description: An official flutter plugin for LeanCloud real-time message service based on LeanCloud-Swift-SDK and LeanCloud-Java-SDK.
-version: 1.0.0-beta.6
+version: 1.0.0-beta.7
 homepage: https://leancloud.cn
 
 environment:
