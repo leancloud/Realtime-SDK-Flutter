@@ -1,3 +1,7 @@
+## 1.0.0-beta.7
+
+* Fix register channel on Android
+
 ## 1.0.0-beta.6
 
 * Add timestamp and date of last message properties for conversation
