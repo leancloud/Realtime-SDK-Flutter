@@ -72,7 +72,7 @@ class Message with _Utilities {
   /// Whether all members in the [Conversation] are mentioned by the [Message].
   bool mentionAll;
 
-  /// The members in the [Conversation] are mentioned by the [Message].
+  /// The members in the [Conversation] mentioned by the [Message].
   List mentionMembers;
 
   /// The string content of the [Message].

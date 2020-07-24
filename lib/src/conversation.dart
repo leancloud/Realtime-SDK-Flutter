@@ -79,10 +79,10 @@ class Conversation with _Utilities {
   /// The raw data of the [Conversation].
   Map get rawData => _rawData;
 
-  /// Indicates whether the [Conversation] is normal and unique, The uniqueness is based on the members when creating.
+  /// Indicates whether the [Conversation] is normal and unique. The uniqueness is based on the members when creating.
   bool get isUnique => _rawData['unique'] ?? false;
 
-  /// If the [Conversation.isUnique] is `true`, then it will have an unique-ID.
+  /// If the [Conversation.isUnique] is `true`, then it will have a unique-ID.
   String get uniqueID => _rawData['uniqueId'];
 
   /// Custom field, generally use it to show the name of the [Conversation].
