@@ -303,11 +303,19 @@ class Conversation with _Utilities {
   /// To update content of a sent [Message].
   ///
   /// [oldMessage] is the sent [Message].
+  /// [oldMessageID] is the [Message.id] of the sent [Message].
+  /// [oldMessageTimestamp] is the [Message.sentTimestamp] of the sent [Message].
   /// [newMessage] is the [Message] with new content.
+  ///
+  /// You can provide either [oldMessage] or [oldMessageID] with [oldMessageTimestamp] to represent the sent [Message];
+  /// If provide [oldMessage], then [oldMessageID] with [oldMessageTimestamp] will be ignored;
+  /// If not provide both [oldMessage] and [oldMessageID] with [oldMessageTimestamp], then will throw an error.
   ///
   /// Returns the updated [Message] which has [Message.patchedTimestamp].
   Future<Message> updateMessage({
-    @required Message oldMessage,
+    Message oldMessage,
+    String oldMessageID,
+    int oldMessageTimestamp,
     @required Message newMessage,
   }) async {
     if (newMessage == null) {
@@ -315,8 +323,22 @@ class Conversation with _Utilities {
         'newMessage',
       );
     }
+    if (oldMessage == null) {
+      if (oldMessageID == null) {
+        throw ArgumentError.notNull(
+          'oldMessageID',
+        );
+      }
+      if (oldMessageTimestamp == null) {
+        throw ArgumentError.notNull(
+          'oldMessageTimestamp',
+        );
+      }
+    }
     return await _patchMessage(
       oldMessage: oldMessage,
+      oldMessageID: oldMessageID,
+      oldMessageTimestamp: oldMessageTimestamp,
       newMessage: newMessage,
     );
   }
@@ -324,13 +346,35 @@ class Conversation with _Utilities {
   /// To recall a sent [Message].
   ///
   /// [message] is the sent [Message].
+  /// [messageID] is the [Message.id] of the sent [Message].
+  /// [messageTimestamp] is the [Message.sentTimestamp] of the sent [Message].
+  ///
+  /// You can provide either [message] or [messageID] with [messageTimestamp] to represent the sent [Message];
+  /// If provide [message], then [messageID] with [messageTimestamp] will be ignored;
+  /// If not provide both [message] and [messageID] with [messageTimestamp], then will throw an error.
   ///
   /// Returns the recalled [Message] which has [Message.patchedTimestamp].
   Future<RecalledMessage> recallMessage({
-    @required Message message,
+    Message message,
+    String messageID,
+    int messageTimestamp,
   }) async {
+    if (message == null) {
+      if (messageID == null) {
+        throw ArgumentError.notNull(
+          'messageID',
+        );
+      }
+      if (messageTimestamp == null) {
+        throw ArgumentError.notNull(
+          'messageTimestamp',
+        );
+      }
+    }
     return await _patchMessage(
       oldMessage: message,
+      oldMessageID: messageID,
+      oldMessageTimestamp: messageTimestamp,
       recall: true,
     );
   }
@@ -541,20 +585,27 @@ class Conversation with _Utilities {
   }
 
   Future<Message> _patchMessage({
-    @required Message oldMessage,
+    Message oldMessage,
+    String oldMessageID,
+    int oldMessageTimestamp,
     Message newMessage,
     bool recall = false,
   }) async {
-    if (oldMessage == null) {
-      throw ArgumentError.notNull(
-        'oldMessage',
-      );
-    }
-    var args = {
+    Map args = {
       'clientId': client.id,
       'conversationId': id,
-      'oldMessage': oldMessage._toMap(),
     };
+    if (oldMessage != null) {
+      args['oldMessage'] = oldMessage._toMap();
+    } else {
+      args['oldMessage'] = {
+        'clientId': client.id,
+        'conversationId': id,
+        'id': oldMessageID,
+        'timestamp': oldMessageTimestamp,
+        'from': client.id,
+      };
+    }
     if (newMessage != null) {
       args['newMessage'] = newMessage._toMap();
       if (newMessage is FileMessage) {
