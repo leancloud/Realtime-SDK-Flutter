@@ -1175,6 +1175,16 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
       assert(recalledMessage.conversationID == oldMessage.conversationID);
       assert(recalledMessage.fromClientID == oldMessage.fromClientID);
       assert(recalledMessage.patchedTimestamp != null);
+      // recall with msg-id and msg-timestamp.
+      await delay();
+      Message oldMessage2 = Message();
+      oldMessage2.stringContent = uuid();
+      await conversation.send(message: oldMessage2);
+      await delay();
+      await conversation.recallMessage(
+        messageID: oldMessage2.id,
+        messageTimestamp: oldMessage2.sentTimestamp,
+      );
       // recycle
       return [client1, client2];
     });
