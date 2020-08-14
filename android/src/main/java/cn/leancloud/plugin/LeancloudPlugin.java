@@ -4,8 +4,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import cn.leancloud.json.JSON;
+import cn.leancloud.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -305,7 +305,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
             if (ttl > 0 && convType == Common.Conv_Type_Temporary) {
               convData.put("ttl", ttl);
             }
-            Log.d(TAG, "succeed create conv:" + new JSONObject(convData).toJSONString());
+            Log.d(TAG, "succeed create conv:" + JSON.toJSONString(convData));
             result.success(Common.wrapSuccessResponse(convData));
           }
         }
@@ -354,6 +354,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       if (null == tempConvIds || tempConvIds.isEmpty()) {
         query.directFindInBackground(where, sort, skip, limit, flag, callback);
       } else {
+        Log.d(TAG, "try to find temp conversations: " + tempConvIds);
         query.findTempConversationsInBackground(tempConvIds, callback);
       }
       return;
@@ -709,7 +710,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
   }
 
   public void notify(String method, Object param) {
-    Log.d(TAG, "notify mehtod=" + method + ", param=" + JSON.toJSONString(param));
+    Log.d(TAG, "notify method=" + method + ", param=" + JSON.toJSONString(param));
     _CHANNEL.invokeMethod(method, param);
   }
 

@@ -1,6 +1,6 @@
 package cn.leancloud.plugin;
 
-import com.alibaba.fastjson.JSONObject;
+import cn.leancloud.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Arrays;

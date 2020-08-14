@@ -1,6 +1,6 @@
 package cn.leancloud.plugin;
 
-import com.alibaba.fastjson.JSONObject;
+import cn.leancloud.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.List;
@@ -228,7 +228,7 @@ public class Common {
     if (null == rawData) {
       return null;
     }
-    AVIMMessage message = AVIMMessage.parseJSON(new JSONObject(rawData));
+    AVIMMessage message = AVIMMessage.parseJSON(rawData);
     return message;
   }
 
