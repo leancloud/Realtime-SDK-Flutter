@@ -132,15 +132,15 @@ it's optional, so if you no need of push service, you can ignore this section.
                 fatalError("\(error)")
             }
         }
-
-        func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-            /* 
+        
+        override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+            /*
             set APNs deviceToken and Team ID.
             */
             LCApplication.default.currentInstallation.set(
                 deviceToken: deviceToken,
                 apnsTeamId: YOUR_APNS_TEAM_ID)
-            /* 
+            /*
             save to LeanCloud.
             */
             LCApplication.default.currentInstallation.save { (result) in
@@ -151,6 +151,10 @@ it's optional, so if you no need of push service, you can ignore this section.
                     print(error)
                 }
             }
+        }
+
+        override func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+            print(error)
         }
     }
     ```
