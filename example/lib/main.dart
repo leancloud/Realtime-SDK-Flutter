@@ -912,10 +912,15 @@ UnitTestCase sendAndReceiveCustomMessage() => UnitTestCase(
       );
       // send registered custom message
       RegisteredMessage registeredMessage = RegisteredMessage();
+      registeredMessage.text = uuid();
+      registeredMessage.attributes = {"random": uuid()};
       await conversation.send(message: registeredMessage);
       // send unregistered custom message
       UnregisteredMessage unregisteredMessage = UnregisteredMessage();
+      unregisteredMessage.text = uuid();
+      unregisteredMessage.attributes = {"random": uuid()};
       await conversation.send(message: unregisteredMessage);
+
       // recycle
       return [client1, client2];
     });
