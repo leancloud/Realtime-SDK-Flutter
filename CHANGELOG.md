@@ -1,3 +1,7 @@
+## 1.0.0-beta.9
+
+* Update dependencies
+
 ## 1.0.0-beta.8
 
 * Support using message-id and message-timestamp to update sent message
