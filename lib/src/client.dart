@@ -309,6 +309,54 @@ class Client with _Utilities {
     DateTime atDate,
   }) onMembersLeft;
 
+  /// Some [members] have block from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+  Client client,
+  Conversation conversation,
+  List members,
+  String byClientID,
+  DateTime atDate,
+  }) onMembersBlock;
+
+  /// Some [members] have unblock from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+  Client client,
+  Conversation conversation,
+  List members,
+  String byClientID,
+  DateTime atDate,
+  }) onMembersUnBlock;
+
+  /// Some [members] have mute from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+  Client client,
+  Conversation conversation,
+  List members,
+  String byClientID,
+  DateTime atDate,
+  }) onMembersMute;
+
+  /// Some [members] have unmute from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+  Client client,
+  Conversation conversation,
+  List members,
+  String byClientID,
+  DateTime atDate,
+  }) onMembersUnMute;
+
   /// The attributes of the [conversation] has been updated.
   ///
   /// [updatingAttributes] means which attributes to be updated.
@@ -635,6 +683,9 @@ class Client with _Utilities {
         break;
       case 'onMessageReceipt':
         conversation._messageReceipt(args);
+        break;
+      case 'blockedOrMutedMembersChanged':
+        conversation._blockedOrMutedMembersChanged(args);
         break;
       default:
         break;

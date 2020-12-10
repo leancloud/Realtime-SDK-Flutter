@@ -464,6 +464,46 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       } else {
         result.notImplemented();
       }
+    }else if (call.method.equals(Common.Method_Update_Block_Members)) {
+      String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
+      List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
+      AVIMOperationPartiallySucceededCallback callback = new AVIMOperationPartiallySucceededCallback() {
+        @Override
+        public void done(AVIMException e, List<String> successfulClientIds, List<AVIMOperationFailure> failures) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("allowedPids", successfulClientIds);
+
+            if (null != failures) {
+              List<Map<String, Object>> failedList = new ArrayList<>();
+              for (AVIMOperationFailure f: failures) {
+                Map<String, Object> failedData = new HashMap<>();
+                failedData.put("pids", f.getMemberIds());
+                Map<String, String> errorMap = new HashMap<>();
+                errorMap.put("code", String.valueOf(f.getCode()));
+                errorMap.put("message", f.getReason());
+                failedData.put(Common.Param_Error, errorMap);
+                failedList.add(failedData);
+              }
+              resultMap.put("failedPids", failedList);
+            }
+            resultMap.put(Common.Param_Conv_Members, conversation.getMembers());
+            resultMap.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
+            result.success(Common.wrapSuccessResponse(resultMap));
+          }
+        }
+      };
+      if (null == members || members.isEmpty()) {
+        result.success(Common.wrapException(AVException.INVALID_PARAMETER, "member list is empty."));
+      } else if (Common.Conv_Operation_Block.equalsIgnoreCase(operation)) {
+        conversation.blockMembers(members, callback);
+      } else if (Common.Conv_Operation_Unblock.equalsIgnoreCase(operation)) {
+        conversation.unblockMembers(members, callback);
+      } else {
+        result.notImplemented();
+      }
     } else if (call.method.equals(Common.Method_Get_Message_Receipt)) {
       conversation.fetchReceiptTimestamps(new AVIMConversationCallback() {
         @Override

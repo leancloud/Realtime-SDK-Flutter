@@ -30,6 +30,7 @@ public class Common {
   public static final String Method_Get_Message_Receipt = "fetchReceiptTimestamp";
   public static final String Method_Query_Message = "queryMessage";
   public static final String Method_Update_Members = "updateMembers";
+  public static final String Method_Update_Block_Members = "updateBlockMembers";
   public static final String Method_Mute_Conversation = "muteToggle";
   public static final String Method_Update_Conversation = "updateData";
   public static final String Method_Query_Member_Count = "countMembers";
@@ -126,6 +127,8 @@ public class Common {
   public static final String Conv_Operation_Unmute = "unmute";
   public static final String Conv_Operation_Add = "add";
   public static final String Conv_Operation_Remove = "remove";
+  public static final String Conv_Operation_Block = "block";
+  public static final String Conv_Operation_Unblock = "unblock";
 
   public static <T> T getMethodParam(MethodCall call, String key) {
     if (call.hasArgument(key)) {

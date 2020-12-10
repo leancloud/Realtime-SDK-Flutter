@@ -535,6 +535,33 @@ class Conversation with _Utilities {
       op: 'remove',
     );
   }
+  /// To block [members] from the [Conversation].
+  ///
+  /// [members] should not be empty.
+  ///
+  /// Returns a [MemberResult].
+  Future<MemberResult> blockMembers({
+    @required Set<String> members,
+  }) async {
+    return await _updateBlockMembers(
+      members: members.toList(),
+      op: 'block',
+    );
+  }
+
+  /// To unblock [members] from the [Conversation].
+  ///
+  /// [members] should not be empty.
+  ///
+  /// Returns a [MemberResult].
+  Future<MemberResult> unblockMembers({
+    @required Set<String> members,
+  }) async {
+    return await _updateBlockMembers(
+      members: members.toList(),
+      op: 'unblock',
+    );
+  }
 
   /// To turn off the offline notifications for [Conversation.client] about this [Conversation].
   ///
@@ -663,6 +690,31 @@ class Conversation with _Utilities {
     return MemberResult._from(result);
   }
 
+  Future<MemberResult> _updateBlockMembers({
+    @required List<String> members,
+    @required String op,
+  }) async {
+    if (members.isEmpty) {
+      throw ArgumentError(
+        'members should not be empty.',
+      );
+    }
+    assert(op == 'block' || op == 'unblock');
+    var args = {
+      'clientId': client.id,
+      'conversationId': id,
+      'm': members,
+      'op': op,
+    };
+    final Map result = await call(
+      method: 'updateBlockMembers',
+      arguments: args,
+    );
+    _rawData['m'] = result['m'];
+    _rawData['updatedAt'] = result['udate'];
+    return MemberResult._from(result);
+  }
+
   Future<void> _muteToggle({
     @required String op,
   }) async {
@@ -733,6 +785,71 @@ class Conversation with _Utilities {
       case 'members-left':
         if (client.onMembersLeft != null) {
           client.onMembersLeft(
+            client: client,
+            conversation: this,
+            members: m,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  void _blockedOrMutedMembersChanged(
+      Map args,
+      ) {
+    final String op = args['op'];
+    assert(op == 'mute' ||
+        op == 'unmute' ||
+        op == 'block' ||
+        op == 'unblock');
+    final List m = args['m'];
+    final String initBy = args['initBy'];
+    final String udate = args['udate'];
+    final List members = args['members'];
+    if (members != null) {
+      _rawData['m'] = members;
+    }
+    if (udate != null) {
+      _rawData['updatedAt'] = udate;
+    }
+    switch (op) {
+      case 'mute':
+        if (client.onMembersMute != null) {
+          client.onMembersMute(
+            client: client,
+            conversation: this,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'unmute':
+        if (client.onMembersUnMute != null) {
+          client.onMembersUnMute(
+            client: client,
+            conversation: this,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'block':
+        if (client.onMembersBlock != null) {
+          client.onMembersBlock(
+            client: client,
+            conversation: this,
+            members: m,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'unblock':
+        if (client.onMembersUnBlock != null) {
+          client.onMembersUnBlock(
             client: client,
             conversation: this,
             members: m,
