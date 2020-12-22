@@ -244,6 +244,8 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
     if (null != this.listener) {
       HashMap<String, Object> param = new HashMap<>();
       param.put(Common.Param_Conv_MaxACK_Timestamp, conversation.getLastDeliveredAt());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Client_Id, client.getClientId());
       this.listener.notify(Common.Method_Conv_LastReceipt_Timestamp_Updated, param);
     }
   }
@@ -256,6 +258,8 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
     if (null != this.listener) {
       HashMap<String, Object> param = new HashMap<>();
       param.put(Common.Param_Conv_MaxRead_Timestamp, conversation.getLastReadAt());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Client_Id, client.getClientId());
       this.listener.notify(Common.Method_Conv_LastReceipt_Timestamp_Updated, param);
     }
   }
