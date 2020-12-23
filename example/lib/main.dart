@@ -977,19 +977,14 @@ UnitTestCase sendAndReceiveTransientMessage() => UnitTestCase(
           client2.onMessage = null;
           assert(client != null);
           assert(conversation != null);
-          if (Platform.isAndroid) {
-//          assert(conversation.lastMessage == null); // ignore for android sdk.
-
+          if (Platform.isIOS) {
             // In Java/Android SDK, transient is not message's character, it is just an option of send action,
             // with transient option, RTM server can deliver the message as many as possible, even dropping the message at all is allowed.
             // From the client perspective, developer could not do any thing else for a 'transient' message,
             // he should use message type to distinguish different purposes.
-//          assert(message.isTransient);
-          } else {
             assert(conversation.lastMessage == null);
             assert(message.isTransient);
           }
-
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
@@ -1009,10 +1004,7 @@ UnitTestCase sendAndReceiveTransientMessage() => UnitTestCase(
         message: transientMessage,
         transient: true,
       );
-      if (Platform.isAndroid) {
-//      assert(transientMessage.isTransient);
-//      assert(conversation.lastMessage == null); // ignore for android sdk.
-      } else {
+      if (Platform.isIOS) {
         assert(transientMessage.isTransient);
         assert(conversation.lastMessage == null);
       }
@@ -1452,7 +1444,6 @@ UnitTestCase updateConversation() => UnitTestCase(
         // Android SDK doesn't support reliable notification yet.
         decrease(1);
       }
-      await delay();
       // recycle
       await delay();
       return [client1, client2];
