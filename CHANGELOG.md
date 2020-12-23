@@ -1,3 +1,8 @@
+## 1.0.0-beta.10
+
+* Fix some bug on the platform android
+* Update dependencies
+
 ## 1.0.0-beta.9
 
 * Update dependencies
