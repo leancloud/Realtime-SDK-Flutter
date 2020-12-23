@@ -305,7 +305,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
             if (ttl > 0 && convType == Common.Conv_Type_Temporary) {
               convData.put("ttl", ttl);
             }
-            Log.d(TAG, "succeed create conv");
+            Log.d(TAG, "succeed create conv: " + JSON.toJSONString(convData));
             result.success(Common.wrapSuccessResponse(convData));
           }
         }

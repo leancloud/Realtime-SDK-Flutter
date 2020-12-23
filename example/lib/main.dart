@@ -976,7 +976,7 @@ UnitTestCase sendAndReceiveTransientMessage() => UnitTestCase(
           client2.onMessage = null;
           assert(client != null);
           assert(conversation != null);
-          assert(conversation.lastMessage == null);
+//          assert(conversation.lastMessage == null); // ignore for android sdk.
           assert(message.isTransient);
           decrease(1);
         } catch (e) {
@@ -998,7 +998,7 @@ UnitTestCase sendAndReceiveTransientMessage() => UnitTestCase(
         transient: true,
       );
       assert(transientMessage.isTransient);
-      assert(conversation.lastMessage == null);
+//      assert(conversation.lastMessage == null); // ignore for android sdk.
       // recycle
       return [client1, client2];
     });
@@ -1303,6 +1303,15 @@ UnitTestCase messageReceipt() => UnitTestCase(
         } catch (e) {
           decrease(-1, e: e);
         }
+      };
+      client2.onUnreadMessageCountUpdated = ({
+        Client client,
+        Conversation conversation,
+      }) {
+        // only works for android sdk.
+        assert(client != null);
+        assert(conversation != null);
+        decrease(1);
       };
       // open
       await client1.open();
