@@ -17,6 +17,7 @@
     <application
         android:name=".MyApplication"
         android:label="leancloud_plugin_example"
+        android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
