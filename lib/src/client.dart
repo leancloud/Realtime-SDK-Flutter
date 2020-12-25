@@ -729,9 +729,6 @@ class Client with _Utilities {
       case 'onMessageReceipt':
         conversation._messageReceipt(args);
         break;
-      case 'onBlockedOrMutedMembersChanged':
-        conversation._membersUpdate(args);
-        break;
       default:
         break;
     }

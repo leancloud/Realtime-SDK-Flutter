@@ -948,42 +948,74 @@ extension IMClientDelegator: IMClientDelegate {
                 args["udate"] = at.lcDate.isoString
             }
             self.invoke("onConversationMembersUpdate", args)
-        case let .block(members: members, byClientID: byClientID, at: at):
-            args["op"] = "block"
+        case let .blocked(byClientID: byClientID, at: at):
+            args["op"] = "blocked"
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .unblocked(byClientID: byClientID, at: at):
+            args["op"] = "unblocked"
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .muted(byClientID: byClientID, at: at):
+            args["op"] = "muted"
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .unmuted(byClientID: byClientID, at: at):
+            args["op"] = "unmuted"
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .membersBlocked(members: members, byClientID: byClientID, at: at):
+            args["op"] = "members-blocked"
             args["m"] = members
             args["members"] = conversation.members
             args["initBy"] = byClientID
             if let at = at {
                 args["udate"] = at.lcDate.isoString
             }
-            self.invoke("blockedOrMutedMembersChanged", args)
-        case let .unblock(members: members, byClientID: byClientID, at: at):
-            args["op"] = "block"
+            self.invoke("onConversationMembersUpdate", args)
+        case let .membersUnblocked(members: members, byClientID: byClientID, at: at):
+            args["op"] = "members-unblocked"
             args["m"] = members
             args["members"] = conversation.members
             args["initBy"] = byClientID
             if let at = at {
                 args["udate"] = at.lcDate.isoString
             }
-            self.invoke("blockedOrMutedMembersChanged", args)
-        case let .mute(members: members, byClientID: byClientID, at: at):
-            args["op"] = "mute"
+            self.invoke("onConversationMembersUpdate", args)
+        case let .membersMuted(members: members, byClientID: byClientID, at: at):
+            args["op"] = "members-muted"
             args["m"] = members
             args["members"] = conversation.members
             args["initBy"] = byClientID
             if let at = at {
                 args["udate"] = at.lcDate.isoString
             }
-            self.invoke("blockedOrMutedMembersChanged", args)
-        case let .unmute(members: members, byClientID: byClientID, at: at):
-            args["op"] = "unmute"
+            self.invoke("onConversationMembersUpdate", args)
+        case let .membersUnmuted(members: members, byClientID: byClientID, at: at):
+            args["op"] = "members-unmuted"
             args["m"] = members
             args["members"] = conversation.members
             args["initBy"] = byClientID
             if let at = at {
                 args["udate"] = at.lcDate.isoString
             }
-            self.invoke("blockedOrMutedMembersChanged", args)
+            self.invoke("onConversationMembersUpdate", args)
         case .unreadMessageCountUpdated:
             let count = conversation.unreadMessageCount
             args["count"] = count
