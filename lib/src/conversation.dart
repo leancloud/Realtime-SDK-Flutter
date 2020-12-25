@@ -739,7 +739,15 @@ class Conversation with _Utilities {
     assert(op == 'joined' ||
         op == 'left' ||
         op == 'members-joined' ||
-        op == 'members-left');
+        op == 'members-left' ||
+        op == 'muted' ||
+        op == 'unmuted' ||
+        op == 'members-muted' ||
+        op == 'members-unmuted' ||
+        op == 'blocked' ||
+        op == 'unblocked' ||
+        op == 'members-blocked' ||
+        op == 'members-unblocked');
     final List m = args['m'];
     final String initBy = args['initBy'];
     final String udate = args['udate'];
@@ -793,32 +801,9 @@ class Conversation with _Utilities {
           );
         }
         break;
-      default:
-        break;
-    }
-  }
-  void _blockedOrMutedMembersChanged(
-      Map args,
-      ) {
-    final String op = args['op'];
-    assert(op == 'mute' ||
-        op == 'unmute' ||
-        op == 'block' ||
-        op == 'unblock');
-    final List m = args['m'];
-    final String initBy = args['initBy'];
-    final String udate = args['udate'];
-    final List members = args['members'];
-    if (members != null) {
-      _rawData['m'] = members;
-    }
-    if (udate != null) {
-      _rawData['updatedAt'] = udate;
-    }
-    switch (op) {
-      case 'mute':
-        if (client.onMembersMute != null) {
-          client.onMembersMute(
+      case 'muted':
+        if (client.onMuted != null) {
+          client.onMuted(
             client: client,
             conversation: this,
             byClientID: initBy,
@@ -826,9 +811,9 @@ class Conversation with _Utilities {
           );
         }
         break;
-      case 'unmute':
-        if (client.onMembersUnMute != null) {
-          client.onMembersUnMute(
+      case 'unmuted':
+        if (client.onUnmuted != null) {
+          client.onUnmuted(
             client: client,
             conversation: this,
             byClientID: initBy,
@@ -836,7 +821,49 @@ class Conversation with _Utilities {
           );
         }
         break;
-      case 'block':
+      case 'members-muted':
+        if (client.onMembersMuted != null) {
+          client.onMembersMuted(
+            client: client,
+            conversation: this,
+            members: m,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'members-unmuted':
+        if (client.onMembersUnMuted != null) {
+          client.onMembersUnMuted(
+            client: client,
+            conversation: this,
+            members: m,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'blocked':
+        if (client.onBlocked != null) {
+          client.onBlocked(
+            client: client,
+            conversation: this,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'unblocked':
+        if (client.onUnblocked != null) {
+          client.onUnblocked(
+            client: client,
+            conversation: this,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'members-blocked':
         if (client.onMembersBlock != null) {
           client.onMembersBlock(
             client: client,
@@ -847,9 +874,9 @@ class Conversation with _Utilities {
           );
         }
         break;
-      case 'unblock':
+      case 'members-unblocked':
         if (client.onMembersUnBlock != null) {
-          client.onMembersUnBlock(
+          client.onMembersLeft(
             client: client,
             conversation: this,
             members: m,

@@ -22,6 +22,15 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
   private static final String Member_Event_Other_Joined = "members-joined";
   private static final String Member_Event_Other_Left = "members-left";
 
+  private static final String Member_Event_Self_Muted = "muted";
+  private static final String Member_Event_Self_Unmuted = "unmuted";
+  private static final String Member_Event_Other_Muted = "members-muted";
+  private static final String Member_Event_Other_Unmuted = "members-unmuted";
+
+  private static final String Member_Event_Self_Blocked = "blocked";
+  private static final String Member_Event_Self_Unblocked = "unblocked";
+  private static final String Member_Event_Other_Blocked = "members-blocked";
+  private static final String Member_Event_Other_Unblocked = "members-unblocked";
   private IMEventNotification listener;
 
 
@@ -137,6 +146,17 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    */
   public void onMuted(AVIMClient client, AVIMConversation conversation, String operator) {
     LOGGER.d("Notification --- " + " you are muted by " + operator );
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Self_Muted);
+      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, operator);
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
@@ -147,6 +167,17 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    */
   public void onUnmuted(AVIMClient client, AVIMConversation conversation, String operator) {
     LOGGER.d("Notification --- " + " you are unmuted by " + operator );
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Self_Unmuted);
+      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, operator);
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
@@ -158,6 +189,17 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    */
   public void onMemberMuted(AVIMClient client, AVIMConversation conversation, List<String> members, String operator){
     LOGGER.d("Notification --- " + operator + " muted members: " + StringUtil.join(", ", members));
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Other_Muted);
+      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, operator);
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
@@ -170,6 +212,17 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
   public void onMemberUnmuted(AVIMClient client, AVIMConversation conversation,
                               List<String> members, String operator){
     LOGGER.d("Notification --- " + operator + " unmuted members: " + StringUtil.join(", ", members));
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Other_Unmuted);
+      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, operator);
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
@@ -180,6 +233,17 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    */
   public void onBlocked(AVIMClient client, AVIMConversation conversation, String operator) {
     LOGGER.d("Notification --- " + " you are blocked by " + operator );
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Self_Blocked);
+      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, operator);
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
@@ -190,6 +254,17 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
    */
   public void onUnblocked(AVIMClient client, AVIMConversation conversation, String operator) {
     LOGGER.d("Notification --- " + " you are unblocked by " + operator );
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Self_Unblocked);
+      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, operator);
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
@@ -202,6 +277,17 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
   public void onMemberBlocked(AVIMClient client, AVIMConversation conversation,
                               List<String> members, String operator){
     LOGGER.d("Notification --- " + operator + " blocked members: " + StringUtil.join(", ", members));
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Other_Blocked);
+      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, operator);
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
@@ -214,6 +300,17 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
   public void onMemberUnblocked(AVIMClient client, AVIMConversation conversation,
                                 List<String> members, String operator){
     LOGGER.d("Notification --- " + operator + " unblocked members: " + StringUtil.join(", ", members));
+    if (null != this.listener) {
+      Map<String, Object> param = new HashMap<>();
+      param.put(Common.Param_Client_Id, client.getClientId());
+      param.put(Common.Param_Conv_Id, conversation.getConversationId());
+      param.put(Common.Param_Conv_Operation, Member_Event_Other_Unblocked);
+      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Members, conversation.getMembers());
+      param.put(Common.Param_Operator, operator);
+      param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
+      this.listener.notify(Common.Method_Conv_Member_Updated, param);
+    }
   }
 
   /**
