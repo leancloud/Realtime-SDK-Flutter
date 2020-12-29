@@ -71,6 +71,8 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                     delegator.updateMembers(parameters: arguments, callback: result)
                 case "updateBlockMembers":
                     delegator.updateBlockMembers(parameters: arguments, callback: result)
+                case "updateMuteMembers":
+                    delegator.updateMuteMembers(parameters: arguments, callback: result)
                 case "muteToggle":
                     delegator.muteToggle(parameters: arguments, callback: result)
                 case "updateData":
@@ -732,6 +734,71 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                         }
                     case "unblock":
                         try conversation.unblock(members: Set(m)) { (result) in
+                            handleResult(result)
+                        }
+                    default:
+                        fatalError()
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    func updateMuteMembers(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                let op = parameters["op"] as! String
+                let m = parameters["m"] as! [String]
+                do {
+                    let handleResult: (IMConversation.MemberResult) -> Void = { result in
+                        switch result {
+                        case .allSucceeded:
+                            var successData: [String: Any] = ["allowedPids": m]
+                            if let members = conversation.members {
+                                successData["m"] = members
+                            }
+                            if let udate = conversation.updatedAt {
+                                successData["udate"] = udate.lcDate.isoString
+                            }
+                            self.mainAsync(["success": successData], callback)
+                        case let .slicing(success: success, failure: failure):
+                            var successData: [String: Any] = [:]
+                            if let sucess = success {
+                                successData["allowedPids"] = sucess
+                            }
+                            var failedPids: [[String: Any]] = []
+                            for item in failure {
+                                failedPids.append([
+                                    "pids": item.IDs,
+                                    "error": self.error(item.error),
+                                ])
+                            }
+                            successData["failedPids"] = failedPids
+                            if let members = conversation.members {
+                                successData["m"] = members
+                            }
+                            if let udate = conversation.updatedAt {
+                                successData["udate"] = udate.lcDate.isoString
+                            }
+                            self.mainAsync(["success": successData], callback)
+                        case let .failure(error: error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                    switch op {
+                    case "mute":
+                        try conversation.mute(members: Set(m)) { (result) in
+                            handleResult(result)
+                        }
+                    case "unmute":
+                        try conversation.unmute(members: Set(m)) { (result) in
                             handleResult(result)
                         }
                     default:

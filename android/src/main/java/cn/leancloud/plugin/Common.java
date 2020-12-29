@@ -31,6 +31,7 @@ public class Common {
   public static final String Method_Query_Message = "queryMessage";
   public static final String Method_Update_Members = "updateMembers";
   public static final String Method_Update_Block_Members = "updateBlockMembers";
+  public static final String Method_Update_Mute_Members = "updateMuteMembers";
   public static final String Method_Mute_Conversation = "muteToggle";
   public static final String Method_Update_Conversation = "updateData";
   public static final String Method_Query_Member_Count = "countMembers";

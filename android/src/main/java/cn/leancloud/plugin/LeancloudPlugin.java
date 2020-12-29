@@ -58,7 +58,7 @@ import io.flutter.plugin.common.StandardMethodCodec;
 
 /** LeancloudPlugin */
 public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
-    ClientStatusListener, IMEventNotification {
+        ClientStatusListener, IMEventNotification {
   private final static String TAG = LeancloudPlugin.class.getSimpleName();
   private final static LeancloudPlugin _INSTANCE = new LeancloudPlugin();
   private static MethodChannel _CHANNEL = null;
@@ -86,14 +86,14 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
   private static void _initialize(BinaryMessenger messenger, String name) {
 //    if (null == _CHANNEL) {
-      _CHANNEL = new MethodChannel(messenger, "leancloud_plugin", new StandardMethodCodec(new LeanCloudMessageCodec()));
-      _CHANNEL.setMethodCallHandler(_INSTANCE);
+    _CHANNEL = new MethodChannel(messenger, "leancloud_plugin", new StandardMethodCodec(new LeanCloudMessageCodec()));
+    _CHANNEL.setMethodCallHandler(_INSTANCE);
 
-      AVIMMessageManager.registerDefaultMessageHandler(new DefaultMessageHandler(_INSTANCE));
-      AVIMMessageManager.setConversationEventHandler(new DefaultConversationEventHandler(_INSTANCE));
-      AVIMClient.setClientEventHandler(new DefaultClientEventHandler(_INSTANCE));
-      AVIMOptions.getGlobalOptions().setSignatureFactory(DefaultSignatureFactory.getInstance());
-      handler = new Handler(Looper.getMainLooper());
+    AVIMMessageManager.registerDefaultMessageHandler(new DefaultMessageHandler(_INSTANCE));
+    AVIMMessageManager.setConversationEventHandler(new DefaultConversationEventHandler(_INSTANCE));
+    AVIMClient.setClientEventHandler(new DefaultClientEventHandler(_INSTANCE));
+    AVIMOptions.getGlobalOptions().setSignatureFactory(DefaultSignatureFactory.getInstance());
+    handler = new Handler(Looper.getMainLooper());
 //    }
   }
 
@@ -225,7 +225,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     final String clientId = Common.getMethodParam(call, Common.Param_Client_Id);
     if (StringUtil.isEmpty(clientId)) {
       result.success(Common.wrapException(Exception.ErrorCode_Invalid_Parameter,
-          Exception.ErrorMsg_Invalid_ClientId));
+              Exception.ErrorMsg_Invalid_ClientId));
       return;
     }
 
@@ -248,14 +248,14 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         signatureFactory = generateSignatureFactory();
       }
       DefaultSignatureFactory.getInstance().registerSignedClient(clientId, sessionSignFlag,
-          conversationSignFlag, signatureFactory);
+              conversationSignFlag, signatureFactory);
 
       AVIMClientOpenOption openOption = new AVIMClientOpenOption();
       if (reconnectFlag) {
         openOption.setReconnect(true);
       }
       AVIMClient client = StringUtil.isEmpty(tag) ?
-          AVIMClient.getInstance(clientId) : AVIMClient.getInstance(clientId, tag);
+              AVIMClient.getInstance(clientId) : AVIMClient.getInstance(clientId, tag);
       client.open(openOption, new AVIMClientCallback() {
         @Override
         public void done(AVIMClient client, AVIMException e) {
@@ -368,7 +368,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
     if (null == conversation) {
       result.success(Common.wrapException(Exception.ErrorCode_Invalid_Parameter,
-          Exception.ErrorMsg_Invalid_ConversationId));
+              Exception.ErrorMsg_Invalid_ConversationId));
       return;
     }
 
@@ -504,6 +504,46 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       } else {
         result.notImplemented();
       }
+    } else if (call.method.equals(Common.Method_Update_Mute_Members)) {
+      String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
+      List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
+      AVIMOperationPartiallySucceededCallback callback = new AVIMOperationPartiallySucceededCallback() {
+        @Override
+        public void done(AVIMException e, List<String> successfulClientIds, List<AVIMOperationFailure> failures) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("allowedPids", successfulClientIds);
+
+            if (null != failures) {
+              List<Map<String, Object>> failedList = new ArrayList<>();
+              for (AVIMOperationFailure f: failures) {
+                Map<String, Object> failedData = new HashMap<>();
+                failedData.put("pids", f.getMemberIds());
+                Map<String, String> errorMap = new HashMap<>();
+                errorMap.put("code", String.valueOf(f.getCode()));
+                errorMap.put("message", f.getReason());
+                failedData.put(Common.Param_Error, errorMap);
+                failedList.add(failedData);
+              }
+              resultMap.put("failedPids", failedList);
+            }
+            resultMap.put(Common.Param_Conv_Members, conversation.getMembers());
+            resultMap.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
+            result.success(Common.wrapSuccessResponse(resultMap));
+          }
+        }
+      };
+      if (null == members || members.isEmpty()) {
+        result.success(Common.wrapException(AVException.INVALID_PARAMETER, "member list is empty."));
+      } else if (Common.Conv_Operation_Mute.equalsIgnoreCase(operation)) {
+        conversation.muteMembers(members, callback);
+      } else if (Common.Conv_Operation_Unmute.equalsIgnoreCase(operation)) {
+        conversation.unmuteMembers(members, callback);
+      } else {
+        result.notImplemented();
+      }
     } else if (call.method.equals(Common.Method_Get_Message_Receipt)) {
       conversation.fetchReceiptTimestamps(new AVIMConversationCallback() {
         @Override
@@ -580,8 +620,8 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       Map<String, Object> optionData = Common.getMethodParam(call, Common.Param_Message_Options);
       Map<String, Object> fileData = Common.getMethodParam(call, Common.Param_Message_File);
       Log.d(TAG, "send message from conv:" + conversationId
-          + ", message:" + JSON.toJSONString(msgData)
-          + ", option:" + JSON.toJSONString(optionData));
+              + ", message:" + JSON.toJSONString(msgData)
+              + ", option:" + JSON.toJSONString(optionData));
       final AVIMMessage message = Common.parseMessage(msgData);
       if (message instanceof AVIMFileMessage && null != fileData) {
         byte[] byteArray = null;
@@ -644,18 +684,18 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         }
       }
       conversation.sendMessage(message, option,
-          new AVIMConversationCallback() {
-            @Override
-            public void done(AVIMException e) {
-              if (null != e) {
-                Log.d(TAG, "send failed. cause: " + e.getMessage());
-                result.success(Common.wrapException(e));
-              } else {
-                Log.d(TAG, "send finished. message: " + Common.wrapMessage(message));
-                result.success(Common.wrapSuccessResponse(Common.wrapMessage(message)));
-              }
-            }
-          });
+              new AVIMConversationCallback() {
+                @Override
+                public void done(AVIMException e) {
+                  if (null != e) {
+                    Log.d(TAG, "send failed. cause: " + e.getMessage());
+                    result.success(Common.wrapException(e));
+                  } else {
+                    Log.d(TAG, "send finished. message: " + Common.wrapMessage(message));
+                    result.success(Common.wrapSuccessResponse(Common.wrapMessage(message)));
+                  }
+                }
+              });
     } else if (call.method.equals(Common.Method_Patch_Message)) {
       Map<String, Object> oldMsgData = Common.getMethodParam(call, Common.Param_Message_Old);
       Map<String, Object> newMsgData = Common.getMethodParam(call, Common.Param_Message_New);

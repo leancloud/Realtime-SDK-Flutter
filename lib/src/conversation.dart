@@ -535,6 +535,7 @@ class Conversation with _Utilities {
       op: 'remove',
     );
   }
+
   /// To block [members] from the [Conversation].
   ///
   /// [members] should not be empty.
@@ -560,6 +561,34 @@ class Conversation with _Utilities {
     return await _updateBlockMembers(
       members: members.toList(),
       op: 'unblock',
+    );
+  }
+
+  /// To mute [members] from the [Conversation].
+  ///
+  /// [members] should not be empty.
+  ///
+  /// Returns a [MemberResult].
+  Future<MemberResult> muteMembers({
+    @required Set<String> members,
+  }) async {
+    return await _updateMuteMembers(
+      members: members.toList(),
+      op: 'mute',
+    );
+  }
+
+  /// To unmute [members] from the [Conversation].
+  ///
+  /// [members] should not be empty.
+  ///
+  /// Returns a [MemberResult].
+  Future<MemberResult> unmuteMembers({
+    @required Set<String> members,
+  }) async {
+    return await _updateMuteMembers(
+      members: members.toList(),
+      op: 'unmute',
     );
   }
 
@@ -708,6 +737,31 @@ class Conversation with _Utilities {
     };
     final Map result = await call(
       method: 'updateBlockMembers',
+      arguments: args,
+    );
+    _rawData['m'] = result['m'];
+    _rawData['updatedAt'] = result['udate'];
+    return MemberResult._from(result);
+  }
+
+  Future<MemberResult> _updateMuteMembers({
+    @required List<String> members,
+    @required String op,
+  }) async {
+    if (members.isEmpty) {
+      throw ArgumentError(
+        'members should not be empty.',
+      );
+    }
+    assert(op == 'mute' || op == 'unmute');
+    var args = {
+      'clientId': client.id,
+      'conversationId': id,
+      'm': members,
+      'op': op,
+    };
+    final Map result = await call(
+      method: 'updateMuteMembers',
       arguments: args,
     );
     _rawData['m'] = result['m'];
