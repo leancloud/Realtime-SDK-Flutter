@@ -918,8 +918,8 @@ class Conversation with _Utilities {
         }
         break;
       case 'members-blocked':
-        if (client.onMembersBlock != null) {
-          client.onMembersBlock(
+        if (client.onMembersBlocked != null) {
+          client.onMembersBlocked(
             client: client,
             conversation: this,
             members: m,
@@ -929,8 +929,8 @@ class Conversation with _Utilities {
         }
         break;
       case 'members-unblocked':
-        if (client.onMembersUnBlock != null) {
-          client.onMembersLeft(
+        if (client.onMembersUnBlocked != null) {
+          client.onMembersUnBlocked(
             client: client,
             conversation: this,
             members: m,

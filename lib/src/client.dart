@@ -331,7 +331,7 @@ class Client with _Utilities {
     DateTime atDate,
   }) onUnblocked;
 
-  /// Some [members] have block from the [conversation].
+  /// Some [members] have blocked from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
@@ -341,9 +341,9 @@ class Client with _Utilities {
     List members,
     String byClientID,
     DateTime atDate,
-  }) onMembersBlock;
+  }) onMembersBlocked;
 
-  /// Some [members] have unblock from the [conversation].
+  /// Some [members] have unblocked from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
@@ -353,7 +353,7 @@ class Client with _Utilities {
     List members,
     String byClientID,
     DateTime atDate,
-  }) onMembersUnBlock;
+  }) onMembersUnBlocked;
 
   /// Current client be muted from the [conversation].
   ///
@@ -373,12 +373,11 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    List members,
     String byClientID,
     DateTime atDate,
   }) onUnmuted;
 
-  /// Some [members] have mute from the [conversation].
+  /// Some [members] have muted from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
@@ -390,7 +389,7 @@ class Client with _Utilities {
     DateTime atDate,
   }) onMembersMuted;
 
-  /// Some [members] have unmute from the [conversation].
+  /// Some [members] have unmuted from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
