@@ -151,7 +151,6 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Client_Id, client.getClientId());
       param.put(Common.Param_Conv_Id, conversation.getConversationId());
       param.put(Common.Param_Conv_Operation, Member_Event_Self_Muted);
-      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, operator);
       param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
@@ -172,7 +171,6 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Client_Id, client.getClientId());
       param.put(Common.Param_Conv_Id, conversation.getConversationId());
       param.put(Common.Param_Conv_Operation, Member_Event_Self_Unmuted);
-      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, operator);
       param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
@@ -194,7 +192,7 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Client_Id, client.getClientId());
       param.put(Common.Param_Conv_Id, conversation.getConversationId());
       param.put(Common.Param_Conv_Operation, Member_Event_Other_Muted);
-      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Conv_Members, members);
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, operator);
       param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
@@ -217,7 +215,7 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Client_Id, client.getClientId());
       param.put(Common.Param_Conv_Id, conversation.getConversationId());
       param.put(Common.Param_Conv_Operation, Member_Event_Other_Unmuted);
-      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Conv_Members, members);
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, operator);
       param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
@@ -238,7 +236,6 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Client_Id, client.getClientId());
       param.put(Common.Param_Conv_Id, conversation.getConversationId());
       param.put(Common.Param_Conv_Operation, Member_Event_Self_Blocked);
-      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, operator);
       param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
@@ -259,7 +256,6 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Client_Id, client.getClientId());
       param.put(Common.Param_Conv_Id, conversation.getConversationId());
       param.put(Common.Param_Conv_Operation, Member_Event_Self_Unblocked);
-      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, operator);
       param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
@@ -282,7 +278,7 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Client_Id, client.getClientId());
       param.put(Common.Param_Conv_Id, conversation.getConversationId());
       param.put(Common.Param_Conv_Operation, Member_Event_Other_Blocked);
-      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Conv_Members, members);
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, operator);
       param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));
@@ -305,7 +301,7 @@ public class DefaultConversationEventHandler extends AVIMConversationEventHandle
       param.put(Common.Param_Client_Id, client.getClientId());
       param.put(Common.Param_Conv_Id, conversation.getConversationId());
       param.put(Common.Param_Conv_Operation, Member_Event_Other_Unblocked);
-      param.put(Common.Param_Conv_Members, Arrays.asList(client.getClientId()));
+      param.put(Common.Param_Conv_Members, members);
       param.put(Common.Param_Members, conversation.getMembers());
       param.put(Common.Param_Operator, operator);
       param.put(Common.Param_Update_Time, StringUtil.stringFromDate(new Date()));

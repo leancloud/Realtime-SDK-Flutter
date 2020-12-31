@@ -1499,6 +1499,7 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
       // client
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
+      Client client3 = Client(id: uuid());
       // event
       client2.onBlocked = ({
         Client client,
@@ -1534,7 +1535,7 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
           decrease(-1, e: e);
         }
       };
-      client1.onMembersBlocked = ({
+      client3.onMembersBlocked = ({
         Client client,
         Conversation conversation,
         List members,
@@ -1554,7 +1555,7 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
           decrease(-1, e: e);
         }
       };
-      client1.onMembersUnBlocked = ({
+      client3.onMembersUnBlocked = ({
         Client client,
         Conversation conversation,
         List members,
@@ -1578,9 +1579,10 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
       // open
       await client1.open();
       await client2.open();
+      await client3.open();
       // create unique conversation
       Conversation conversation = await client1.createConversation(
-        members: {client1.id, client2.id},
+        members: {client1.id, client2.id, client3.id},
       );
       assert(conversation.id != null);
       MemberResult blockMemberResult =
@@ -1588,20 +1590,23 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
       assert(blockMemberResult.allSucceeded);
       assert(blockMemberResult.succeededMembers.length == 1);
       assert(blockMemberResult.succeededMembers.contains(client2.id));
-      assert(conversation.members.length == 2);
+      assert(conversation.members.length == 3);
       assert(conversation.members.contains(client1.id));
       assert(conversation.members.contains(client2.id));
+      assert(conversation.members.contains(client3.id));
 
       MemberResult unBlockMemberResult =
           await conversation.unblockMembers(members: {client2.id});
       assert(unBlockMemberResult.allSucceeded);
       assert(unBlockMemberResult.succeededMembers.length == 1);
       assert(unBlockMemberResult.succeededMembers.contains(client2.id));
-      assert(conversation.members.length == 2);
+      assert(conversation.members.length == 3);
       assert(conversation.members.contains(client1.id));
       assert(conversation.members.contains(client2.id));
+      assert(conversation.members.contains(client3.id));
+
       // recycle
-      return [client1, client2];
+      return [client1, client2, client3];
     });
 
 UnitTestCase muteConversationMembers() => UnitTestCase(
@@ -1611,6 +1616,8 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
       // client
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
+      Client client3 = Client(id: uuid());
+
       // event
       client2.onMuted = ({
         Client client,
@@ -1646,7 +1653,7 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
           decrease(-1, e: e);
         }
       };
-      client1.onMembersMuted = ({
+      client3.onMembersMuted= ({
         Client client,
         Conversation conversation,
         List members,
@@ -1666,7 +1673,7 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
           decrease(-1, e: e);
         }
       };
-      client1.onMembersUnMuted = ({
+      client3.onMembersUnMuted = ({
         Client client,
         Conversation conversation,
         List members,
@@ -1686,33 +1693,38 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
           decrease(-1, e: e);
         }
       };
+
       // open
       await client1.open();
       await client2.open();
+      await client3.open();
       // create unique conversation
       Conversation conversation = await client1.createConversation(
-        members: {client1.id, client2.id},
+        members: {client1.id, client2.id, client3.id},
       );
       assert(conversation.id != null);
       MemberResult muteMemberResult =
-          await conversation.muteMembers(members: {client2.id});
+      await conversation.muteMembers(members: {client2.id});
       assert(muteMemberResult.allSucceeded);
       assert(muteMemberResult.succeededMembers.length == 1);
       assert(muteMemberResult.succeededMembers.contains(client2.id));
-      assert(conversation.members.length == 2);
+      assert(conversation.members.length == 3);
       assert(conversation.members.contains(client1.id));
       assert(conversation.members.contains(client2.id));
+      assert(conversation.members.contains(client3.id));
 
       MemberResult unMuteMemberResult =
-          await conversation.unmuteMembers(members: {client2.id});
+      await conversation.unmuteMembers(members: {client2.id});
       assert(unMuteMemberResult.allSucceeded);
       assert(unMuteMemberResult.succeededMembers.length == 1);
       assert(unMuteMemberResult.succeededMembers.contains(client2.id));
-      assert(conversation.members.length == 2);
+      assert(conversation.members.length == 3);
       assert(conversation.members.contains(client1.id));
       assert(conversation.members.contains(client2.id));
+      assert(conversation.members.contains(client3.id));
+
       // recycle
-      return [client1, client2];
+      return [client1, client2, client3];
     });
 
 String aID = 's0g5kxj7ajtf6n2wt8fqty18p25gmvgrh7b430iuugsde212';
