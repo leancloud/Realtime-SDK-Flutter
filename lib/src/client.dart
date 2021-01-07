@@ -309,6 +309,98 @@ class Client with _Utilities {
     DateTime atDate,
   }) onMembersLeft;
 
+  /// Current client be blocked from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+    Client client,
+    Conversation conversation,
+    String byClientID,
+    DateTime atDate,
+  }) onBlocked;
+
+  /// Current client be unblocked from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+    Client client,
+    Conversation conversation,
+    String byClientID,
+    DateTime atDate,
+  }) onUnblocked;
+
+  /// Some [members] have blocked from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+    Client client,
+    Conversation conversation,
+    List members,
+    String byClientID,
+    DateTime atDate,
+  }) onMembersBlocked;
+
+  /// Some [members] have unblocked from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+    Client client,
+    Conversation conversation,
+    List members,
+    String byClientID,
+    DateTime atDate,
+  }) onMembersUnBlocked;
+
+  /// Current client be muted from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+    Client client,
+    Conversation conversation,
+    String byClientID,
+    DateTime atDate,
+  }) onMuted;
+
+  /// Current client be unmuted from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+    Client client,
+    Conversation conversation,
+    String byClientID,
+    DateTime atDate,
+  }) onUnmuted;
+
+  /// Some [members] have muted from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+    Client client,
+    Conversation conversation,
+    List members,
+    String byClientID,
+    DateTime atDate,
+  }) onMembersMuted;
+
+  /// Some [members] have unmuted from the [conversation].
+  ///
+  /// [byClientID] means who did it.
+  /// [atDate] means when did it.
+  void Function({
+    Client client,
+    Conversation conversation,
+    List members,
+    String byClientID,
+    DateTime atDate,
+  }) onMembersUnMuted;
+
   /// The attributes of the [conversation] has been updated.
   ///
   /// [updatingAttributes] means which attributes to be updated.

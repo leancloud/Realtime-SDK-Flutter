@@ -536,6 +536,62 @@ class Conversation with _Utilities {
     );
   }
 
+  /// To block [members] from the [Conversation].
+  ///
+  /// [members] should not be empty.
+  ///
+  /// Returns a [MemberResult].
+  Future<MemberResult> blockMembers({
+    @required Set<String> members,
+  }) async {
+    return await _updateBlockMembers(
+      members: members.toList(),
+      op: 'block',
+    );
+  }
+
+  /// To unblock [members] from the [Conversation].
+  ///
+  /// [members] should not be empty.
+  ///
+  /// Returns a [MemberResult].
+  Future<MemberResult> unblockMembers({
+    @required Set<String> members,
+  }) async {
+    return await _updateBlockMembers(
+      members: members.toList(),
+      op: 'unblock',
+    );
+  }
+
+  /// To mute [members] from the [Conversation].
+  ///
+  /// [members] should not be empty.
+  ///
+  /// Returns a [MemberResult].
+  Future<MemberResult> muteMembers({
+    @required Set<String> members,
+  }) async {
+    return await _updateMuteMembers(
+      members: members.toList(),
+      op: 'mute',
+    );
+  }
+
+  /// To unmute [members] from the [Conversation].
+  ///
+  /// [members] should not be empty.
+  ///
+  /// Returns a [MemberResult].
+  Future<MemberResult> unmuteMembers({
+    @required Set<String> members,
+  }) async {
+    return await _updateMuteMembers(
+      members: members.toList(),
+      op: 'unmute',
+    );
+  }
+
   /// To turn off the offline notifications for [Conversation.client] about this [Conversation].
   ///
   /// If success, [Conversation.isMuted] will be `true`.
@@ -663,6 +719,56 @@ class Conversation with _Utilities {
     return MemberResult._from(result);
   }
 
+  Future<MemberResult> _updateBlockMembers({
+    @required List<String> members,
+    @required String op,
+  }) async {
+    if (members.isEmpty) {
+      throw ArgumentError(
+        'members should not be empty.',
+      );
+    }
+    assert(op == 'block' || op == 'unblock');
+    var args = {
+      'clientId': client.id,
+      'conversationId': id,
+      'm': members,
+      'op': op,
+    };
+    final Map result = await call(
+      method: 'updateBlockMembers',
+      arguments: args,
+    );
+    _rawData['m'] = result['m'];
+    _rawData['updatedAt'] = result['udate'];
+    return MemberResult._from(result);
+  }
+
+  Future<MemberResult> _updateMuteMembers({
+    @required List<String> members,
+    @required String op,
+  }) async {
+    if (members.isEmpty) {
+      throw ArgumentError(
+        'members should not be empty.',
+      );
+    }
+    assert(op == 'mute' || op == 'unmute');
+    var args = {
+      'clientId': client.id,
+      'conversationId': id,
+      'm': members,
+      'op': op,
+    };
+    final Map result = await call(
+      method: 'updateMuteMembers',
+      arguments: args,
+    );
+    _rawData['m'] = result['m'];
+    _rawData['updatedAt'] = result['udate'];
+    return MemberResult._from(result);
+  }
+
   Future<void> _muteToggle({
     @required String op,
   }) async {
@@ -687,7 +793,15 @@ class Conversation with _Utilities {
     assert(op == 'joined' ||
         op == 'left' ||
         op == 'members-joined' ||
-        op == 'members-left');
+        op == 'members-left' ||
+        op == 'muted' ||
+        op == 'unmuted' ||
+        op == 'members-muted' ||
+        op == 'members-unmuted' ||
+        op == 'blocked' ||
+        op == 'unblocked' ||
+        op == 'members-blocked' ||
+        op == 'members-unblocked');
     final List m = args['m'];
     final String initBy = args['initBy'];
     final String udate = args['udate'];
@@ -733,6 +847,90 @@ class Conversation with _Utilities {
       case 'members-left':
         if (client.onMembersLeft != null) {
           client.onMembersLeft(
+            client: client,
+            conversation: this,
+            members: m,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'muted':
+        if (client.onMuted != null) {
+          client.onMuted(
+            client: client,
+            conversation: this,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'unmuted':
+        if (client.onUnmuted != null) {
+          client.onUnmuted(
+            client: client,
+            conversation: this,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'members-muted':
+        if (client.onMembersMuted != null) {
+          client.onMembersMuted(
+            client: client,
+            conversation: this,
+            members: m,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'members-unmuted':
+        if (client.onMembersUnMuted != null) {
+          client.onMembersUnMuted(
+            client: client,
+            conversation: this,
+            members: m,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'blocked':
+        if (client.onBlocked != null) {
+          client.onBlocked(
+            client: client,
+            conversation: this,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'unblocked':
+        if (client.onUnblocked != null) {
+          client.onUnblocked(
+            client: client,
+            conversation: this,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'members-blocked':
+        if (client.onMembersBlocked != null) {
+          client.onMembersBlocked(
+            client: client,
+            conversation: this,
+            members: m,
+            byClientID: initBy,
+            atDate: parseIsoString(udate),
+          );
+        }
+        break;
+      case 'members-unblocked':
+        if (client.onMembersUnBlocked != null) {
+          client.onMembersUnBlocked(
             client: client,
             conversation: this,
             members: m,

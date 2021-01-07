@@ -69,6 +69,10 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                     delegator.queryMessage(parameters: arguments, callback: result)
                 case "updateMembers":
                     delegator.updateMembers(parameters: arguments, callback: result)
+                case "updateBlockMembers":
+                    delegator.updateBlockMembers(parameters: arguments, callback: result)
+                case "updateMuteMembers":
+                    delegator.updateMuteMembers(parameters: arguments, callback: result)
                 case "muteToggle":
                     delegator.muteToggle(parameters: arguments, callback: result)
                 case "updateData":
@@ -679,6 +683,136 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         }
     }
     
+    func updateBlockMembers(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                let op = parameters["op"] as! String
+                let m = parameters["m"] as! [String]
+                do {
+                    let handleResult: (IMConversation.MemberResult) -> Void = { result in
+                        switch result {
+                        case .allSucceeded:
+                            var successData: [String: Any] = ["allowedPids": m]
+                            if let members = conversation.members {
+                                successData["m"] = members
+                            }
+                            if let udate = conversation.updatedAt {
+                                successData["udate"] = udate.lcDate.isoString
+                            }
+                            self.mainAsync(["success": successData], callback)
+                        case let .slicing(success: success, failure: failure):
+                            var successData: [String: Any] = [:]
+                            if let sucess = success {
+                                successData["allowedPids"] = sucess
+                            }
+                            var failedPids: [[String: Any]] = []
+                            for item in failure {
+                                failedPids.append([
+                                    "pids": item.IDs,
+                                    "error": self.error(item.error),
+                                ])
+                            }
+                            successData["failedPids"] = failedPids
+                            if let members = conversation.members {
+                                successData["m"] = members
+                            }
+                            if let udate = conversation.updatedAt {
+                                successData["udate"] = udate.lcDate.isoString
+                            }
+                            self.mainAsync(["success": successData], callback)
+                        case let .failure(error: error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                    switch op {
+                    case "block":
+                        try conversation.block(members: Set(m)) { (result) in
+                            handleResult(result)
+                        }
+                    case "unblock":
+                        try conversation.unblock(members: Set(m)) { (result) in
+                            handleResult(result)
+                        }
+                    default:
+                        fatalError()
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    func updateMuteMembers(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                let op = parameters["op"] as! String
+                let m = parameters["m"] as! [String]
+                do {
+                    let handleResult: (IMConversation.MemberResult) -> Void = { result in
+                        switch result {
+                        case .allSucceeded:
+                            var successData: [String: Any] = ["allowedPids": m]
+                            if let members = conversation.members {
+                                successData["m"] = members
+                            }
+                            if let udate = conversation.updatedAt {
+                                successData["udate"] = udate.lcDate.isoString
+                            }
+                            self.mainAsync(["success": successData], callback)
+                        case let .slicing(success: success, failure: failure):
+                            var successData: [String: Any] = [:]
+                            if let sucess = success {
+                                successData["allowedPids"] = sucess
+                            }
+                            var failedPids: [[String: Any]] = []
+                            for item in failure {
+                                failedPids.append([
+                                    "pids": item.IDs,
+                                    "error": self.error(item.error),
+                                ])
+                            }
+                            successData["failedPids"] = failedPids
+                            if let members = conversation.members {
+                                successData["m"] = members
+                            }
+                            if let udate = conversation.updatedAt {
+                                successData["udate"] = udate.lcDate.isoString
+                            }
+                            self.mainAsync(["success": successData], callback)
+                        case let .failure(error: error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                    switch op {
+                    case "mute":
+                        try conversation.mute(members: Set(m)) { (result) in
+                            handleResult(result)
+                        }
+                    case "unmute":
+                        try conversation.unmute(members: Set(m)) { (result) in
+                            handleResult(result)
+                        }
+                    default:
+                        fatalError()
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
     func muteToggle(parameters: [String: Any], callback: @escaping FlutterResult) {
         self.client.getCachedConversation(
             ID: parameters["conversationId"] as! String)
@@ -874,6 +1008,74 @@ extension IMClientDelegator: IMClientDelegate {
             self.invoke("onConversationMembersUpdate", args)
         case let .membersLeft(members: members, byClientID: byClientID, at: at):
             args["op"] = "members-left"
+            args["m"] = members
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .blocked(byClientID: byClientID, at: at):
+            args["op"] = "blocked"
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .unblocked(byClientID: byClientID, at: at):
+            args["op"] = "unblocked"
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .muted(byClientID: byClientID, at: at):
+            args["op"] = "muted"
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .unmuted(byClientID: byClientID, at: at):
+            args["op"] = "unmuted"
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .membersBlocked(members: members, byClientID: byClientID, at: at):
+            args["op"] = "members-blocked"
+            args["m"] = members
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .membersUnblocked(members: members, byClientID: byClientID, at: at):
+            args["op"] = "members-unblocked"
+            args["m"] = members
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .membersMuted(members: members, byClientID: byClientID, at: at):
+            args["op"] = "members-muted"
+            args["m"] = members
+            args["members"] = conversation.members
+            args["initBy"] = byClientID
+            if let at = at {
+                args["udate"] = at.lcDate.isoString
+            }
+            self.invoke("onConversationMembersUpdate", args)
+        case let .membersUnmuted(members: members, byClientID: byClientID, at: at):
+            args["op"] = "members-unmuted"
             args["m"] = members
             args["members"] = conversation.members
             args["initBy"] = byClientID

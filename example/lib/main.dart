@@ -1492,6 +1492,241 @@ UnitTestCase queryConversation() => UnitTestCase(
       return [client];
     });
 
+UnitTestCase blockConversationMembers() => UnitTestCase(
+    title: 'Case: Block Conversation Members',
+    extraExpectedCount: 4,
+    testingLogic: (decrease) async {
+      // client
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+      Client client3 = Client(id: uuid());
+      // event
+      client2.onBlocked = ({
+        Client client,
+        Conversation conversation,
+        String byClientID,
+        DateTime atDate,
+      }) {
+        try {
+          client2.onBlocked = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(byClientID == client1.id);
+          assert(atDate != null);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      client2.onUnblocked = ({
+        Client client,
+        Conversation conversation,
+        String byClientID,
+        DateTime atDate,
+      }) {
+        try {
+          client2.onUnblocked = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(byClientID == client1.id);
+          assert(atDate != null);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      client3.onMembersBlocked = ({
+        Client client,
+        Conversation conversation,
+        List members,
+        String byClientID,
+        DateTime atDate,
+      }) {
+        try {
+          client1.onMembersBlocked = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(members.length == 1);
+          assert(members.contains(client2.id));
+          assert(byClientID == client1.id);
+          assert(atDate != null);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      client3.onMembersUnBlocked = ({
+        Client client,
+        Conversation conversation,
+        List members,
+        String byClientID,
+        DateTime atDate,
+      }) {
+        try {
+          client1.onMembersUnBlocked = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(members.length == 1);
+          assert(members.contains(client2.id));
+          assert(byClientID == client1.id);
+          assert(atDate != null);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+
+      // open
+      await client1.open();
+      await client2.open();
+      await client3.open();
+      // create unique conversation
+      Conversation conversation = await client1.createConversation(
+        members: {client1.id, client2.id, client3.id},
+      );
+      assert(conversation.id != null);
+      MemberResult blockMemberResult =
+          await conversation.blockMembers(members: {client2.id});
+      assert(blockMemberResult.allSucceeded);
+      assert(blockMemberResult.succeededMembers.length == 1);
+      assert(blockMemberResult.succeededMembers.contains(client2.id));
+      assert(conversation.members.length == 3);
+      assert(conversation.members.contains(client1.id));
+      assert(conversation.members.contains(client2.id));
+      assert(conversation.members.contains(client3.id));
+
+      MemberResult unBlockMemberResult =
+          await conversation.unblockMembers(members: {client2.id});
+      assert(unBlockMemberResult.allSucceeded);
+      assert(unBlockMemberResult.succeededMembers.length == 1);
+      assert(unBlockMemberResult.succeededMembers.contains(client2.id));
+      assert(conversation.members.length == 3);
+      assert(conversation.members.contains(client1.id));
+      assert(conversation.members.contains(client2.id));
+      assert(conversation.members.contains(client3.id));
+
+      // recycle
+      return [client1, client2, client3];
+    });
+
+UnitTestCase muteConversationMembers() => UnitTestCase(
+    title: 'Case: Mute Conversation Members',
+    extraExpectedCount: 4,
+    testingLogic: (decrease) async {
+      // client
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+      Client client3 = Client(id: uuid());
+
+      // event
+      client2.onMuted = ({
+        Client client,
+        Conversation conversation,
+        String byClientID,
+        DateTime atDate,
+      }) {
+        try {
+          client2.onMuted = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(byClientID == client1.id);
+          assert(atDate != null);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      client2.onUnmuted = ({
+        Client client,
+        Conversation conversation,
+        String byClientID,
+        DateTime atDate,
+      }) {
+        try {
+          client2.onUnmuted = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(byClientID == client1.id);
+          assert(atDate != null);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      client3.onMembersMuted= ({
+        Client client,
+        Conversation conversation,
+        List members,
+        String byClientID,
+        DateTime atDate,
+      }) {
+        try {
+          client1.onMembersMuted = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(members.length == 1);
+          assert(members.contains(client2.id));
+          assert(byClientID == client1.id);
+          assert(atDate != null);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+      client3.onMembersUnMuted = ({
+        Client client,
+        Conversation conversation,
+        List members,
+        String byClientID,
+        DateTime atDate,
+      }) {
+        try {
+          client1.onMembersUnMuted = null;
+          assert(client != null);
+          assert(conversation != null);
+          assert(members.length == 1);
+          assert(members.contains(client2.id));
+          assert(byClientID == client1.id);
+          assert(atDate != null);
+          decrease(1);
+        } catch (e) {
+          decrease(-1, e: e);
+        }
+      };
+
+      // open
+      await client1.open();
+      await client2.open();
+      await client3.open();
+      // create unique conversation
+      Conversation conversation = await client1.createConversation(
+        members: {client1.id, client2.id, client3.id},
+      );
+      assert(conversation.id != null);
+      MemberResult muteMemberResult =
+      await conversation.muteMembers(members: {client2.id});
+      assert(muteMemberResult.allSucceeded);
+      assert(muteMemberResult.succeededMembers.length == 1);
+      assert(muteMemberResult.succeededMembers.contains(client2.id));
+      assert(conversation.members.length == 3);
+      assert(conversation.members.contains(client1.id));
+      assert(conversation.members.contains(client2.id));
+      assert(conversation.members.contains(client3.id));
+
+      MemberResult unMuteMemberResult =
+      await conversation.unmuteMembers(members: {client2.id});
+      assert(unMuteMemberResult.allSucceeded);
+      assert(unMuteMemberResult.succeededMembers.length == 1);
+      assert(unMuteMemberResult.succeededMembers.contains(client2.id));
+      assert(conversation.members.length == 3);
+      assert(conversation.members.contains(client1.id));
+      assert(conversation.members.contains(client2.id));
+      assert(conversation.members.contains(client3.id));
+
+      // recycle
+      return [client1, client2, client3];
+    });
+
 String aID = 's0g5kxj7ajtf6n2wt8fqty18p25gmvgrh7b430iuugsde212';
 String mKey = 'f7m5491orhbdquahbz57wf3zmnrlqnt6kage2ueumagfyosh';
 
@@ -1769,6 +2004,10 @@ class UnitTestCase {
     client.onUnreadMessageCountUpdated = null;
     client.onLastReadAtUpdated = null;
     client.onLastDeliveredAtUpdated = null;
+    client.onBlocked = null;
+    client.onUnblocked = null;
+    client.onMuted = null;
+    client.onUnmuted = null;
     // message
     client.onMessage = null;
     client.onMessageUpdated = null;
@@ -1801,6 +2040,8 @@ class _MyAppState extends State<MyApp> {
     muteConversation(),
     updateConversation(),
     queryConversation(),
+    blockConversationMembers(),
+    muteConversationMembers(),
   ];
   List<UnitTestCase> signatureUnitCases = [
     signClientOpenAndConversationOperation(),
