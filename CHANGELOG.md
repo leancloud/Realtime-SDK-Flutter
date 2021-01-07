@@ -1,3 +1,8 @@
+## 1.0.0-beta.11
+
+* Support blocking members
+* Support muting members
+
 ## 1.0.0-beta.10
 
 * Fix some bug on the platform android
