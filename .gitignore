@@ -6,5 +6,5 @@
 .pub/
 
 .idea/
-
+*.iml
 build/
