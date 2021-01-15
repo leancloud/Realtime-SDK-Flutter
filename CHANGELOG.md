@@ -1,3 +1,9 @@
+## 1.0.0-beta.12
+
+* Update dependencies
+  * Swift SDK >= *17.6.7*
+  * Java SDK >= *7.1.1*
+
 ## 1.0.0-beta.11
 
 * Support blocking members
