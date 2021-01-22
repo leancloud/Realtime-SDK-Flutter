@@ -134,6 +134,7 @@ it's optional, so if you no need of push service, you can ignore this section.
         }
         
         override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+            super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
             /*
             set APNs deviceToken and Team ID.
             */
@@ -154,6 +155,7 @@ it's optional, so if you no need of push service, you can ignore this section.
         }
 
         override func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+            super.application(application, didFailToRegisterForRemoteNotificationsWithError: error)
             print(error)
         }
     }
