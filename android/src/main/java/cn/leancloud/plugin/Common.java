@@ -1,6 +1,7 @@
 package cn.leancloud.plugin;
 
 
+import cn.leancloud.im.v2.callback.AVIMConversationIterableResult;
 import cn.leancloud.json.JSONObject;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +30,8 @@ public class Common {
   public static final String Method_Patch_Message = "patchMessage";
   public static final String Method_Get_Message_Receipt = "fetchReceiptTimestamp";
   public static final String Method_Query_Message = "queryMessage";
+  public static final String Method_Query_Block_Members = "queryBlockedMembers";
+  public static final String Method_Query_Mute_Members = "queryMutedMembers";
   public static final String Method_Update_Members = "updateMembers";
   public static final String Method_Update_Block_Members = "updateBlockMembers";
   public static final String Method_Update_Mute_Members = "updateMuteMembers";
@@ -97,6 +100,7 @@ public class Common {
   public static final String Param_Query_End = "end";
   public static final String Param_Query_Direction = "direction";
   public static final String Param_Query_MsgType = "type";
+  public static final String Param_Query_Next = "next";
 
   public static final String Param_Message_Old = "oldMessage";
   public static final String Param_Message_New = "newMessage";
@@ -152,6 +156,13 @@ public class Common {
     return 0;
   }
 
+  public static String getParamString(MethodCall call, String key) {
+    if (call.hasArgument(key)) {
+      return call.argument(key);
+    }
+    return null;
+  }
+
   public static Signature getMethodSignature(MethodCall call, String key) {
     Map<String, Object> param = getMethodParam(call, key);
     if (null == param) {
@@ -175,7 +186,7 @@ public class Common {
     }
     Map<String, Object> error = new HashMap<>();
     if (ex instanceof AVIMException) {
-      error.put("code", String.valueOf(((AVIMException)ex).getAppCode()));
+      error.put("code", String.valueOf(((AVIMException) ex).getAppCode()));
     } else {
       error.put("code", String.valueOf(ex.getCode()));
     }
@@ -248,11 +259,11 @@ public class Common {
       option.setReceipt((boolean) data.get("receipt"));
     }
     if (data.containsKey("priority")) {
-      int priority = (int)data.get("priority");
+      int priority = (int) data.get("priority");
       option.setPriority(AVIMMessageOption.MessagePriority.getProiority(priority));
     }
     if (data.containsKey("pushData")) {
-      option.setPushDataEx((Map<String, Object>)data.get("pushData"));
+      option.setPushDataEx((Map<String, Object>) data.get("pushData"));
     }
     return option;
   }
@@ -275,7 +286,7 @@ public class Common {
 
     result = conversation.dumpRawData();
     if (result.containsKey("conv_type") && result.containsKey("uniqueId") && !result.containsKey("unique")) {
-      if (1 == (int)result.get("conv_type") && !StringUtil.isEmpty((String) result.get("uniqueId"))) {
+      if (1 == (int) result.get("conv_type") && !StringUtil.isEmpty((String) result.get("uniqueId"))) {
         result.put("unique", true);
       }
     }

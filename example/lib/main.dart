@@ -1485,26 +1485,10 @@ UnitTestCase updateConversation() => UnitTestCase(
 UnitTestCase queryConversation() => UnitTestCase(
     title: 'Case: Query Conversation',
     testingLogic: (decrease) async {
-      // client
-//      String clientId = uuid();
       String clientId = 'b4add8ea-1443-48d0-87ef-057760e4d17c';
       Client client = Client(id: clientId);
       // open
       await client.open();
-      // create unique
-//      await client.createConversation(
-//        isUnique: true,
-//        members: {clientId, uuid()},
-//      );
-//      // create non-unique
-//      Conversation nonUniqueConversation = await client.createConversation(
-//        isUnique: false,
-//        members: {clientId, uuid()},
-//      );
-//      Message message = Message();
-//      message.stringContent = uuid();
-//      await nonUniqueConversation.send(message: message);
-//      await delay();
       ConversationQuery query = client.conversationQuery();
       query.whereContainedIn(
         'm',
@@ -1518,10 +1502,8 @@ UnitTestCase queryConversation() => UnitTestCase(
       query.includeLastMessage = true;
       List<Conversation> conversations = await query.find();
       assert(conversations.length == 1);
-//      assert(conversations[0].id == nonUniqueConversation.id);
       assert(conversations[0].members == null);
       assert(conversations[0].lastMessage != null);
-//      assert(conversations[0].lastMessage != message);
       // recycle
       return [client];
     });
@@ -1534,6 +1516,8 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
       Client client3 = Client(id: uuid());
+      Client client4 = Client(id: uuid());
+
       // event
       client2.onBlocked = ({
         Client client,
@@ -1614,6 +1598,8 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
       await client1.open();
       await client2.open();
       await client3.open();
+      await client4.open();
+
       // create unique conversation
       Conversation conversation = await client1.createConversation(
         members: {client1.id, client2.id, client3.id},
@@ -1636,6 +1622,15 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
       assert(unBlockMemberResult.succeededMembers.length == 1);
       assert(unBlockMemberResult.succeededMembers.contains(client2.id));
 
+      //query blocked members
+      Conversation blockConversation = await client1.createConversation(
+        members: {client1.id, client4.id},
+      );
+      await blockConversation.blockMembers(members: {client4.id});
+      QueryMemberResult memberResult =
+          await blockConversation.queryBlockedMembers(limit: 10, next: "0");
+      assert(memberResult.members.contains(client4.id));
+
       // recycle
       return [client1, client2, client3];
     });
@@ -1648,6 +1643,7 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
       Client client3 = Client(id: uuid());
+      Client client4 = Client(id: uuid());
 
       // event
       client2.onMuted = ({
@@ -1729,6 +1725,8 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
       await client1.open();
       await client2.open();
       await client3.open();
+      await client4.open();
+
       // create unique conversation
       Conversation conversation = await client1.createConversation(
         members: {client1.id, client2.id, client3.id},
@@ -1753,6 +1751,15 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
       assert(conversation.members.contains(client1.id));
       assert(conversation.members.contains(client2.id));
       assert(conversation.members.contains(client3.id));
+
+      // query muted members
+      Conversation muteConversation = await client1.createConversation(
+        members: {client1.id, client4.id},
+      );
+      await muteConversation.muteMembers(members: {client4.id});
+      QueryMemberResult memberResult =
+          await muteConversation.queryMutedMembers(limit: 10, next: "0");
+      assert(memberResult.members.contains(client4.id));
 
       // recycle
       return [client1, client2, client3];

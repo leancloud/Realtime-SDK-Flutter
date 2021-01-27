@@ -73,6 +73,10 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                     delegator.updateBlockMembers(parameters: arguments, callback: result)
                 case "updateMuteMembers":
                     delegator.updateMuteMembers(parameters: arguments, callback: result)
+                case "queryBlockedMembers":
+                    delegator.queryBlockedMembers(parameters: arguments, callback: result)
+                case "queryMutedMembers":
+                    delegator.queryMutedMembers(parameters: arguments, callback: result)
                 case "muteToggle":
                     delegator.muteToggle(parameters: arguments, callback: result)
                 case "updateData":
@@ -748,6 +752,36 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
         }
     }
     
+    func queryBlockedMembers(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                do {
+                    try conversation.getBlockedMembers(
+                        limit: parameters["limit"] as? Int ?? 50,
+                        next: parameters["next"] as? String)
+                    {(result) in
+                        switch result {
+                        case .success(value: let membersResult):
+                            var successData: [String: Any] = [:];
+                            successData["client_ids"] = membersResult.members;
+                            successData["next"] = membersResult.next;
+                            self.mainAsync(["success": successData], callback)
+                        case .failure(error: let error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
     func updateMuteMembers(parameters: [String: Any], callback: @escaping FlutterResult) {
         self.client.getCachedConversation(
             ID: parameters["conversationId"] as! String)
@@ -803,6 +837,36 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                         }
                     default:
                         fatalError()
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    func queryMutedMembers(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                do {
+                    try conversation.getMutedMembers(
+                        limit: parameters["limit"] as? Int ?? 50,
+                        next: parameters["next"] as? String)
+                    {(result) in
+                        switch result {
+                        case .success(value: let membersResult):
+                            var successData: [String: Any] = [:];
+                            successData["client_ids"] = membersResult.members;
+                            successData["next"] = membersResult.next;
+                            self.mainAsync(["success": successData], callback)
+                        case .failure(error: let error):
+                            self.mainAsync(self.error(error), callback)
+                        }
                     }
                 } catch {
                     self.mainAsync(self.error(error), callback)
