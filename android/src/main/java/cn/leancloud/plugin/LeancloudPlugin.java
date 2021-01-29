@@ -4,6 +4,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import cn.leancloud.im.v2.callback.AVIMConversationIterableResult;
+import cn.leancloud.im.v2.callback.AVIMConversationIterableResultCallback;
 import cn.leancloud.json.JSON;
 import cn.leancloud.json.JSONObject;
 
@@ -18,6 +20,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import androidx.annotation.NonNull;
+
 import cn.leancloud.AVException;
 import cn.leancloud.AVFile;
 import cn.leancloud.im.AVIMOptions;
@@ -56,7 +59,9 @@ import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.plugin.common.StandardMethodCodec;
 
-/** LeancloudPlugin */
+/**
+ * LeancloudPlugin
+ */
 public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         ClientStatusListener, IMEventNotification {
   private final static String TAG = LeancloudPlugin.class.getSimpleName();
@@ -101,9 +106,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     return new SignatureFactory() {
       private void fillResult2Signature(Object result, Signature signature) {
         if (null != result && (result instanceof Map) && (((Map) result).containsKey("sign"))) {
-          Object signData = ((Map)result).get("sign");
+          Object signData = ((Map) result).get("sign");
           if (null != signData && signData instanceof Map) {
-            Map<String, Object> signMap = (Map<String, Object>)signData;
+            Map<String, Object> signMap = (Map<String, Object>) signData;
             String signatureString = (String) signMap.get("s");
             long timestamp = (long) signMap.get("t");
             String nounce = (String) signMap.get("n");
@@ -297,7 +302,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         @Override
         public void done(AVIMConversation conversation, AVIMException e) {
           if (null != e) {
-            Log.d(TAG,"failed to create conv. cause:" + e.getMessage());
+            Log.d(TAG, "failed to create conv. cause:" + e.getMessage());
             result.success(Common.wrapException(e));
           } else {
             Map<String, Object> convData = Common.wrapConversation(conversation);
@@ -339,11 +344,11 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         @Override
         public void done(List<AVIMConversation> conversations, AVIMException e) {
           if (null != e) {
-            Log.d(TAG,"failed to query conv. cause:" + e.getMessage());
+            Log.d(TAG, "failed to query conv. cause:" + e.getMessage());
             result.success(Common.wrapException(e));
           } else {
             List<Map<String, Object>> queryResult = new ArrayList<>();
-            for (AVIMConversation conv: conversations) {
+            for (AVIMConversation conv : conversations) {
               queryResult.add(Common.wrapConversation(conv));
             }
             result.success(Common.wrapSuccessResponse(queryResult));
@@ -404,7 +409,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       if (null == updateData || updateData.isEmpty()) {
         result.success(Common.wrapException(AVException.INVALID_PARAMETER, "update attributes is empty."));
       } else {
-        for (Map.Entry<String, Object> entry: updateData.entrySet()) {
+        for (Map.Entry<String, Object> entry : updateData.entrySet()) {
           String key = entry.getKey();
           Object val = entry.getValue();
           if (isDeleteOperation(val)) {
@@ -438,7 +443,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
             if (null != failures) {
               List<Map<String, Object>> failedList = new ArrayList<>();
-              for (AVIMOperationFailure f: failures) {
+              for (AVIMOperationFailure f : failures) {
                 Map<String, Object> failedData = new HashMap<>();
                 failedData.put("pids", f.getMemberIds());
                 Map<String, String> errorMap = new HashMap<>();
@@ -464,7 +469,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       } else {
         result.notImplemented();
       }
-    }else if (call.method.equals(Common.Method_Update_Block_Members)) {
+    } else if (call.method.equals(Common.Method_Update_Block_Members)) {
       String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
       List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
       AVIMOperationPartiallySucceededCallback callback = new AVIMOperationPartiallySucceededCallback() {
@@ -478,7 +483,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
             if (null != failures) {
               List<Map<String, Object>> failedList = new ArrayList<>();
-              for (AVIMOperationFailure f: failures) {
+              for (AVIMOperationFailure f : failures) {
                 Map<String, Object> failedData = new HashMap<>();
                 failedData.put("pids", f.getMemberIds());
                 Map<String, String> errorMap = new HashMap<>();
@@ -518,7 +523,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
             if (null != failures) {
               List<Map<String, Object>> failedList = new ArrayList<>();
-              for (AVIMOperationFailure f: failures) {
+              for (AVIMOperationFailure f : failures) {
                 Map<String, Object> failedData = new HashMap<>();
                 failedData.put("pids", f.getMemberIds());
                 Map<String, String> errorMap = new HashMap<>();
@@ -544,6 +549,46 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       } else {
         result.notImplemented();
       }
+    } else if (call.method.equals(Common.Method_Query_Block_Members)) {
+      int limit = Common.getParamInt(call, Common.Param_Query_Limit);
+      String next = Common.getParamString(call, Common.Param_Query_Next);
+      AVIMConversationIterableResultCallback callback = new AVIMConversationIterableResultCallback() {
+        @Override
+        public void done(AVIMConversationIterableResult iterableResult, AVIMException e) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("client_ids", iterableResult.getMembers());
+            resultMap.put("next", iterableResult.getNext());
+            result.success(Common.wrapSuccessResponse(resultMap));
+          }
+        }
+      };
+      if (0 == limit) {
+        limit = 50;
+      }
+      conversation.queryBlockedMembers(limit, next, callback);
+    } else if (call.method.equals(Common.Method_Query_Mute_Members)) {
+      int limit = Common.getParamInt(call, Common.Param_Query_Limit);
+      String next = Common.getParamString(call, Common.Param_Query_Next);
+      AVIMConversationIterableResultCallback callback = new AVIMConversationIterableResultCallback() {
+        @Override
+        public void done(AVIMConversationIterableResult iterableResult, AVIMException e) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            Map<String, Object> resultMap = new HashMap<>();
+            resultMap.put("client_ids", iterableResult.getMembers());
+            resultMap.put("next", iterableResult.getNext());
+            result.success(Common.wrapSuccessResponse(resultMap));
+          }
+        }
+      };
+      if (0 == limit) {
+        limit = 50;
+      }
+      conversation.queryMutedMembers(limit, next, callback);
     } else if (call.method.equals(Common.Method_Get_Message_Receipt)) {
       conversation.fetchReceiptTimestamps(new AVIMConversationCallback() {
         @Override
@@ -585,7 +630,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
             result.success(Common.wrapException(e));
           } else {
             List<Map<String, Object>> opResult = new ArrayList<>();
-            for (AVIMMessage msg: messages) {
+            for (AVIMMessage msg : messages) {
               opResult.add(Common.wrapMessage(msg));
             }
             result.success(Common.wrapSuccessResponse(opResult));
@@ -661,7 +706,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         if (null != avFile) {
           ((AVIMFileMessage) message).attachAVFile(avFile, keepFileName);
           if (!StringUtil.isEmpty(format)) {
-            Map<String, Object> metaData = ((AVIMFileMessage)message).getFileMetaData();
+            Map<String, Object> metaData = ((AVIMFileMessage) message).getFileMetaData();
             if (null != metaData) {
               metaData.put("format", format);
             }
@@ -677,7 +722,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           option = new AVIMMessageOption();
         }
         try {
-          boolean isTransient = (boolean)msgData.get(Common.Param_Message_Transient);
+          boolean isTransient = (boolean) msgData.get(Common.Param_Message_Transient);
           option.setTransient(isTransient);
         } catch (java.lang.Exception ex) {
           Log.w(TAG, "invalid transient param. cause: " + ex.getMessage());
@@ -741,7 +786,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         if (null != avFile) {
           ((AVIMFileMessage) newMessage).attachAVFile(avFile, keepFileName);
           if (!StringUtil.isEmpty(format)) {
-            Map<String, Object> metaData = ((AVIMFileMessage)newMessage).getFileMetaData();
+            Map<String, Object> metaData = ((AVIMFileMessage) newMessage).getFileMetaData();
             if (null != metaData) {
               metaData.put("format", format);
             }
@@ -799,6 +844,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
   /**
    * ClientStatusListener#onDisconnected
+   *
    * @param client client instance.
    */
   public void onDisconnected(AVIMClient client) {
@@ -807,6 +853,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
   /**
    * ClientStatusListener#onResumed
+   *
    * @param client client instance.
    */
   public void onResumed(AVIMClient client) {

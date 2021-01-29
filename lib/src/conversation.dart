@@ -47,6 +47,22 @@ class MemberResult with _Utilities {
       '\n)';
 }
 
+/// The result of operations for [Conversation.queryBlockedMembers] and [Conversation.queryMutedMembers].
+class QueryMemberResult with _Utilities {
+  final List members;
+  final String next;
+
+  QueryMemberResult._from(Map data)
+      : members = data['client_ids'] ?? [],
+        next = data['next'] ?? null;
+
+  @override
+  String toString() => '\nLC.RTM.QueryMemberResult('
+      '\n  members: $members, '
+      '\n  next: $next,'
+      '\n)';
+}
+
 /// The priority for sending [Message] in [ChatRoom].
 enum MessagePriority {
   /// for [Message] which need high-real-time.
@@ -564,6 +580,38 @@ class Conversation with _Utilities {
     );
   }
 
+  /// Get the blocked members in the conversation.
+  ///
+  /// [limit]'s default is `50`, should not more than `100`.
+  /// [next]'s default is `null`.
+  ///
+  /// Returns a list of members.
+  Future<QueryMemberResult> queryBlockedMembers({
+    int limit = 50,
+    String next,
+  }) async {
+    var args = <dynamic, dynamic>{
+      'clientId': client.id,
+      'conversationId': id,
+    };
+    if (next != null) {
+      args['next'] = next;
+    }
+    if (limit != null) {
+      if (limit < 1 || limit > 100) {
+        throw ArgumentError(
+          'limit should in [1...100].',
+        );
+      }
+      args['limit'] = limit;
+    }
+    final Map result = await call(
+      method: 'queryBlockedMembers',
+      arguments: args,
+    );
+    return QueryMemberResult._from(result);
+  }
+
   /// To mute [members] from the [Conversation].
   ///
   /// [members] should not be empty.
@@ -590,6 +638,38 @@ class Conversation with _Utilities {
       members: members.toList(),
       op: 'unmute',
     );
+  }
+
+  /// Get the muted members in the conversation.
+  ///
+  /// [limit]'s default is `50`, should not more than `100`.
+  /// [next]'s default is `null`.
+  ///
+  /// Returns a list of members.
+  Future<QueryMemberResult> queryMutedMembers({
+    int limit = 50,
+    String next,
+  }) async {
+    var args = <dynamic, dynamic>{
+      'clientId': client.id,
+      'conversationId': id,
+    };
+    if (next != null) {
+      args['next'] = next;
+    }
+    if (limit != null) {
+      if (limit < 1 || limit > 100) {
+        throw ArgumentError(
+          'limit should in [1...100].',
+        );
+      }
+      args['limit'] = limit;
+    }
+    final Map result = await call(
+      method: 'queryMutedMembers',
+      arguments: args,
+    );
+    return QueryMemberResult._from(result);
   }
 
   /// To turn off the offline notifications for [Conversation.client] about this [Conversation].
