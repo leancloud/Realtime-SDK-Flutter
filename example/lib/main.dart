@@ -1765,6 +1765,29 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
       return [client1, client2, client3];
     });
 
+UnitTestCase updateMemberRole() => UnitTestCase(
+    title: 'Case: Update Conversation Member Role',
+    testingLogic: (decrease) async {
+      // client
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+
+      // open
+      await client1.open();
+      await client2.open();
+
+      // create unique conversation
+      Conversation conversation = await client1.createConversation(
+        members: {client1.id, client2.id},
+      );
+      assert(conversation.id != null);
+      await conversation.updateMemberRole(
+          role: ConversationRole.value(MemberRole.manager),
+          memberId: client2.id);
+
+      return [client1, client2];
+    });
+
 String aID = 's0g5kxj7ajtf6n2wt8fqty18p25gmvgrh7b430iuugsde212';
 String mKey = 'f7m5491orhbdquahbz57wf3zmnrlqnt6kage2ueumagfyosh';
 
@@ -2080,6 +2103,7 @@ class _MyAppState extends State<MyApp> {
     queryConversation(),
     blockConversationMembers(),
     muteConversationMembers(),
+    updateMemberRole(),
   ];
   List<UnitTestCase> signatureUnitCases = [
     signClientOpenAndConversationOperation(),

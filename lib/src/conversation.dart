@@ -75,6 +75,34 @@ enum MessagePriority {
   low,
 }
 
+/// Role of the member in the conversation.
+/// Privilege: owner > manager > member.
+enum MemberRole {
+  /// - member: General member.
+  member,
+
+  /// - manager: Who can manage the conversation.
+  manager,
+
+  /// - owner: Who owns the conversation.
+  owner,
+}
+
+class ConversationRole {
+  static String value(MemberRole role) {
+    switch (role) {
+      case MemberRole.member:
+        return "member";
+      case MemberRole.manager:
+        return "manager";
+      case MemberRole.owner:
+        return "owner";
+      default:
+        return "member";
+    }
+  }
+}
+
 /// The direction for querying the history of [Message].
 enum MessageQueryDirection {
   /// from newest to oldest.
@@ -670,6 +698,40 @@ class Conversation with _Utilities {
       arguments: args,
     );
     return QueryMemberResult._from(result);
+  }
+
+  /// Updating role of the member in the conversaiton.
+  ///
+  /// - Parameters:
+  ///   - role: The role will be updated.
+  ///   - memberID: The ID of the member who will be updated.
+  ///   - completion: Result of callback.
+  /// - Throws: If role parameter is owner, throw error.
+  Future<void> updateMemberRole({
+    @required String role,
+    @required String memberId,
+  }) async {
+    var args = <dynamic, dynamic>{
+      'clientId': client.id,
+      'conversationId': id,
+    };
+    if (role == null) {
+      throw ArgumentError.notNull(
+        'role',
+      );
+    }
+    if (memberId == null) {
+      throw ArgumentError.notNull(
+        'memberId',
+      );
+    }
+    args['role'] = role;
+    args['memberId'] = memberId;
+
+    _rawData = await call(
+      method: 'updateMemberRole',
+      arguments: args,
+    );
   }
 
   /// To turn off the offline notifications for [Conversation.client] about this [Conversation].

@@ -85,6 +85,8 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                     delegator.countMembers(parameters: arguments, callback: result)
                 case "queryConversation":
                     delegator.queryConversation(parameters: arguments, callback: result)
+                case "updateMemberRole":
+                    delegator.updateMemberRole(parameters: arguments, callback: result)
                 default:
                     fatalError("unknown method.")
                 }
@@ -955,6 +957,35 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                     case .failure(error: let error):
                         self.mainAsync(self.error(error), callback)
                     }
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    func updateMemberRole(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                do {
+                    var memberRole : IMConversation.MemberRole?
+                    if let roleString = parameters["role"] as? String,
+                        let roleValue = IMConversation.MemberRole(rawValue: roleString) {
+                        memberRole = roleValue
+                    }
+                    try conversation.update(role: memberRole ?? IMConversation.MemberRole.member, ofMember: parameters["memberId"] as! String) { (result) in
+                        switch result {
+                        case .success:
+                            self.mainAsync(["success": conversation.rawData], callback)
+                        case .failure(error: let error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
                 }
             case .failure(error: let error):
                 self.mainAsync(self.error(error), callback)

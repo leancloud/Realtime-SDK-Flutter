@@ -6,6 +6,7 @@ import android.util.Log;
 
 import cn.leancloud.im.v2.callback.AVIMConversationIterableResult;
 import cn.leancloud.im.v2.callback.AVIMConversationIterableResultCallback;
+import cn.leancloud.im.v2.conversation.ConversationMemberRole;
 import cn.leancloud.json.JSON;
 import cn.leancloud.json.JSONObject;
 
@@ -589,6 +590,19 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         limit = 50;
       }
       conversation.queryMutedMembers(limit, next, callback);
+    } else if (call.method.equals(Common.Method_Update_Member_Role)) {
+      String role = Common.getParamString(call, Common.Param_Conv_Role);
+      String memberId = Common.getParamString(call, Common.Param_Conv_Member_Id);
+      conversation.updateMemberRole(memberId, ConversationMemberRole.fromString(role), new AVIMConversationCallback() {
+        @Override
+        public void done(AVIMException e) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            result.success(Common.wrapSuccessResponse(Common.wrapConversation(conversation)));
+          }
+        }
+      });
     } else if (call.method.equals(Common.Method_Get_Message_Receipt)) {
       conversation.fetchReceiptTimestamps(new AVIMConversationCallback() {
         @Override
@@ -862,8 +876,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
   /**
    * ClientStatusListener#onOffline
+   *
    * @param client client instance.
-   * @param code detail code.
+   * @param code   detail code.
    */
   public void onOffline(AVIMClient client, int code) {
     Map<String, Object> param = Common.wrapClient(client);
