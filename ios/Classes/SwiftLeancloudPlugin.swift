@@ -85,6 +85,12 @@ public class SwiftLeancloudPlugin: NSObject, FlutterPlugin {
                     delegator.countMembers(parameters: arguments, callback: result)
                 case "queryConversation":
                     delegator.queryConversation(parameters: arguments, callback: result)
+                case "updateMemberRole":
+                    delegator.updateMemberRole(parameters: arguments, callback: result)
+                case "getAllMemberInfo":
+                    delegator.getAllMemberInfo(parameters: arguments, callback: result)
+                case "getMemberInfo":
+                    delegator.getMemberInfo(parameters: arguments, callback: result)
                 default:
                     fatalError("unknown method.")
                 }
@@ -956,6 +962,105 @@ class IMClientDelegator: ErrorEncoding, EventNotifying {
                         self.mainAsync(self.error(error), callback)
                     }
                 }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    func updateMemberRole(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                do {
+                    var memberRole : IMConversation.MemberRole?
+                    if let roleString = parameters["role"] as? String,
+                        let roleValue = IMConversation.MemberRole(rawValue: roleString) {
+                        memberRole = roleValue
+                    }
+                    try conversation.update(role: memberRole ?? IMConversation.MemberRole.member, ofMember: parameters["memberId"] as! String) { (result) in
+                        switch result {
+                        case .success:
+                            self.mainAsync(["success": conversation.rawData], callback)
+                        case .failure(error: let error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
+                } catch {
+                    self.mainAsync(self.error(error), callback)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    func getAllMemberInfo(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                let handleResult: (LCBooleanResult) -> Void = { result in
+                    switch result {
+                    case .success:
+                        var successData: [String: Any] = [:]
+                        var memberInfos: [[String: Any]] = []
+                        if let table = conversation.memberInfoTable {
+                            if let members: [String]  = conversation.members {
+                                for value in members{
+                                   let memberInfo = table[value]
+                                    if (memberInfo?.role) != nil{
+                                        memberInfos.append([
+                                            "role": memberInfo?.role as Any,
+                                            "memberId": memberInfo?.ID as Any,
+                                            "convId": conversation.ID
+                                        ])
+                                    }
+                                }
+                            }
+                        }
+                        successData["memberInfos"] = memberInfos
+                        self.mainAsync(["success": successData], callback)
+                    case .failure(error: let error):
+                        self.mainAsync(self.error(error), callback)
+                    }
+                }
+                conversation.fetchMemberInfoTable(limit: parameters["limit"] as? Int ?? 500, offset: parameters["offset"] as? Int){ (result) in
+                    handleResult(result)
+                }
+            case .failure(error: let error):
+                self.mainAsync(self.error(error), callback)
+            }
+        }
+    }
+    
+    
+    func getMemberInfo(parameters: [String: Any], callback: @escaping FlutterResult) {
+        self.client.getCachedConversation(
+            ID: parameters["conversationId"] as! String)
+        { (result) in
+            switch result {
+            case .success(value: let conversation):
+                   conversation.getMemberInfo(by: parameters["memberId"] as! String)
+                    {(result) in
+                        switch result {
+                        case .success(value: let membersInfoResult):
+                            var successData: [String: Any] = [:]
+                            var memberInfos: [[String: Any]] = []
+                            memberInfos.append([
+                                "role": membersInfoResult?.role as Any,
+                                "memberId": membersInfoResult?.ID as Any,
+                                "convId": conversation.ID
+                            ])
+                            successData["memberInfos"] = memberInfos
+                            self.mainAsync(["success": successData], callback)
+                        case .failure(error: let error):
+                            self.mainAsync(self.error(error), callback)
+                        }
+                    }
             case .failure(error: let error):
                 self.mainAsync(self.error(error), callback)
             }

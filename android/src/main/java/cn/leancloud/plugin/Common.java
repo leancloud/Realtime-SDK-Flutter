@@ -3,6 +3,7 @@ package cn.leancloud.plugin;
 
 import cn.leancloud.im.v2.callback.AVIMConversationIterableResult;
 import cn.leancloud.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,10 @@ public class Common {
   public static final String Method_Mute_Conversation = "muteToggle";
   public static final String Method_Update_Conversation = "updateData";
   public static final String Method_Query_Member_Count = "countMembers";
+  public static final String Method_Update_Member_Role = "updateMemberRole";
+  public static final String Method_Get_All_Member_Info = "getAllMemberInfo";
+  public static final String Method_Get_Member_Info = "getMemberInfo";
+
 
   public static final String Method_Client_Offline = "onSessionClose";
   public static final String Method_Client_Disconnected = "onSessionDisconnect";
@@ -68,6 +73,8 @@ public class Common {
   public static final String Param_Conv_Attributes = "attr";
   public static final String Param_Conv_TTL = "ttl";
   public static final String Param_Conv_Id = "conversationId";
+  public static final String Param_Conv_Role = "role";
+  public static final String Param_Conv_Member_Id = "memberId";
 
   public static final String Param_Conv_MaxACK_Timestamp = "maxAckTimestamp";
   public static final String Param_Conv_MaxRead_Timestamp = "maxReadTimestamp";
@@ -101,6 +108,7 @@ public class Common {
   public static final String Param_Query_Direction = "direction";
   public static final String Param_Query_MsgType = "type";
   public static final String Param_Query_Next = "next";
+  public static final String Param_Query_Offset = "offset";
 
   public static final String Param_Message_Old = "oldMessage";
   public static final String Param_Message_New = "newMessage";

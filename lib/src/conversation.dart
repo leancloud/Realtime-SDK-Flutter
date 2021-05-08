@@ -62,6 +62,29 @@ class QueryMemberResult with _Utilities {
       '\n  next: $next,'
       '\n)';
 }
+/// The result of operations for [Conversation.getAllMemberInfo] and [Conversation.getMemberInfo].
+class QueryMemberInfoResult with _Utilities {
+  final List memberInfoList;
+
+  QueryMemberInfoResult._from(Map data)
+  : memberInfoList = [] {
+    final List memberInfos = data['memberInfos'] ?? [];
+    for (var item in memberInfos) {
+      final String convId = item['convId'];
+      final String memberId = item['memberId'];
+      final String role = item['role'];
+      memberInfoList.add({
+        'convId': convId,
+        'memberId': memberId,
+        'role':role
+      });
+    }
+  }
+  @override
+  String toString() => '\nLC.RTM.QueryMemberInfoResult('
+      '\n  memberInfoList: $memberInfoList, '
+      '\n)';
+}
 
 /// The priority for sending [Message] in [ChatRoom].
 enum MessagePriority {
@@ -73,6 +96,34 @@ enum MessagePriority {
 
   /// for [Message] which no need real-time and can be dropped.
   low,
+}
+
+/// Role of the member in the conversation.
+/// Privilege: owner > manager > member.
+enum MemberRole {
+  /// - member: General member.
+  member,
+
+  /// - manager: Who can manage the conversation.
+  manager,
+
+  /// - owner: Who owns the conversation.
+  owner,
+}
+
+class ConversationRole {
+  static String value(MemberRole role) {
+    switch (role) {
+      case MemberRole.member:
+        return "member";
+      case MemberRole.manager:
+        return "manager";
+      case MemberRole.owner:
+        return "owner";
+      default:
+        return "member";
+    }
+  }
 }
 
 /// The direction for querying the history of [Message].
@@ -672,6 +723,86 @@ class Conversation with _Utilities {
     return QueryMemberResult._from(result);
   }
 
+  /// Updating role of the member in the conversaiton.
+  ///
+  /// - Parameters:
+  ///   - role: The role will be updated.
+  ///   - memberID: The ID of the member who will be updated.
+  /// - Throws: If role parameter is owner, throw error.
+  Future<void> updateMemberRole({
+    @required String role,
+    @required String memberId,
+  }) async {
+    var args = <dynamic, dynamic>{
+      'clientId': client.id,
+      'conversationId': id,
+    };
+    if (role == null) {
+      throw ArgumentError.notNull(
+        'role',
+      );
+    }
+    if (memberId == null) {
+      throw ArgumentError.notNull(
+        'memberId',
+      );
+    }
+    args['role'] = role;
+    args['memberId'] = memberId;
+
+    _rawData = await call(
+      method: 'updateMemberRole',
+      arguments: args,
+    );
+  }
+
+  /// Get all member information in the conversation.
+  Future<QueryMemberInfoResult> getAllMemberInfo({
+    int limit = 500,
+    int offset,
+  }) async {
+    var args = <dynamic, dynamic>{
+      'clientId': client.id,
+      'conversationId': id,
+    };
+    if (offset != null) {
+      args['offset'] = offset;
+    }
+    if (limit != null) {
+      if (limit < 1 || limit > 500) {
+        throw ArgumentError(
+          'limit should in [1...500].',
+        );
+      }
+      args['limit'] = limit;
+    }
+    final Map result = await call(
+      method: 'getAllMemberInfo',
+      arguments: args,
+    );
+    return QueryMemberInfoResult._from(result);
+  }
+
+  /// Get a member information in the conversation.
+  Future<QueryMemberInfoResult> getMemberInfo({
+    @required String memberId,
+  }) async {
+    var args = <dynamic, dynamic>{
+      'clientId': client.id,
+      'conversationId': id,
+    };
+    if (memberId == null) {
+      throw ArgumentError.notNull(
+        'memberId',
+      );
+    }
+    args['memberId'] = memberId;
+    final Map result = await call(
+      method: 'getMemberInfo',
+      arguments: args,
+    );
+    return QueryMemberInfoResult._from(result);
+  }
   /// To turn off the offline notifications for [Conversation.client] about this [Conversation].
   ///
   /// If success, [Conversation.isMuted] will be `true`.

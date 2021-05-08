@@ -1765,6 +1765,62 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
       return [client1, client2, client3];
     });
 
+UnitTestCase updateMemberRole() => UnitTestCase(
+    title: 'Case: Update Conversation Member Role',
+    testingLogic: (decrease) async {
+      // client
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+
+      // open
+      await client1.open();
+      await client2.open();
+
+      // create unique conversation
+      Conversation conversation = await client1.createConversation(
+        members: {client1.id, client2.id},
+      );
+      assert(conversation.id != null);
+      await conversation.updateMemberRole(
+          role: ConversationRole.value(MemberRole.manager),
+          memberId: client2.id);
+
+      return [client1, client2];
+    });
+
+UnitTestCase getAllMemberInfo() => UnitTestCase(
+    title: 'Case: get Conversation Member Role',
+    testingLogic: (decrease) async {
+      // client
+      Client client1 = Client(id: uuid());
+      Client client2 = Client(id: uuid());
+
+      // open
+      await client1.open();
+      await client2.open();
+
+      // create unique conversation
+      Conversation conversation = await client1.createConversation(
+        members: {client1.id, client2.id},
+      );
+      assert(conversation.id != null);
+      await conversation.updateMemberRole(
+          role: ConversationRole.value(MemberRole.manager),
+          memberId: client2.id);
+
+      QueryMemberInfoResult results1 =
+          await conversation.getAllMemberInfo(limit: 10, offset: 0);
+      assert(results1.memberInfoList.length == 1);
+      assert(results1.memberInfoList.first["role"] == "Manager");
+
+      QueryMemberInfoResult results2 =
+      await conversation.getMemberInfo(memberId: client2.id);
+      assert(results2.memberInfoList.length == 1);
+      assert(results2.memberInfoList.first["role"] == "Manager");
+
+      return [client1, client2];
+    });
+
 String aID = 's0g5kxj7ajtf6n2wt8fqty18p25gmvgrh7b430iuugsde212';
 String mKey = 'f7m5491orhbdquahbz57wf3zmnrlqnt6kage2ueumagfyosh';
 
@@ -2080,6 +2136,8 @@ class _MyAppState extends State<MyApp> {
     queryConversation(),
     blockConversationMembers(),
     muteConversationMembers(),
+    updateMemberRole(),
+    getAllMemberInfo(),
   ];
   List<UnitTestCase> signatureUnitCases = [
     signClientOpenAndConversationOperation(),
