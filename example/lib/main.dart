@@ -1808,10 +1808,15 @@ UnitTestCase getAllMemberInfo() => UnitTestCase(
           role: ConversationRole.value(MemberRole.manager),
           memberId: client2.id);
 
-      QueryMemberInfoResult results =
+      QueryMemberInfoResult results1 =
           await conversation.getAllMemberInfo(limit: 10, offset: 0);
-      assert(results.memberInfoList.length == 1);
-      assert(results.memberInfoList.first["role"] == "Manager");
+      assert(results1.memberInfoList.length == 1);
+      assert(results1.memberInfoList.first["role"] == "Manager");
+
+      QueryMemberInfoResult results2 =
+      await conversation.getMemberInfo(memberId: client2.id);
+      assert(results2.memberInfoList.length == 1);
+      assert(results2.memberInfoList.first["role"] == "Manager");
 
       return [client1, client2];
     });
