@@ -62,6 +62,29 @@ class QueryMemberResult with _Utilities {
       '\n  next: $next,'
       '\n)';
 }
+/// The result of operations for [Conversation.getAllMemberInfo] and [Conversation.getMemberInfo].
+class QueryMemberInfoResult with _Utilities {
+  final List memberInfoList;
+
+  QueryMemberInfoResult._from(Map data)
+  : memberInfoList = [] {
+    final List memberInfos = data['memberInfos'] ?? [];
+    for (var item in memberInfos) {
+      final String convId = item['convId'];
+      final String memberId = item['memberId'];
+      final String role = item['role'];
+      memberInfoList.add({
+        'convId': convId,
+        'memberId': memberId,
+        'role':role
+      });
+    }
+  }
+  @override
+  String toString() => '\nLC.RTM.QueryMemberInfoResult('
+      '\n  memberInfoList: $memberInfoList, '
+      '\n)';
+}
 
 /// The priority for sending [Message] in [ChatRoom].
 enum MessagePriority {
@@ -705,7 +728,6 @@ class Conversation with _Utilities {
   /// - Parameters:
   ///   - role: The role will be updated.
   ///   - memberID: The ID of the member who will be updated.
-  ///   - completion: Result of callback.
   /// - Throws: If role parameter is owner, throw error.
   Future<void> updateMemberRole({
     @required String role,
@@ -734,6 +756,53 @@ class Conversation with _Utilities {
     );
   }
 
+  /// Get all member information in the conversation.
+  Future<QueryMemberInfoResult> getAllMemberInfo({
+    int limit = 500,
+    int offset,
+  }) async {
+    var args = <dynamic, dynamic>{
+      'clientId': client.id,
+      'conversationId': id,
+    };
+    if (offset != null) {
+      args['offset'] = offset;
+    }
+    if (limit != null) {
+      if (limit < 1 || limit > 500) {
+        throw ArgumentError(
+          'limit should in [1...500].',
+        );
+      }
+      args['limit'] = limit;
+    }
+    final Map result = await call(
+      method: 'getAllMemberInfo',
+      arguments: args,
+    );
+    return QueryMemberInfoResult._from(result);
+  }
+
+  /// Get a member information in the conversation.
+  Future<QueryMemberInfoResult> getMemberInfo({
+    @required String memberId,
+  }) async {
+    var args = <dynamic, dynamic>{
+      'clientId': client.id,
+      'conversationId': id,
+    };
+    if (memberId == null) {
+      throw ArgumentError.notNull(
+        'memberId',
+      );
+    }
+    args['memberId'] = memberId;
+    final Map result = await call(
+      method: 'getMemberInfo',
+      arguments: args,
+    );
+    return QueryMemberInfoResult._from(result);
+  }
   /// To turn off the offline notifications for [Conversation.client] about this [Conversation].
   ///
   /// If success, [Conversation.isMuted] will be `true`.

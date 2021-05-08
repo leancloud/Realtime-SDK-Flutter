@@ -4,8 +4,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import cn.leancloud.AVLogger;
 import cn.leancloud.im.v2.callback.AVIMConversationIterableResult;
 import cn.leancloud.im.v2.callback.AVIMConversationIterableResultCallback;
+import cn.leancloud.im.v2.callback.AVIMConversationMemberQueryCallback;
+import cn.leancloud.im.v2.conversation.AVIMConversationMemberInfo;
 import cn.leancloud.im.v2.conversation.ConversationMemberRole;
 import cn.leancloud.json.JSON;
 import cn.leancloud.json.JSONObject;
@@ -50,6 +53,7 @@ import cn.leancloud.im.v2.callback.AVIMOperationFailure;
 import cn.leancloud.im.v2.callback.AVIMOperationPartiallySucceededCallback;
 import cn.leancloud.im.v2.messages.AVIMFileMessage;
 import cn.leancloud.im.v2.messages.AVIMRecalledMessage;
+import cn.leancloud.utils.LogUtil;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -603,6 +607,60 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           }
         }
       });
+    } else if (call.method.equals(Common.Method_Get_All_Member_Info)) {
+      int limit = Common.getParamInt(call, Common.Param_Query_Limit);
+      int offset = Common.getParamInt(call, Common.Param_Query_Offset);
+      AVIMConversationMemberQueryCallback callback = new AVIMConversationMemberQueryCallback() {
+        @Override
+        public void done(List<AVIMConversationMemberInfo> memberInfoList, AVIMException e) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            Map<String, Object> resultMap = new HashMap<>();
+            if (null != memberInfoList) {
+              List<Map<String, Object>> memberInfos = new ArrayList<>();
+              for (AVIMConversationMemberInfo info : memberInfoList) {
+                Map<String, Object> infoData = new HashMap<>();
+                infoData.put("convId", info.getConversationId());
+                infoData.put("memberId",info.getMemberId());
+                infoData.put("role", info.getRole().getName());
+                memberInfos.add(infoData);
+              }
+              resultMap.put("memberInfos", memberInfos);
+            }
+            result.success(Common.wrapSuccessResponse(resultMap));
+          }
+        }
+      };
+      if (0 == limit) {
+        limit = 50;
+      }
+      conversation.getAllMemberInfo(offset,limit,callback);
+    } else if (call.method.equals(Common.Method_Get_Member_Info)) {
+      String memberId = Common.getParamString(call, Common.Param_Conv_Member_Id);
+      AVIMConversationMemberQueryCallback callback = new AVIMConversationMemberQueryCallback() {
+        @Override
+        public void done(List<AVIMConversationMemberInfo> memberInfoList, AVIMException e) {
+          if (null != e) {
+            result.success(Common.wrapException(e));
+          } else {
+            Map<String, Object> resultMap = new HashMap<>();
+            if (null != memberInfoList) {
+              List<Map<String, Object>> memberInfos = new ArrayList<>();
+              for (AVIMConversationMemberInfo info : memberInfoList) {
+                Map<String, Object> infoData = new HashMap<>();
+                infoData.put("convId", info.getConversationId());
+                infoData.put("memberId",info.getMemberId());
+                infoData.put("role", info.getRole());
+                memberInfos.add(infoData);
+              }
+              resultMap.put("memberInfos", memberInfos);
+            }
+            result.success(Common.wrapSuccessResponse(resultMap));
+          }
+        }
+      };
+      conversation.getMemberInfo(memberId,callback);
     } else if (call.method.equals(Common.Method_Get_Message_Receipt)) {
       conversation.fetchReceiptTimestamps(new AVIMConversationCallback() {
         @Override
