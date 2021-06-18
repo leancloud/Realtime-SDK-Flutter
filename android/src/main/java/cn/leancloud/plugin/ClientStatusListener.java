@@ -1,9 +1,9 @@
 package cn.leancloud.plugin;
 
-import cn.leancloud.im.v2.AVIMClient;
+import cn.leancloud.im.v2.LCIMClient;
 
 public interface ClientStatusListener {
-  void onDisconnected(AVIMClient client);
-  void onResumed(AVIMClient client);
-  void onOffline(AVIMClient client, int code);
+  void onDisconnected(LCIMClient client);
+  void onResumed(LCIMClient client);
+  void onOffline(LCIMClient client, int code);
 }

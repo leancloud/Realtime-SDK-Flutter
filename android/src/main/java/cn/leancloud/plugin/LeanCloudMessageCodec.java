@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 
-import cn.leancloud.utils.AVUtils;
+import cn.leancloud.utils.LCUtils;
 import io.flutter.plugin.common.StandardMessageCodec;
 
 public class LeanCloudMessageCodec extends StandardMessageCodec {
@@ -35,7 +35,7 @@ public class LeanCloudMessageCodec extends StandardMessageCodec {
       } else if (value instanceof BigDecimal){
         stream.write(DOUBLE);
         writeAlignment(stream, 8);
-        double newValue = AVUtils.normalize2Double(2, (BigDecimal) value);
+        double newValue = LCUtils.normalize2Double(2, (BigDecimal) value);
         writeDouble(stream, newValue);
       } else {
         throw new IllegalArgumentException("Unsupported Number type: " + value.getClass());
