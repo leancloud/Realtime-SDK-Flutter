@@ -3,12 +3,12 @@ package cn.leancloud.plugin;
 import java.util.HashMap;
 import java.util.Map;
 
-import cn.leancloud.im.v2.AVIMClient;
-import cn.leancloud.im.v2.AVIMConversation;
-import cn.leancloud.im.v2.AVIMMessage;
-import cn.leancloud.im.v2.AVIMMessageHandler;
+import cn.leancloud.im.v2.LCIMClient;
+import cn.leancloud.im.v2.LCIMConversation;
+import cn.leancloud.im.v2.LCIMMessage;
+import cn.leancloud.im.v2.LCIMMessageHandler;
 
-public class DefaultMessageHandler extends AVIMMessageHandler {
+public class DefaultMessageHandler extends LCIMMessageHandler {
 
   private IMEventNotification listener;
 
@@ -24,7 +24,7 @@ public class DefaultMessageHandler extends AVIMMessageHandler {
    * @param client
    */
   @Override
-  public void onMessage(AVIMMessage message, AVIMConversation conversation, AVIMClient client) {
+  public void onMessage(LCIMMessage message, LCIMConversation conversation, LCIMClient client) {
     if (null != this.listener) {
       HashMap<String, Object> param = new HashMap<>();
       param.put(Common.Param_Client_Id, client.getClientId());
@@ -45,7 +45,7 @@ public class DefaultMessageHandler extends AVIMMessageHandler {
    * @param client
    */
   @Override
-  public void onMessageReceipt(AVIMMessage message, AVIMConversation conversation, AVIMClient client) {
+  public void onMessageReceipt(LCIMMessage message, LCIMConversation conversation, LCIMClient client) {
     if (null != this.listener) {
       HashMap<String, Object> param = new HashMap<>();
       param.put(Common.Param_Client_Id, client.getClientId());
@@ -66,7 +66,7 @@ public class DefaultMessageHandler extends AVIMMessageHandler {
    * @param client
    */
   @Override
-  public void onMessageReceiptEx(AVIMMessage message, String operator, AVIMConversation conversation, AVIMClient client) {
+  public void onMessageReceiptEx(LCIMMessage message, String operator, LCIMConversation conversation, LCIMClient client) {
     if (null != this.listener) {
       HashMap<String, Object> param = new HashMap<>();
       param.put(Common.Param_Client_Id, client.getClientId());

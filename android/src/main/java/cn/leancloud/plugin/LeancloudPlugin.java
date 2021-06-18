@@ -4,8 +4,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import cn.leancloud.im.v2.callback.AVIMConversationIterableResult;
-import cn.leancloud.im.v2.callback.AVIMConversationIterableResultCallback;
+import cn.leancloud.im.v2.callback.LCIMConversationIterableResult;
+import cn.leancloud.im.v2.callback.LCIMConversationIterableResultCallback;
 import cn.leancloud.json.JSON;
 import cn.leancloud.json.JSONObject;
 
@@ -21,34 +21,34 @@ import java.util.concurrent.TimeUnit;
 
 import androidx.annotation.NonNull;
 
-import cn.leancloud.AVException;
-import cn.leancloud.AVFile;
-import cn.leancloud.im.AVIMOptions;
+import cn.leancloud.LCException;
+import cn.leancloud.LCFile;
+import cn.leancloud.im.LCIMOptions;
 import cn.leancloud.im.Signature;
 import cn.leancloud.im.SignatureFactory;
-import cn.leancloud.im.v2.AVIMClient;
-import cn.leancloud.im.v2.AVIMClientOpenOption;
-import cn.leancloud.im.v2.AVIMConversation;
-import cn.leancloud.im.v2.AVIMConversationsQuery;
-import cn.leancloud.im.v2.AVIMException;
-import cn.leancloud.im.v2.AVIMMessage;
-import cn.leancloud.im.v2.AVIMMessageInterval;
-import cn.leancloud.im.v2.AVIMMessageInterval.AVIMMessageIntervalBound;
-import cn.leancloud.im.v2.AVIMMessageManager;
-import cn.leancloud.im.v2.AVIMMessageOption;
-import cn.leancloud.im.v2.AVIMMessageQueryDirection;
-import cn.leancloud.im.v2.callback.AVIMClientCallback;
-import cn.leancloud.im.v2.callback.AVIMConversationCallback;
-import cn.leancloud.im.v2.callback.AVIMConversationCreatedCallback;
-import cn.leancloud.im.v2.callback.AVIMConversationMemberCountCallback;
-import cn.leancloud.im.v2.callback.AVIMConversationQueryCallback;
-import cn.leancloud.im.v2.callback.AVIMMessageRecalledCallback;
-import cn.leancloud.im.v2.callback.AVIMMessageUpdatedCallback;
-import cn.leancloud.im.v2.callback.AVIMMessagesQueryCallback;
-import cn.leancloud.im.v2.callback.AVIMOperationFailure;
-import cn.leancloud.im.v2.callback.AVIMOperationPartiallySucceededCallback;
-import cn.leancloud.im.v2.messages.AVIMFileMessage;
-import cn.leancloud.im.v2.messages.AVIMRecalledMessage;
+import cn.leancloud.im.v2.LCIMClient;
+import cn.leancloud.im.v2.LCIMClientOpenOption;
+import cn.leancloud.im.v2.LCIMConversation;
+import cn.leancloud.im.v2.LCIMConversationsQuery;
+import cn.leancloud.im.v2.LCIMException;
+import cn.leancloud.im.v2.LCIMMessage;
+import cn.leancloud.im.v2.LCIMMessageInterval;
+import cn.leancloud.im.v2.LCIMMessageInterval.MessageIntervalBound;
+import cn.leancloud.im.v2.LCIMMessageManager;
+import cn.leancloud.im.v2.LCIMMessageOption;
+import cn.leancloud.im.v2.LCIMMessageQueryDirection;
+import cn.leancloud.im.v2.callback.LCIMClientCallback;
+import cn.leancloud.im.v2.callback.LCIMConversationCallback;
+import cn.leancloud.im.v2.callback.LCIMConversationCreatedCallback;
+import cn.leancloud.im.v2.callback.LCIMConversationMemberCountCallback;
+import cn.leancloud.im.v2.callback.LCIMConversationQueryCallback;
+import cn.leancloud.im.v2.callback.LCIMMessageRecalledCallback;
+import cn.leancloud.im.v2.callback.LCIMMessageUpdatedCallback;
+import cn.leancloud.im.v2.callback.LCIMMessagesQueryCallback;
+import cn.leancloud.im.v2.callback.LCIMOperationFailure;
+import cn.leancloud.im.v2.callback.LCIMOperationPartiallySucceededCallback;
+import cn.leancloud.im.v2.messages.LCIMFileMessage;
+import cn.leancloud.im.v2.messages.LCIMRecalledMessage;
 import cn.leancloud.utils.StringUtil;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.BinaryMessenger;
@@ -94,10 +94,10 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     _CHANNEL = new MethodChannel(messenger, "leancloud_plugin", new StandardMethodCodec(new LeanCloudMessageCodec()));
     _CHANNEL.setMethodCallHandler(_INSTANCE);
 
-    AVIMMessageManager.registerDefaultMessageHandler(new DefaultMessageHandler(_INSTANCE));
-    AVIMMessageManager.setConversationEventHandler(new DefaultConversationEventHandler(_INSTANCE));
-    AVIMClient.setClientEventHandler(new DefaultClientEventHandler(_INSTANCE));
-    AVIMOptions.getGlobalOptions().setSignatureFactory(DefaultSignatureFactory.getInstance());
+    LCIMMessageManager.registerDefaultMessageHandler(new DefaultMessageHandler(_INSTANCE));
+    LCIMMessageManager.setConversationEventHandler(new DefaultConversationEventHandler(_INSTANCE));
+    LCIMClient.setClientEventHandler(new DefaultClientEventHandler(_INSTANCE));
+    LCIMOptions.getGlobalOptions().setSignatureFactory(DefaultSignatureFactory.getInstance());
     handler = new Handler(Looper.getMainLooper());
 //    }
   }
@@ -255,15 +255,15 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       DefaultSignatureFactory.getInstance().registerSignedClient(clientId, sessionSignFlag,
               conversationSignFlag, signatureFactory);
 
-      AVIMClientOpenOption openOption = new AVIMClientOpenOption();
+      LCIMClientOpenOption openOption = new LCIMClientOpenOption();
       if (reconnectFlag) {
         openOption.setReconnect(true);
       }
-      AVIMClient client = StringUtil.isEmpty(tag) ?
-              AVIMClient.getInstance(clientId) : AVIMClient.getInstance(clientId, tag);
-      client.open(openOption, new AVIMClientCallback() {
+      LCIMClient client = StringUtil.isEmpty(tag) ?
+              LCIMClient.getInstance(clientId) : LCIMClient.getInstance(clientId, tag);
+      client.open(openOption, new LCIMClientCallback() {
         @Override
-        public void done(AVIMClient client, AVIMException e) {
+        public void done(LCIMClient client, LCIMException e) {
           Log.d(TAG, "client open result: " + Common.wrapClient(client));
           if (null != e) {
             result.success(Common.wrapException(e));
@@ -275,12 +275,12 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       return;
     }
 
-    AVIMClient avimClient = AVIMClient.getInstance(clientId);
+    LCIMClient avimClient = LCIMClient.getInstance(clientId);
 
     if (call.method.equals(Common.Method_Close_Client)) {
-      avimClient.close(new AVIMClientCallback() {
+      avimClient.close(new LCIMClientCallback() {
         @Override
-        public void done(AVIMClient client, AVIMException e) {
+        public void done(LCIMClient client, LCIMException e) {
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
@@ -298,9 +298,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       Map<String, Object> attr = Common.getMethodParam(call, Common.Param_Conv_Attributes);
       final int ttl = Common.getParamInt(call, Common.Param_Conv_TTL);
       Log.d(TAG, "conv_type=" + convType + ", m=" + name + ", attr=" + attr + ", ttl=" + ttl);
-      AVIMConversationCreatedCallback callback = new AVIMConversationCreatedCallback() {
+      LCIMConversationCreatedCallback callback = new LCIMConversationCreatedCallback() {
         @Override
-        public void done(AVIMConversation conversation, AVIMException e) {
+        public void done(LCIMConversation conversation, LCIMException e) {
           if (null != e) {
             Log.d(TAG, "failed to create conv. cause:" + e.getMessage());
             result.success(Common.wrapException(e));
@@ -340,22 +340,22 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       int skip = Common.getParamInt(call, Common.Param_Query_Skip);
       int flag = Common.getParamInt(call, Common.Param_Query_Flag);
       List<String> tempConvIds = Common.getMethodParam(call, Common.Param_Query_Temp_List);
-      AVIMConversationQueryCallback callback = new AVIMConversationQueryCallback() {
+      LCIMConversationQueryCallback callback = new LCIMConversationQueryCallback() {
         @Override
-        public void done(List<AVIMConversation> conversations, AVIMException e) {
+        public void done(List<LCIMConversation> conversations, LCIMException e) {
           if (null != e) {
             Log.d(TAG, "failed to query conv. cause:" + e.getMessage());
             result.success(Common.wrapException(e));
           } else {
             List<Map<String, Object>> queryResult = new ArrayList<>();
-            for (AVIMConversation conv : conversations) {
+            for (LCIMConversation conv : conversations) {
               queryResult.add(Common.wrapConversation(conv));
             }
             result.success(Common.wrapSuccessResponse(queryResult));
           }
         }
       };
-      AVIMConversationsQuery query = avimClient.getConversationsQuery();
+      LCIMConversationsQuery query = avimClient.getConversationsQuery();
       if (null == tempConvIds || tempConvIds.isEmpty()) {
         query.directFindInBackground(where, sort, skip, limit, flag, callback);
       } else {
@@ -365,7 +365,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     }
 
     String conversationId = Common.getMethodParam(call, Common.Param_Conv_Id);
-    final AVIMConversation conversation = avimClient.getConversation(conversationId);
+    final LCIMConversation conversation = avimClient.getConversation(conversationId);
     if (call.method.equals(Common.Method_Fetch_Conversation)) {
       result.success(Common.wrapSuccessResponse(Common.wrapConversation(conversation)));
       return;
@@ -379,9 +379,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
     if (call.method.equals(Common.Method_Mute_Conversation)) {
       final String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
-      AVIMConversationCallback callback = new AVIMConversationCallback() {
+      LCIMConversationCallback callback = new LCIMConversationCallback() {
         @Override
-        public void done(AVIMException e) {
+        public void done(LCIMException e) {
           if (null != e) {
             Log.d(TAG, "failed to mute/unmute conversation. cause:" + e.getMessage());
             result.success(Common.wrapException(e));
@@ -407,7 +407,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Update_Conversation)) {
       Map<String, Object> updateData = Common.getMethodParam(call, Common.Param_Conv_Data);
       if (null == updateData || updateData.isEmpty()) {
-        result.success(Common.wrapException(AVException.INVALID_PARAMETER, "update attributes is empty."));
+        result.success(Common.wrapException(LCException.INVALID_PARAMETER, "update attributes is empty."));
       } else {
         for (Map.Entry<String, Object> entry : updateData.entrySet()) {
           String key = entry.getKey();
@@ -418,9 +418,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
             conversation.setAttribute(key, val);
           }
         }
-        conversation.updateInfoInBackground(new AVIMConversationCallback() {
+        conversation.updateInfoInBackground(new LCIMConversationCallback() {
           @Override
-          public void done(AVIMException e) {
+          public void done(LCIMException e) {
             if (null != e) {
               result.success(Common.wrapException(e));
             } else {
@@ -432,9 +432,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Update_Members)) {
       String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
       List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
-      AVIMOperationPartiallySucceededCallback callback = new AVIMOperationPartiallySucceededCallback() {
+      LCIMOperationPartiallySucceededCallback callback = new LCIMOperationPartiallySucceededCallback() {
         @Override
-        public void done(AVIMException e, List<String> successfulClientIds, List<AVIMOperationFailure> failures) {
+        public void done(LCIMException e, List<String> successfulClientIds, List<LCIMOperationFailure> failures) {
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
@@ -443,7 +443,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
             if (null != failures) {
               List<Map<String, Object>> failedList = new ArrayList<>();
-              for (AVIMOperationFailure f : failures) {
+              for (LCIMOperationFailure f : failures) {
                 Map<String, Object> failedData = new HashMap<>();
                 failedData.put("pids", f.getMemberIds());
                 Map<String, String> errorMap = new HashMap<>();
@@ -461,7 +461,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         }
       };
       if (null == members || members.isEmpty()) {
-        result.success(Common.wrapException(AVException.INVALID_PARAMETER, "member list is empty."));
+        result.success(Common.wrapException(LCException.INVALID_PARAMETER, "member list is empty."));
       } else if (Common.Conv_Operation_Add.equalsIgnoreCase(operation)) {
         conversation.addMembers(members, callback);
       } else if (Common.Conv_Operation_Remove.equalsIgnoreCase(operation)) {
@@ -472,9 +472,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Update_Block_Members)) {
       String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
       List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
-      AVIMOperationPartiallySucceededCallback callback = new AVIMOperationPartiallySucceededCallback() {
+      LCIMOperationPartiallySucceededCallback callback = new LCIMOperationPartiallySucceededCallback() {
         @Override
-        public void done(AVIMException e, List<String> successfulClientIds, List<AVIMOperationFailure> failures) {
+        public void done(LCIMException e, List<String> successfulClientIds, List<LCIMOperationFailure> failures) {
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
@@ -483,7 +483,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
             if (null != failures) {
               List<Map<String, Object>> failedList = new ArrayList<>();
-              for (AVIMOperationFailure f : failures) {
+              for (LCIMOperationFailure f : failures) {
                 Map<String, Object> failedData = new HashMap<>();
                 failedData.put("pids", f.getMemberIds());
                 Map<String, String> errorMap = new HashMap<>();
@@ -501,7 +501,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         }
       };
       if (null == members || members.isEmpty()) {
-        result.success(Common.wrapException(AVException.INVALID_PARAMETER, "member list is empty."));
+        result.success(Common.wrapException(LCException.INVALID_PARAMETER, "member list is empty."));
       } else if (Common.Conv_Operation_Block.equalsIgnoreCase(operation)) {
         conversation.blockMembers(members, callback);
       } else if (Common.Conv_Operation_Unblock.equalsIgnoreCase(operation)) {
@@ -512,9 +512,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Update_Mute_Members)) {
       String operation = Common.getMethodParam(call, Common.Param_Conv_Operation);
       List<String> members = Common.getMethodParam(call, Common.Param_Conv_Members);
-      AVIMOperationPartiallySucceededCallback callback = new AVIMOperationPartiallySucceededCallback() {
+      LCIMOperationPartiallySucceededCallback callback = new LCIMOperationPartiallySucceededCallback() {
         @Override
-        public void done(AVIMException e, List<String> successfulClientIds, List<AVIMOperationFailure> failures) {
+        public void done(LCIMException e, List<String> successfulClientIds, List<LCIMOperationFailure> failures) {
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
@@ -523,7 +523,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
 
             if (null != failures) {
               List<Map<String, Object>> failedList = new ArrayList<>();
-              for (AVIMOperationFailure f : failures) {
+              for (LCIMOperationFailure f : failures) {
                 Map<String, Object> failedData = new HashMap<>();
                 failedData.put("pids", f.getMemberIds());
                 Map<String, String> errorMap = new HashMap<>();
@@ -541,7 +541,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         }
       };
       if (null == members || members.isEmpty()) {
-        result.success(Common.wrapException(AVException.INVALID_PARAMETER, "member list is empty."));
+        result.success(Common.wrapException(LCException.INVALID_PARAMETER, "member list is empty."));
       } else if (Common.Conv_Operation_Mute.equalsIgnoreCase(operation)) {
         conversation.muteMembers(members, callback);
       } else if (Common.Conv_Operation_Unmute.equalsIgnoreCase(operation)) {
@@ -552,9 +552,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Query_Block_Members)) {
       int limit = Common.getParamInt(call, Common.Param_Query_Limit);
       String next = Common.getParamString(call, Common.Param_Query_Next);
-      AVIMConversationIterableResultCallback callback = new AVIMConversationIterableResultCallback() {
+      LCIMConversationIterableResultCallback callback = new LCIMConversationIterableResultCallback() {
         @Override
-        public void done(AVIMConversationIterableResult iterableResult, AVIMException e) {
+        public void done(LCIMConversationIterableResult iterableResult, LCIMException e) {
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
@@ -572,9 +572,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Query_Mute_Members)) {
       int limit = Common.getParamInt(call, Common.Param_Query_Limit);
       String next = Common.getParamString(call, Common.Param_Query_Next);
-      AVIMConversationIterableResultCallback callback = new AVIMConversationIterableResultCallback() {
+      LCIMConversationIterableResultCallback callback = new LCIMConversationIterableResultCallback() {
         @Override
-        public void done(AVIMConversationIterableResult iterableResult, AVIMException e) {
+        public void done(LCIMConversationIterableResult iterableResult, LCIMException e) {
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
@@ -590,9 +590,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       }
       conversation.queryMutedMembers(limit, next, callback);
     } else if (call.method.equals(Common.Method_Get_Message_Receipt)) {
-      conversation.fetchReceiptTimestamps(new AVIMConversationCallback() {
+      conversation.fetchReceiptTimestamps(new LCIMConversationCallback() {
         @Override
-        public void done(AVIMException e) {
+        public void done(LCIMException e) {
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
@@ -604,9 +604,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         }
       });
     } else if (call.method.equals(Common.Method_Query_Member_Count)) {
-      conversation.getMemberCount(new AVIMConversationMemberCountCallback() {
+      conversation.getMemberCount(new LCIMConversationMemberCountCallback() {
         @Override
-        public void done(Integer memberCount, AVIMException e) {
+        public void done(Integer memberCount, LCIMException e) {
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
@@ -620,17 +620,17 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       int direction = Common.getParamInt(call, Common.Param_Query_Direction);
       int limit = Common.getParamInt(call, Common.Param_Query_Limit);
       int type = Common.getParamInt(call, Common.Param_Query_MsgType);
-      AVIMMessageIntervalBound start = Common.parseMessageIntervalBound(startData);
-      AVIMMessageIntervalBound end = Common.parseMessageIntervalBound(endData);
-      AVIMMessageInterval interval = new AVIMMessageInterval(start, end);
-      AVIMMessagesQueryCallback callback = new AVIMMessagesQueryCallback() {
+      MessageIntervalBound start = Common.parseMessageIntervalBound(startData);
+      MessageIntervalBound end = Common.parseMessageIntervalBound(endData);
+      LCIMMessageInterval interval = new LCIMMessageInterval(start, end);
+      LCIMMessagesQueryCallback callback = new LCIMMessagesQueryCallback() {
         @Override
-        public void done(List<AVIMMessage> messages, AVIMException e) {
+        public void done(List<LCIMMessage> messages, LCIMException e) {
           if (null != e) {
             result.success(Common.wrapException(e));
           } else {
             List<Map<String, Object>> opResult = new ArrayList<>();
-            for (AVIMMessage msg : messages) {
+            for (LCIMMessage msg : messages) {
               opResult.add(Common.wrapMessage(msg));
             }
             result.success(Common.wrapSuccessResponse(opResult));
@@ -651,9 +651,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         }
         conversation.queryMessagesByType(type, messageId, startTimestamp, limit, callback);
       } else {
-        AVIMMessageQueryDirection direct = AVIMMessageQueryDirection.AVIMMessageQueryDirectionFromNewToOld;
+        LCIMMessageQueryDirection direct = LCIMMessageQueryDirection.DirectionFromNewToOld;
         if (2 == direction) {
-          direct = AVIMMessageQueryDirection.AVIMMessageQueryDirectionFromOldToNew;
+          direct = LCIMMessageQueryDirection.DirectionFromOldToNew;
         }
         conversation.queryMessages(interval, direct, limit, callback);
       }
@@ -667,8 +667,8 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
       Log.d(TAG, "send message from conv:" + conversationId
               + ", message:" + JSON.toJSONString(msgData)
               + ", option:" + JSON.toJSONString(optionData));
-      final AVIMMessage message = Common.parseMessage(msgData);
-      if (message instanceof AVIMFileMessage && null != fileData) {
+      final LCIMMessage message = Common.parseMessage(msgData);
+      if (message instanceof LCIMFileMessage && null != fileData) {
         byte[] byteArray = null;
         if (fileData.containsKey(Common.Param_File_Data)) {
           byteArray = (byte[]) fileData.get(Common.Param_File_Data);
@@ -695,18 +695,18 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         } else {
           keepFileName = true;
         }
-        AVFile avFile = null;
+        LCFile avFile = null;
         if (null != byteArray) {
-          avFile = new AVFile(name, byteArray);
+          avFile = new LCFile(name, byteArray);
         } else if (!StringUtil.isEmpty(localPath)) {
-          avFile = new AVFile(name, new File(localPath));
+          avFile = new LCFile(name, new File(localPath));
         } else if (!StringUtil.isEmpty(url)) {
-          avFile = new AVFile(name, url);
+          avFile = new LCFile(name, url);
         }
         if (null != avFile) {
-          ((AVIMFileMessage) message).attachAVFile(avFile, keepFileName);
+          ((LCIMFileMessage) message).attachAVFile(avFile, keepFileName);
           if (!StringUtil.isEmpty(format)) {
-            Map<String, Object> metaData = ((AVIMFileMessage) message).getFileMetaData();
+            Map<String, Object> metaData = ((LCIMFileMessage) message).getFileMetaData();
             if (null != metaData) {
               metaData.put("format", format);
             }
@@ -715,11 +715,11 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           Log.d(TAG, "invalid file param!!");
         }
       }
-      AVIMMessageOption option = Common.parseMessageOption(optionData);
+      LCIMMessageOption option = Common.parseMessageOption(optionData);
 
       if (msgData.containsKey(Common.Param_Message_Transient)) {
         if (null == option) {
-          option = new AVIMMessageOption();
+          option = new LCIMMessageOption();
         }
         try {
           boolean isTransient = (boolean) msgData.get(Common.Param_Message_Transient);
@@ -729,9 +729,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         }
       }
       conversation.sendMessage(message, option,
-              new AVIMConversationCallback() {
+              new LCIMConversationCallback() {
                 @Override
-                public void done(AVIMException e) {
+                public void done(LCIMException e) {
                   if (null != e) {
                     Log.d(TAG, "send failed. cause: " + e.getMessage());
                     result.success(Common.wrapException(e));
@@ -744,11 +744,11 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
     } else if (call.method.equals(Common.Method_Patch_Message)) {
       Map<String, Object> oldMsgData = Common.getMethodParam(call, Common.Param_Message_Old);
       Map<String, Object> newMsgData = Common.getMethodParam(call, Common.Param_Message_New);
-      AVIMMessage oldMessage = Common.parseMessage(oldMsgData);
-      AVIMMessage newMessage = Common.parseMessage(newMsgData);
+      LCIMMessage oldMessage = Common.parseMessage(oldMsgData);
+      LCIMMessage newMessage = Common.parseMessage(newMsgData);
       boolean isRecall = Common.getParamBoolean(call, Common.Param_Message_Recall);
       Map<String, Object> fileData = Common.getMethodParam(call, Common.Param_Message_File);
-      if (newMessage instanceof AVIMFileMessage && null != fileData) {
+      if (newMessage instanceof LCIMFileMessage && null != fileData) {
         byte[] byteArray = null;
         if (fileData.containsKey(Common.Param_File_Data)) {
           byteArray = (byte[]) fileData.get(Common.Param_File_Data);
@@ -775,18 +775,18 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         } else {
           keepFileName = true;
         }
-        AVFile avFile = null;
+        LCFile avFile = null;
         if (null != byteArray) {
-          avFile = new AVFile(name, byteArray);
+          avFile = new LCFile(name, byteArray);
         } else if (!StringUtil.isEmpty(localPath)) {
-          avFile = new AVFile(name, new File(localPath));
+          avFile = new LCFile(name, new File(localPath));
         } else if (!StringUtil.isEmpty(url)) {
-          avFile = new AVFile(name, url);
+          avFile = new LCFile(name, url);
         }
         if (null != avFile) {
-          ((AVIMFileMessage) newMessage).attachAVFile(avFile, keepFileName);
+          ((LCIMFileMessage) newMessage).attachAVFile(avFile, keepFileName);
           if (!StringUtil.isEmpty(format)) {
-            Map<String, Object> metaData = ((AVIMFileMessage) newMessage).getFileMetaData();
+            Map<String, Object> metaData = ((LCIMFileMessage) newMessage).getFileMetaData();
             if (null != metaData) {
               metaData.put("format", format);
             }
@@ -796,9 +796,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         }
       }
       if (isRecall) {
-        conversation.recallMessage(oldMessage, new AVIMMessageRecalledCallback() {
+        conversation.recallMessage(oldMessage, new LCIMMessageRecalledCallback() {
           @Override
-          public void done(AVIMRecalledMessage recalledMessage, AVException e) {
+          public void done(LCIMRecalledMessage recalledMessage, LCException e) {
             if (null != e) {
               result.success(Common.wrapException(e));
             } else {
@@ -808,9 +808,9 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
         });
       } else {
         Log.d(TAG, "update message. old=" + oldMsgData + ", new=" + newMsgData);
-        conversation.updateMessage(oldMessage, newMessage, new AVIMMessageUpdatedCallback() {
+        conversation.updateMessage(oldMessage, newMessage, new LCIMMessageUpdatedCallback() {
           @Override
-          public void done(AVIMMessage message, AVException e) {
+          public void done(LCIMMessage message, LCException e) {
             if (null != e) {
               result.success(Common.wrapException(e));
             } else {
@@ -847,7 +847,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
    *
    * @param client client instance.
    */
-  public void onDisconnected(AVIMClient client) {
+  public void onDisconnected(LCIMClient client) {
     _CHANNEL.invokeMethod(Common.Method_Client_Disconnected, Common.wrapClient(client));
   }
 
@@ -856,7 +856,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
    *
    * @param client client instance.
    */
-  public void onResumed(AVIMClient client) {
+  public void onResumed(LCIMClient client) {
     _CHANNEL.invokeMethod(Common.Method_Client_Resumed, Common.wrapClient(client));
   }
 
@@ -865,7 +865,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
    * @param client client instance.
    * @param code detail code.
    */
-  public void onOffline(AVIMClient client, int code) {
+  public void onOffline(LCIMClient client, int code) {
     Map<String, Object> param = Common.wrapClient(client);
     Map<String, Object> error = new HashMap<>();
     error.put(Common.Param_Code, code);

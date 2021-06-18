@@ -3,9 +3,9 @@ package cn.leancloud.leancloud_plugin_example;
 import android.app.NotificationManager;
 import android.os.Build;
 
-import cn.leancloud.AVLogger;
-import cn.leancloud.AVOSCloud;
-import cn.leancloud.im.AVIMOptions;
+import cn.leancloud.LCLogger;
+import cn.leancloud.LeanCloud;
+import cn.leancloud.im.LCIMOptions;
 import cn.leancloud.push.PushService;
 import io.flutter.app.FlutterApplication;
 
@@ -23,9 +23,9 @@ public class MyApplication extends FlutterApplication {
   @Override
   public void onCreate() {
     super.onCreate();
-    AVOSCloud.setLogLevel(AVLogger.Level.DEBUG);
-    AVOSCloud.initialize(this, LC_App_Id, LC_App_Key, LC_Server_Url);
-    AVIMOptions.getGlobalOptions().setUnreadNotificationEnabled(true);
+    LeanCloud.setLogLevel(LCLogger.Level.DEBUG);
+    LeanCloud.initialize(this, LC_App_Id, LC_App_Key, LC_Server_Url);
+    LCIMOptions.getGlobalOptions().setUnreadNotificationEnabled(true);
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       PushService.createNotificationChannel(this, defaultChannelId, defaultChannelName,

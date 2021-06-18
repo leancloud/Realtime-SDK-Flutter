@@ -1,9 +1,9 @@
 package cn.leancloud.plugin;
 
-import cn.leancloud.im.v2.AVIMClient;
-import cn.leancloud.im.v2.AVIMClientEventHandler;
+import cn.leancloud.im.v2.LCIMClient;
+import cn.leancloud.im.v2.LCIMClientEventHandler;
 
-public class DefaultClientEventHandler extends AVIMClientEventHandler {
+public class DefaultClientEventHandler extends LCIMClientEventHandler {
   private ClientStatusListener listener;
 
   public DefaultClientEventHandler(ClientStatusListener listener) {
@@ -16,7 +16,7 @@ public class DefaultClientEventHandler extends AVIMClientEventHandler {
    * @param client
    * @since 3.0
    */
-  public void onConnectionPaused(AVIMClient client) {
+  public void onConnectionPaused(LCIMClient client) {
     if (null != this.listener) {
       this.listener.onDisconnected(client);
     }
@@ -29,7 +29,7 @@ public class DefaultClientEventHandler extends AVIMClientEventHandler {
    * @param client
    */
 
-  public void onConnectionResume(AVIMClient client) {
+  public void onConnectionResume(LCIMClient client) {
     if (null != this.listener) {
       this.listener.onResumed(client);
     }
@@ -43,7 +43,7 @@ public class DefaultClientEventHandler extends AVIMClientEventHandler {
    * @param code 状态码说明被踢下线的具体原因
    */
 
-  public void onClientOffline(AVIMClient client, int code) {
+  public void onClientOffline(LCIMClient client, int code) {
     if (null != this.listener) {
       this.listener.onOffline(client, code);
     }
