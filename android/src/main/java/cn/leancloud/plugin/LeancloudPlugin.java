@@ -704,7 +704,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           avFile = new LCFile(name, url);
         }
         if (null != avFile) {
-          ((LCIMFileMessage) message).attachAVFile(avFile, keepFileName);
+          ((LCIMFileMessage) message).attachLCFile(avFile, keepFileName);
           if (!StringUtil.isEmpty(format)) {
             Map<String, Object> metaData = ((LCIMFileMessage) message).getFileMetaData();
             if (null != metaData) {
@@ -784,7 +784,7 @@ public class LeancloudPlugin implements FlutterPlugin, MethodCallHandler,
           avFile = new LCFile(name, url);
         }
         if (null != avFile) {
-          ((LCIMFileMessage) newMessage).attachAVFile(avFile, keepFileName);
+          ((LCIMFileMessage) newMessage).attachLCFile(avFile, keepFileName);
           if (!StringUtil.isEmpty(format)) {
             Map<String, Object> metaData = ((LCIMFileMessage) newMessage).getFileMetaData();
             if (null != metaData) {
