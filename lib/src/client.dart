@@ -8,37 +8,37 @@ class _Bridge with _Utilities {
   }
 
   final MethodChannel channel = const MethodChannel('leancloud_plugin');
-  final Map<String, Client> clientMap = <String, Client>{};
+  final Map<String, Client?> clientMap = <String, Client?>{};
 
   _Bridge._internal() {
     channel.setMethodCallHandler((call) async {
       final Map args = call.arguments;
-      final Client client = clientMap[args['clientId']];
+      final Client? client = clientMap[args['clientId']!];
       if (client == null) {
         return {};
       }
       switch (call.method) {
         case 'onSessionOpen':
           if (client.onOpened != null) {
-            client.onOpened(
+            client.onOpened!(
               client: client,
             );
           }
           break;
         case 'onSessionResume':
           if (client.onResuming != null) {
-            client.onResuming(
+            client.onResuming!(
               client: client,
             );
           }
           break;
         case 'onSessionDisconnect':
           if (client.onDisconnected != null) {
-            RTMException e;
+            RTMException? e;
             if (isFailure(args)) {
               e = errorFrom(args);
             }
-            client.onDisconnected(
+            client.onDisconnected!(
               client: client,
               exception: e,
             );
@@ -46,7 +46,7 @@ class _Bridge with _Utilities {
           break;
         case 'onSessionClose':
           if (client.onClosed != null) {
-            client.onClosed(
+            client.onClosed!(
               client: client,
               exception: errorFrom(args),
             );
@@ -66,7 +66,7 @@ class _Bridge with _Utilities {
           break;
         case 'onSignSessionOpen':
           if (client._openSignatureHandler != null) {
-            final Signature sign = await client._openSignatureHandler(
+            final Signature sign = await client._openSignatureHandler!(
               client: client,
             );
             return {'sign': sign._toMap()};
@@ -74,14 +74,14 @@ class _Bridge with _Utilities {
           break;
         case 'onSignConversation':
           if (client._conversationSignatureHandler != null) {
-            Conversation conversation;
-            final String conversationID = args['conversationId'];
+            Conversation? conversation;
+            final String? conversationID = args['conversationId'];
             if (conversationID != null) {
               conversation = await client._getConversation(
                 conversationID: conversationID,
               );
             }
-            final Signature sign = await client._conversationSignatureHandler(
+            final Signature sign = await client._conversationSignatureHandler!(
               client: client,
               conversation: conversation,
               targetIDs: args['targetIds'],
@@ -110,10 +110,9 @@ mixin _Utilities {
   }
 
   Future<dynamic> call({
-    @required String method,
-    @required Map arguments,
+    required String method,
+    required Map arguments,
   }) async {
-    assert(method != null && arguments != null);
     final Map result = await _Bridge().channel.invokeMethod(
           method,
           arguments,
@@ -129,16 +128,16 @@ mixin _Utilities {
     'en_US',
   );
 
-  DateTime parseIsoString(String isoString) {
-    DateTime date;
+  DateTime? parseIsoString(String? isoString) {
+    DateTime? date;
     if (isoString != null) {
       date = _Utilities.isoDateFormat.parseStrict(isoString);
     }
     return date;
   }
 
-  DateTime parseMilliseconds(int milliseconds) {
-    DateTime date;
+  DateTime? parseMilliseconds(int? milliseconds) {
+    DateTime? date;
     if (milliseconds != null) {
       date = DateTime.fromMillisecondsSinceEpoch(milliseconds);
     }
@@ -152,23 +151,17 @@ class RTMException implements Exception {
   final String code;
 
   /// The reason of the [RTMException], it is optional.
-  final String message;
+  final String? message;
 
   /// The supplementary information of the [RTMException], it is optional.
   final dynamic details;
 
   /// To create a [RTMException], [code] is needed.
   RTMException({
-    @required this.code,
+    required this.code,
     this.message,
     this.details,
-  }) {
-    if (code == null) {
-      throw ArgumentError.notNull(
-        'code',
-      );
-    }
-  }
+  });
 
   @override
   String toString() => '\nLC.RTM.Exception('
@@ -191,26 +184,10 @@ class Signature {
 
   /// To create a [Signature], the unit of [timestamp] is millisecond.
   Signature({
-    @required this.signature,
-    @required this.timestamp,
-    @required this.nonce,
-  }) {
-    if (signature == null) {
-      throw ArgumentError.notNull(
-        'signature',
-      );
-    }
-    if (timestamp == null) {
-      throw ArgumentError.notNull(
-        'timestamp',
-      );
-    }
-    if (nonce == null) {
-      throw ArgumentError.notNull(
-        'nonce',
-      );
-    }
-  }
+    required this.signature,
+    required this.timestamp,
+    required this.nonce,
+  });
 
   @override
   String toString() => '\nLC.RTM.Signature('
@@ -232,7 +209,7 @@ class Client with _Utilities {
   final String id;
 
   /// The tag of the [Client]. it is optional.
-  final String tag;
+  final String? tag;
 
   /// The map of the [Conversation]s which belong to the [Client] in memory, the key is [Conversation.id].
   final Map<String, Conversation> conversationMap = <String, Conversation>{};
@@ -240,20 +217,20 @@ class Client with _Utilities {
   /// The reopened event of the [client].
   void Function({
     Client client,
-  }) onOpened;
+  })? onOpened;
 
   /// The resuming event of the [client].
   void Function({
     Client client,
-  }) onResuming;
+  })? onResuming;
 
   /// The disconnected event of the [client], [exception] is optional.
   ///
   /// This event occurs, for example, when network of local environment unavailable.
   void Function({
     Client client,
-    RTMException exception,
-  }) onDisconnected;
+    RTMException? exception,
+  })? onDisconnected;
 
   /// The closed event of the [client], [exception] will never be `null`.
   ///
@@ -261,7 +238,7 @@ class Client with _Utilities {
   void Function({
     Client client,
     RTMException exception,
-  }) onClosed;
+  })? onClosed;
 
   /// The [client] has been invited to the [conversation].
   ///
@@ -272,7 +249,7 @@ class Client with _Utilities {
     Conversation conversation,
     String byClientID,
     DateTime atDate,
-  }) onInvited;
+  })? onInvited;
 
   /// The [client] has been kicked from the [conversation].
   ///
@@ -283,7 +260,7 @@ class Client with _Utilities {
     Conversation conversation,
     String byClientID,
     DateTime atDate,
-  }) onKicked;
+  })? onKicked;
 
   /// Some [members] have joined to the [conversation].
   ///
@@ -295,7 +272,7 @@ class Client with _Utilities {
     List members,
     String byClientID,
     DateTime atDate,
-  }) onMembersJoined;
+  })? onMembersJoined;
 
   /// Some [members] have left from the [conversation].
   ///
@@ -307,7 +284,7 @@ class Client with _Utilities {
     List members,
     String byClientID,
     DateTime atDate,
-  }) onMembersLeft;
+  })? onMembersLeft;
 
   /// Current client be blocked from the [conversation].
   ///
@@ -318,7 +295,7 @@ class Client with _Utilities {
     Conversation conversation,
     String byClientID,
     DateTime atDate,
-  }) onBlocked;
+  })? onBlocked;
 
   /// Current client be unblocked from the [conversation].
   ///
@@ -329,7 +306,7 @@ class Client with _Utilities {
     Conversation conversation,
     String byClientID,
     DateTime atDate,
-  }) onUnblocked;
+  })? onUnblocked;
 
   /// Some [members] have blocked from the [conversation].
   ///
@@ -341,7 +318,7 @@ class Client with _Utilities {
     List members,
     String byClientID,
     DateTime atDate,
-  }) onMembersBlocked;
+  })? onMembersBlocked;
 
   /// Some [members] have unblocked from the [conversation].
   ///
@@ -353,7 +330,7 @@ class Client with _Utilities {
     List members,
     String byClientID,
     DateTime atDate,
-  }) onMembersUnBlocked;
+  })? onMembersUnBlocked;
 
   /// Current client be muted from the [conversation].
   ///
@@ -364,7 +341,7 @@ class Client with _Utilities {
     Conversation conversation,
     String byClientID,
     DateTime atDate,
-  }) onMuted;
+  })? onMuted;
 
   /// Current client be unmuted from the [conversation].
   ///
@@ -375,7 +352,7 @@ class Client with _Utilities {
     Conversation conversation,
     String byClientID,
     DateTime atDate,
-  }) onUnmuted;
+  })? onUnmuted;
 
   /// Some [members] have muted from the [conversation].
   ///
@@ -387,7 +364,7 @@ class Client with _Utilities {
     List members,
     String byClientID,
     DateTime atDate,
-  }) onMembersMuted;
+  })? onMembersMuted;
 
   /// Some [members] have unmuted from the [conversation].
   ///
@@ -399,7 +376,7 @@ class Client with _Utilities {
     List members,
     String byClientID,
     DateTime atDate,
-  }) onMembersUnMuted;
+  })? onMembersUnMuted;
 
   /// The attributes of the [conversation] has been updated.
   ///
@@ -414,25 +391,25 @@ class Client with _Utilities {
     Map updatedAttributes,
     String byClientID,
     DateTime atDate,
-  }) onInfoUpdated;
+  })? onInfoUpdated;
 
   /// The [Conversation.unreadMessageCount] of the [conversation] has been updated.
   void Function({
     Client client,
     Conversation conversation,
-  }) onUnreadMessageCountUpdated;
+  })? onUnreadMessageCountUpdated;
 
   /// The [Conversation.lastReadAt] of the [conversation] has been updated.
   void Function({
     Client client,
     Conversation conversation,
-  }) onLastReadAtUpdated;
+  })? onLastReadAtUpdated;
 
   /// The [Conversation.lastDeliveredAt] of the [conversation] has been updated.
   void Function({
     Client client,
     Conversation conversation,
-  }) onLastDeliveredAtUpdated;
+  })? onLastDeliveredAtUpdated;
 
   /// [conversation] has a [message].
   ///
@@ -441,7 +418,7 @@ class Client with _Utilities {
     Client client,
     Conversation conversation,
     Message message,
-  }) onMessage;
+  })? onMessage;
 
   /// The sent message in [conversation] has been updated to [updatedMessage].
   ///
@@ -452,14 +429,14 @@ class Client with _Utilities {
     Message updatedMessage,
     int patchCode,
     String patchReason,
-  }) onMessageUpdated;
+  })? onMessageUpdated;
 
   /// The sent message in the [conversation] has been recalled(updated to [recalledMessage]).
   void Function({
     Client client,
     Conversation conversation,
     RecalledMessage recalledMessage,
-  }) onMessageRecalled;
+  })? onMessageRecalled;
 
   /// The sent message(ID is [messageID]) that send to [conversation] with [receipt] option, has been delivered to the client(ID is [toClientID]).
   ///
@@ -470,7 +447,7 @@ class Client with _Utilities {
     String messageID,
     String toClientID,
     DateTime atDate,
-  }) onMessageDelivered;
+  })? onMessageDelivered;
 
   /// The sent message(ID is [messageID]) that send to [conversation] with [receipt] option, has been read by the client(ID is [toClientID]).
   ///
@@ -481,17 +458,18 @@ class Client with _Utilities {
     String messageID,
     String byClientID,
     DateTime atDate,
-  }) onMessageRead;
+  })? onMessageRead;
 
   final Future<Signature> Function({
     Client client,
-  }) _openSignatureHandler;
+  })? _openSignatureHandler;
+
   final Future<Signature> Function({
     Client client,
-    Conversation conversation,
-    List targetIDs,
-    String action,
-  }) _conversationSignatureHandler;
+    Conversation? conversation,
+    List? targetIDs,
+    String? action,
+  })? _conversationSignatureHandler;
 
   /// To create an IM [Client] with an [Client.id] and an optional [Client.tag].
   ///
@@ -502,27 +480,21 @@ class Client with _Utilities {
   ///   * When [action] is `invite`, means [Conversation.join] or [Conversation.addMembers] is invoked.
   ///   * When [action] is `kick`, means [Conversation.quit] or [Conversation.removeMembers] is invoked.
   Client({
-    @required this.id,
+    required this.id,
     this.tag,
     Future<Signature> Function({
       Client client,
-    })
+    })?
         openSignatureHandler,
     Future<Signature> Function({
       Client client,
-      Conversation conversation,
-      List targetIDs,
-      String action,
-    })
+      Conversation? conversation,
+      List? targetIDs,
+      String? action,
+    })?
         conversationSignatureHandler,
   })  : _openSignatureHandler = openSignatureHandler,
-        _conversationSignatureHandler = conversationSignatureHandler {
-    if (id == null) {
-      throw ArgumentError.notNull(
-        'id',
-      );
-    }
-  }
+        _conversationSignatureHandler = conversationSignatureHandler;
 
   /// To start IM service.
   ///
