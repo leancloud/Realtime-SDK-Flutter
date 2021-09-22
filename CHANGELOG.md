@@ -1,3 +1,8 @@
+## 1.0.0-beta.13
+
+* Update dependencies
+  * Java SDK >= *8.1.1*
+
 ## 1.0.0-beta.12
 
 * Update dependencies
