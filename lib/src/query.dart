@@ -17,26 +17,26 @@ class ConversationQuery with _Utilities {
   /// ***Important:***
   /// If you set this value, it will overwrite the condition you set with where method, like [ConversationQuery.whereEqualTo] and so on.
   /// The default value is `'{"m": clientID}'`, the `clientID` is [ConversationQuery.client.id], it means [Conversation.members] contains `clientID`.
-  String whereString;
+  String? whereString;
 
   /// The order by the key of [Conversation].
   ///
   /// ***Important:***
   /// If you set this value, it will overwrite the condition you set with order method, like [ConversationQuery.orderByAscending] and so on.
   /// The default value is `-lm`, means the timestamp of the [Conversation.lastMessage] from newest to oldest.
-  String sort;
+  String? sort;
 
   /// The max count of the query result, default is `10`.
-  int limit;
+  int? limit;
 
   /// The offset of the query, default is `0`.
-  int skip;
+  int? skip;
 
   /// Whether the queried [Conversation]s not contain [Conversation.members], default is `false`.
-  bool excludeMembers;
+  bool? excludeMembers;
 
   /// Whether the queried [Conversation]s contain [Conversation.lastMessage], default is `false`.
-  bool includeLastMessage;
+  bool? includeLastMessage;
 
   _LCCompositionalCondition condition = _LCCompositionalCondition();
 
@@ -180,7 +180,7 @@ class ConversationQuery with _Utilities {
   ConversationQuery whereMatches(
     String key,
     String regex, {
-    String modifiers,
+    String? modifiers,
   }) {
     condition.whereMatches(key, regex, modifiers);
     return this;
@@ -222,7 +222,7 @@ class ConversationQuery with _Utilities {
   static ConversationQuery and(
     List<ConversationQuery> queries,
   ) {
-    if (queries == null || queries.length < 1) {
+    if (queries.length < 1) {
       throw ArgumentError.notNull(
         'queries',
       );
@@ -245,7 +245,7 @@ class ConversationQuery with _Utilities {
   static ConversationQuery or(
     List<ConversationQuery> queries,
   ) {
-    if (queries == null || queries.length < 1) {
+    if (queries.length < 1) {
       throw ArgumentError.notNull(
         'queries',
       );
@@ -268,7 +268,7 @@ class ConversationQuery with _Utilities {
   }
 
   ConversationQuery._from({
-    @required this.client,
+    required this.client,
   });
 
   /// To find the [Conversation].
@@ -287,7 +287,7 @@ class ConversationQuery with _Utilities {
   ///
   /// Returns a [List] of the [TemporaryConversation].
   Future<List<TemporaryConversation>> findTemporaryConversations({
-    @required List<String> temporaryConversationIDs,
+    required List<String> temporaryConversationIDs,
   }) async {
     if (temporaryConversationIDs.isEmpty ||
         temporaryConversationIDs.length > 100) {
@@ -301,7 +301,7 @@ class ConversationQuery with _Utilities {
   }
 
   Future<List<T>> _find<T extends Conversation>({
-    List<String> temporaryConversationIDs,
+    List<String>? temporaryConversationIDs,
   }) async {
     bool isIncludeLastMessage = includeLastMessage ?? false;
     final List results = await call(
@@ -317,7 +317,7 @@ class ConversationQuery with _Utilities {
   }
 
   Map _parameters({
-    List<String> temporaryConversationIDs,
+    List<String>? temporaryConversationIDs,
   }) {
     Map args = {
       'clientId': client.id,
@@ -363,9 +363,9 @@ class ConversationQuery with _Utilities {
   ) {
     List<T> conversations = <T>[];
     for (var item in results) {
-      final String conversationID = item['objectId'];
+      final String? conversationID = item['objectId'];
       if (conversationID != null) {
-        Conversation conversation = client.conversationMap[conversationID];
+        Conversation? conversation = client.conversationMap[conversationID];
         if (conversation != null) {
           conversation._rawData = item;
         } else {
@@ -385,7 +385,7 @@ class ConversationQuery with _Utilities {
             );
           }
         }
-        conversations.add(conversation);
+        conversations.add(conversation as T);
       }
     }
     return conversations;
@@ -404,15 +404,13 @@ class _LCCompositionalCondition extends _LCQueryCondition {
 
   String composition;
 
-  List<_LCQueryCondition> conditionList;
+  List<_LCQueryCondition> conditionList = [];
 
-  List<String> orderByList;
+  List<String>? orderByList;
 
   _LCCompositionalCondition({
     this.composition = And,
-  }) {
-    conditionList = [];
-  }
+  });
 
   void whereEqualTo(String key, dynamic value) {
     add(_LCEqualCondition(key, value));
@@ -474,7 +472,7 @@ class _LCCompositionalCondition extends _LCQueryCondition {
     addOperation(key, '\$regex', '.*$subString.*');
   }
 
-  void whereMatches(String key, String regex, String modifiers) {
+  void whereMatches(String key, String regex, String? modifiers) {
     Map<String, dynamic> value = {
       '\$regex': regex,
     };
@@ -500,7 +498,7 @@ class _LCCompositionalCondition extends _LCQueryCondition {
 
   void orderByAscending(String key) {
     orderByList = [];
-    orderByList.add(key);
+    orderByList?.add(key);
   }
 
   void orderByDecending(String key) {
@@ -511,7 +509,7 @@ class _LCCompositionalCondition extends _LCQueryCondition {
     if (orderByList == null) {
       orderByList = [];
     }
-    orderByList.add(key);
+    orderByList?.add(key);
   }
 
   void addDescendingOrder(String key) {
@@ -524,9 +522,6 @@ class _LCCompositionalCondition extends _LCQueryCondition {
   }
 
   void add(_LCQueryCondition cond) {
-    if (cond == null) {
-      return;
-    }
     conditionList.removeWhere((item) => item.equals(cond));
     conditionList.add(cond);
   }
@@ -538,8 +533,8 @@ class _LCCompositionalCondition extends _LCQueryCondition {
 
   @override
   Map<String, dynamic> encode() {
-    if (conditionList == null || conditionList.length == 0) {
-      return null;
+    if (conditionList.length == 0) {
+      return {};
     }
     if (conditionList.length == 1) {
       return conditionList[0].encode();
@@ -551,11 +546,11 @@ class _LCCompositionalCondition extends _LCQueryCondition {
 
   Map<String, dynamic> _buildParams() {
     Map<String, dynamic> result = {};
-    if (conditionList != null && conditionList.length > 0) {
+    if (conditionList.length > 0) {
       result['where'] = jsonEncode(encode());
     }
-    if (orderByList != null && orderByList.length > 0) {
-      result['order'] = orderByList.join(',');
+    if (orderByList != null && orderByList!.length > 0) {
+      result['order'] = orderByList!.join(',');
     }
     return result;
   }

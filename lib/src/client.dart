@@ -247,8 +247,8 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    String byClientID,
-    DateTime atDate,
+    String? byClientID,
+    DateTime? atDate,
   })? onInvited;
 
   /// The [client] has been kicked from the [conversation].
@@ -258,8 +258,8 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    String byClientID,
-    DateTime atDate,
+    String? byClientID,
+    DateTime? atDate,
   })? onKicked;
 
   /// Some [members] have joined to the [conversation].
@@ -269,9 +269,9 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
   })? onMembersJoined;
 
   /// Some [members] have left from the [conversation].
@@ -281,9 +281,9 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
   })? onMembersLeft;
 
   /// Current client be blocked from the [conversation].
@@ -293,8 +293,8 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    String byClientID,
-    DateTime atDate,
+    String? byClientID,
+    DateTime? atDate,
   })? onBlocked;
 
   /// Current client be unblocked from the [conversation].
@@ -304,8 +304,8 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    String byClientID,
-    DateTime atDate,
+    String? byClientID,
+    DateTime? atDate,
   })? onUnblocked;
 
   /// Some [members] have blocked from the [conversation].
@@ -315,9 +315,9 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
   })? onMembersBlocked;
 
   /// Some [members] have unblocked from the [conversation].
@@ -327,9 +327,9 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
   })? onMembersUnBlocked;
 
   /// Current client be muted from the [conversation].
@@ -339,8 +339,8 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    String byClientID,
-    DateTime atDate,
+    String? byClientID,
+    DateTime? atDate,
   })? onMuted;
 
   /// Current client be unmuted from the [conversation].
@@ -350,8 +350,8 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    String byClientID,
-    DateTime atDate,
+    String? byClientID,
+    DateTime? atDate,
   })? onUnmuted;
 
   /// Some [members] have muted from the [conversation].
@@ -361,9 +361,9 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
   })? onMembersMuted;
 
   /// Some [members] have unmuted from the [conversation].
@@ -373,9 +373,9 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
   })? onMembersUnMuted;
 
   /// The attributes of the [conversation] has been updated.
@@ -387,10 +387,10 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    Map updatingAttributes,
-    Map updatedAttributes,
-    String byClientID,
-    DateTime atDate,
+    Map? updatingAttributes,
+    Map? updatedAttributes,
+    String? byClientID,
+    DateTime? atDate,
   })? onInfoUpdated;
 
   /// The [Conversation.unreadMessageCount] of the [conversation] has been updated.
@@ -444,9 +444,9 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    String messageID,
-    String toClientID,
-    DateTime atDate,
+    String? messageID,
+    String? toClientID,
+    DateTime? atDate,
   })? onMessageDelivered;
 
   /// The sent message(ID is [messageID]) that send to [conversation] with [receipt] option, has been read by the client(ID is [toClientID]).
@@ -455,9 +455,9 @@ class Client with _Utilities {
   void Function({
     Client client,
     Conversation conversation,
-    String messageID,
-    String byClientID,
-    DateTime atDate,
+    String? messageID,
+    String? byClientID,
+    DateTime? atDate,
   })? onMessageRead;
 
   final Future<Signature> Function({
@@ -513,7 +513,7 @@ class Client with _Utilities {
       },
     };
     if (tag != null) {
-      args['tag'] = tag;
+      args['tag'] = tag!;
     }
     await call(
       method: 'openClient',
@@ -546,9 +546,9 @@ class Client with _Utilities {
   /// Returns an instance of [Conversation].
   Future<Conversation> createConversation({
     bool isUnique = true,
-    Set<String> members,
-    String name,
-    Map<String, dynamic> attributes,
+    required Set<String> members,
+    String? name,
+    Map<String, dynamic>? attributes,
   }) async {
     return await _createConversation(
       type: _ConversationType.normal,
@@ -566,8 +566,8 @@ class Client with _Utilities {
   ///
   /// Returns an instance of [ChatRoom].
   Future<ChatRoom> createChatRoom({
-    String name,
-    Map<String, dynamic> attributes,
+    String? name,
+    Map<String, dynamic>? attributes,
   }) async {
     return await _createConversation(
       type: _ConversationType.transient,
@@ -583,8 +583,8 @@ class Client with _Utilities {
   ///
   /// Returns an instance of [TemporaryConversation].
   Future<TemporaryConversation> createTemporaryConversation({
-    Set<String> members,
-    int timeToLive,
+    required Set<String> members,
+    int? timeToLive,
   }) async {
     return await _createConversation(
       type: _ConversationType.temporary,
@@ -598,14 +598,14 @@ class Client with _Utilities {
       ConversationQuery._from(client: this);
 
   Future<T> _createConversation<T extends Conversation>({
-    _ConversationType type,
-    bool isUnique,
-    Set<String> members,
-    String name,
-    Map attributes,
-    int ttl,
+    required _ConversationType type,
+    bool? isUnique,
+    Set<String>? members,
+    String? name,
+    Map? attributes,
+    int? ttl,
   }) async {
-    assert(type != null && type != _ConversationType.system);
+    assert(type != _ConversationType.system);
     var args = {
       'clientId': id,
       'conv_type': (isUnique ?? false) ? 0 : (type.index + 1),
@@ -629,7 +629,7 @@ class Client with _Utilities {
       arguments: args,
     );
     final String conversationID = rawData['objectId'];
-    Conversation conversation = conversationMap[conversationID];
+    Conversation? conversation = conversationMap[conversationID];
     if (conversation != null) {
       conversation._rawData = rawData;
     } else {
@@ -639,14 +639,13 @@ class Client with _Utilities {
       );
       conversationMap[conversationID] = conversation;
     }
-    return conversation;
+    return conversation as T;
   }
 
   Future<Conversation> _getConversation({
-    @required String conversationID,
+    required String conversationID,
   }) async {
-    assert(conversationID != null);
-    Conversation existedConversation = conversationMap[conversationID];
+    Conversation? existedConversation = conversationMap[conversationID];
     if (existedConversation != null) {
       return existedConversation;
     }
@@ -658,7 +657,7 @@ class Client with _Utilities {
       method: 'getConversation',
       arguments: args,
     );
-    Conversation conversation = conversationMap[conversationID];
+    Conversation? conversation = conversationMap[conversationID];
     if (conversation != null) {
       conversation._rawData = rawData;
     } else {
@@ -672,8 +671,8 @@ class Client with _Utilities {
   }
 
   Future<void> _processConversationEvent({
-    @required String method,
-    @required Map args,
+    required String method,
+    required Map args,
   }) async {
     final Conversation conversation = await _getConversation(
       conversationID: args['conversationId'],
