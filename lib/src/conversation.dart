@@ -156,7 +156,7 @@ class Conversation with _Utilities {
     required Map rawData,
   }) {
     final String conversationID = rawData['objectId'];
-    int typeNumber = rawData['conv_type'];
+    int typeNumber = rawData['conv_type'] ?? -1;
     _ConversationType type = _ConversationType.normal;
     if (typeNumber > 0 && typeNumber <= _ConversationType.values.length) {
       type = _ConversationType.values[typeNumber - 1];
@@ -1169,7 +1169,7 @@ class Conversation with _Utilities {
     required Message message,
   }) {
     bool notTransient = (message.isTransient == false);
-    bool notWill = (message._will == false);
+    bool notWill = ((message._will ?? false) == false);
     bool notTransientConversation = (_type != _ConversationType.transient);
     if (notTransient && notWill && notTransientConversation) {
       if (lastMessage == null) {

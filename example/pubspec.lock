@@ -94,14 +94,14 @@ packages:
       name: intl
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.16.1"
+    version: "0.17.0"
   leancloud_official_plugin:
     dependency: "direct dev"
     description:
       path: ".."
       relative: true
     source: path
-    version: "1.0.0-beta.12"
+    version: "1.0.0"
   matcher:
     dependency: transitive
     description:

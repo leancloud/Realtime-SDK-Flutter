@@ -216,19 +216,19 @@ class Client with _Utilities {
 
   /// The reopened event of the [client].
   void Function({
-    Client client,
+    required Client client,
   })? onOpened;
 
   /// The resuming event of the [client].
   void Function({
-    Client client,
+    required Client client,
   })? onResuming;
 
   /// The disconnected event of the [client], [exception] is optional.
   ///
   /// This event occurs, for example, when network of local environment unavailable.
   void Function({
-    Client client,
+    required Client client,
     RTMException? exception,
   })? onDisconnected;
 
@@ -236,8 +236,8 @@ class Client with _Utilities {
   ///
   /// This event occurs, for example, [client] has been logged off by server.
   void Function({
-    Client client,
-    RTMException exception,
+    required Client client,
+    required RTMException exception,
   })? onClosed;
 
   /// The [client] has been invited to the [conversation].
@@ -245,8 +245,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     String? byClientID,
     DateTime? atDate,
   })? onInvited;
@@ -256,8 +256,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     String? byClientID,
     DateTime? atDate,
   })? onKicked;
@@ -267,8 +267,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     List? members,
     String? byClientID,
     DateTime? atDate,
@@ -279,8 +279,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     List? members,
     String? byClientID,
     DateTime? atDate,
@@ -291,8 +291,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     String? byClientID,
     DateTime? atDate,
   })? onBlocked;
@@ -302,8 +302,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     String? byClientID,
     DateTime? atDate,
   })? onUnblocked;
@@ -313,8 +313,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     List? members,
     String? byClientID,
     DateTime? atDate,
@@ -325,8 +325,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     List? members,
     String? byClientID,
     DateTime? atDate,
@@ -337,8 +337,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     String? byClientID,
     DateTime? atDate,
   })? onMuted;
@@ -348,8 +348,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     String? byClientID,
     DateTime? atDate,
   })? onUnmuted;
@@ -359,8 +359,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     List? members,
     String? byClientID,
     DateTime? atDate,
@@ -371,8 +371,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     List? members,
     String? byClientID,
     DateTime? atDate,
@@ -385,8 +385,8 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     Map? updatingAttributes,
     Map? updatedAttributes,
     String? byClientID,
@@ -395,55 +395,55 @@ class Client with _Utilities {
 
   /// The [Conversation.unreadMessageCount] of the [conversation] has been updated.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
   })? onUnreadMessageCountUpdated;
 
   /// The [Conversation.lastReadAt] of the [conversation] has been updated.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
   })? onLastReadAtUpdated;
 
   /// The [Conversation.lastDeliveredAt] of the [conversation] has been updated.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
   })? onLastDeliveredAtUpdated;
 
   /// [conversation] has a [message].
   ///
   /// If [message] is new one, the [Conversation.lastMessage] of [conversation] will be updated.
   void Function({
-    Client client,
-    Conversation conversation,
-    Message message,
+    required Client client,
+    required Conversation conversation,
+    required Message message,
   })? onMessage;
 
   /// The sent message in [conversation] has been updated to [updatedMessage].
   ///
   /// If [patchCode] or [patchReason] not `null`, means the sent message was updated due to special reason.
   void Function({
-    Client client,
-    Conversation conversation,
-    Message updatedMessage,
-    int patchCode,
-    String patchReason,
+    required Client client,
+    required Conversation conversation,
+    required Message updatedMessage,
+    int? patchCode,
+    String? patchReason,
   })? onMessageUpdated;
 
   /// The sent message in the [conversation] has been recalled(updated to [recalledMessage]).
   void Function({
-    Client client,
-    Conversation conversation,
-    RecalledMessage recalledMessage,
+    required Client client,
+    required Conversation conversation,
+    required RecalledMessage recalledMessage,
   })? onMessageRecalled;
 
   /// The sent message(ID is [messageID]) that send to [conversation] with [receipt] option, has been delivered to the client(ID is [toClientID]).
   ///
   /// [atDate] means when it occurred.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     String? messageID,
     String? toClientID,
     DateTime? atDate,
@@ -453,19 +453,19 @@ class Client with _Utilities {
   ///
   /// [atDate] means when it occurred.
   void Function({
-    Client client,
-    Conversation conversation,
+    required Client client,
+    required Conversation conversation,
     String? messageID,
     String? byClientID,
     DateTime? atDate,
   })? onMessageRead;
 
   final Future<Signature> Function({
-    Client client,
+    required Client client,
   })? _openSignatureHandler;
 
   final Future<Signature> Function({
-    Client client,
+    required Client client,
     Conversation? conversation,
     List? targetIDs,
     String? action,
@@ -483,11 +483,11 @@ class Client with _Utilities {
     required this.id,
     this.tag,
     Future<Signature> Function({
-      Client client,
+      required Client client,
     })?
         openSignatureHandler,
     Future<Signature> Function({
-      Client client,
+      required Client client,
       Conversation? conversation,
       List? targetIDs,
       String? action,
