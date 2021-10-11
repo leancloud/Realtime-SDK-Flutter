@@ -50,7 +50,7 @@ class MemberResult with _Utilities {
 /// The result of operations for [Conversation.queryBlockedMembers] and [Conversation.queryMutedMembers].
 class QueryMemberResult with _Utilities {
   final List members;
-  final String next;
+  final String? next;
 
   QueryMemberResult._from(Map data)
       : members = data['client_ids'] ?? [],
@@ -99,68 +99,66 @@ class Conversation with _Utilities {
   bool get isUnique => _rawData['unique'] ?? false;
 
   /// If the [Conversation.isUnique] is `true`, then it will have a unique-ID.
-  String get uniqueID => _rawData['uniqueId'];
+  String? get uniqueID => _rawData['uniqueId'];
 
   /// Custom field, generally use it to show the name of the [Conversation].
-  String get name => _rawData['name'];
+  String? get name => _rawData['name'];
 
   /// Custom field, no strict limit, can store any valid data.
-  Map get attributes => _rawData['attr'];
+  Map? get attributes => _rawData['attr'];
 
   /// The members of the [Conversation].
-  List get members => _rawData['m'];
+  List? get members => _rawData['m'];
 
   /// Indicates whether the [Conversation.client] has muted offline notifications about this [Conversation].
   bool get isMuted => _rawData['mu']?.contains(client.id) ?? false;
 
   /// The creator of the [Conversation].
-  String get creator => _rawData['c'];
+  String? get creator => _rawData['c'];
 
   /// The created date of the [Conversation].
-  DateTime get createdAt => parseIsoString(_rawData['createdAt']);
+  DateTime? get createdAt => parseIsoString(_rawData['createdAt']);
 
   /// The last updated date of the [Conversation].
-  DateTime get updatedAt => parseIsoString(_rawData['updatedAt']);
+  DateTime? get updatedAt => parseIsoString(_rawData['updatedAt']);
 
   /// The last [Message] in the [Conversation].
-  Message get lastMessage => _lastMessage;
+  Message? get lastMessage => _lastMessage;
 
   /// The timestamp of the last [Message] in the [Conversation].
-  int get lastMessageTimestamp => _lastMessage.sentTimestamp;
+  int? get lastMessageTimestamp => _lastMessage?.sentTimestamp;
 
   /// The date of the last [Message] in the [Conversation].
-  DateTime get lastMessageDate => _lastMessage.sentDate;
+  DateTime? get lastMessageDate => _lastMessage?.sentDate;
 
   /// The last date of the [Message] which has been delivered to other [Client].
-  DateTime get lastDeliveredAt => parseMilliseconds(_lastDeliveredTimestamp);
+  DateTime? get lastDeliveredAt => parseMilliseconds(_lastDeliveredTimestamp);
 
   /// The last date of the [Message] which has been read by other [Client].
-  DateTime get lastReadAt => parseMilliseconds(_lastReadTimestamp);
+  DateTime? get lastReadAt => parseMilliseconds(_lastReadTimestamp);
 
   /// The count of the unread [Message] for the [Conversation.client].
   int get unreadMessageCount => _unreadMessageCount;
 
   /// Indicates whether the unread [Message] list contians any message that mentions the [Conversation.client].
-  bool get unreadMessageMentioned => _unreadMessageMentioned ?? false;
+  bool get unreadMessageMentioned => _unreadMessageMentioned;
 
   _ConversationType _type;
-  Map _rawData;
-  Message _lastMessage;
-  int _lastDeliveredTimestamp;
-  int _lastReadTimestamp;
-  int _unreadMessageCount;
-  bool _unreadMessageMentioned;
+  Map _rawData = {};
+  Message? _lastMessage;
+  int? _lastDeliveredTimestamp;
+  int? _lastReadTimestamp;
+  int _unreadMessageCount = 0;
+  bool _unreadMessageMentioned = false;
 
   static Conversation _newInstance({
-    @required Client client,
-    @required Map rawData,
+    required Client client,
+    required Map rawData,
   }) {
     final String conversationID = rawData['objectId'];
-    int typeNumber = rawData['conv_type'];
+    int typeNumber = rawData['conv_type'] ?? -1;
     _ConversationType type = _ConversationType.normal;
-    if (typeNumber != null &&
-        typeNumber > 0 &&
-        typeNumber <= _ConversationType.values.length) {
+    if (typeNumber > 0 && typeNumber <= _ConversationType.values.length) {
       type = _ConversationType.values[typeNumber - 1];
     } else {
       if (rawData['tr'] == true) {
@@ -218,15 +216,11 @@ class Conversation with _Utilities {
   }
 
   Conversation._from({
-    @required this.id,
-    @required this.client,
-    @required _ConversationType type,
-    @required Map rawData,
-  })  : assert(id != null),
-        assert(client != null),
-        assert(type != null),
-        assert(rawData != null),
-        _type = type,
+    required this.id,
+    required this.client,
+    required _ConversationType type,
+    required Map rawData,
+  })  : _type = type,
         _rawData = rawData;
 
   /// To send a [Message] in the [Conversation].
@@ -239,18 +233,13 @@ class Conversation with _Utilities {
   ///
   /// Returns the sent [Message] which has [Message.id] and [Message.sentTimestamp].
   Future<Message> send({
-    @required Message message,
-    bool transient,
-    bool receipt,
-    bool will,
-    MessagePriority priority,
-    Map pushData,
+    required Message message,
+    bool? transient,
+    bool? receipt,
+    bool? will,
+    MessagePriority? priority,
+    Map? pushData,
   }) async {
-    if (message == null) {
-      throw ArgumentError.notNull(
-        'message',
-      );
-    }
     var options = {};
     if (receipt ?? false) {
       options['receipt'] = true;
@@ -329,16 +318,11 @@ class Conversation with _Utilities {
   ///
   /// Returns the updated [Message] which has [Message.patchedTimestamp].
   Future<Message> updateMessage({
-    Message oldMessage,
-    String oldMessageID,
-    int oldMessageTimestamp,
-    @required Message newMessage,
+    Message? oldMessage,
+    String? oldMessageID,
+    int? oldMessageTimestamp,
+    required Message newMessage,
   }) async {
-    if (newMessage == null) {
-      throw ArgumentError.notNull(
-        'newMessage',
-      );
-    }
     if (oldMessage == null) {
       if (oldMessageID == null) {
         throw ArgumentError.notNull(
@@ -371,9 +355,9 @@ class Conversation with _Utilities {
   ///
   /// Returns the recalled [Message] which has [Message.patchedTimestamp].
   Future<RecalledMessage> recallMessage({
-    Message message,
-    String messageID,
-    int messageTimestamp,
+    Message? message,
+    String? messageID,
+    int? messageTimestamp,
   }) async {
     if (message == null) {
       if (messageID == null) {
@@ -392,7 +376,7 @@ class Conversation with _Utilities {
       oldMessageID: messageID,
       oldMessageTimestamp: messageTimestamp,
       recall: true,
-    );
+    ) as RecalledMessage;
   }
 
   /// To fetch last receipt timestamps of the [Message].
@@ -435,15 +419,15 @@ class Conversation with _Utilities {
   ///
   /// Returns a list of [Message], the order is from old to new.
   Future<List<Message>> queryMessage({
-    int startTimestamp,
-    String startMessageID,
-    bool startClosed,
-    int endTimestamp,
-    String endMessageID,
-    bool endClosed,
-    MessageQueryDirection direction,
-    int limit = 20,
-    int type,
+    int? startTimestamp,
+    String? startMessageID,
+    bool? startClosed,
+    int? endTimestamp,
+    String? endMessageID,
+    bool? endClosed,
+    MessageQueryDirection? direction,
+    int? limit = 20,
+    int? type,
   }) async {
     var start = {};
     if (startTimestamp != null) {
@@ -530,7 +514,7 @@ class Conversation with _Utilities {
   ///
   /// Returns a [MemberResult].
   Future<MemberResult> addMembers({
-    @required Set<String> members,
+    required Set<String> members,
   }) async {
     return await _updateMembers(
       members: members.toList(),
@@ -544,7 +528,7 @@ class Conversation with _Utilities {
   ///
   /// Returns a [MemberResult].
   Future<MemberResult> removeMembers({
-    @required Set<String> members,
+    required Set<String> members,
   }) async {
     return await _updateMembers(
       members: members.toList(),
@@ -558,7 +542,7 @@ class Conversation with _Utilities {
   ///
   /// Returns a [MemberResult].
   Future<MemberResult> blockMembers({
-    @required Set<String> members,
+    required Set<String> members,
   }) async {
     return await _updateBlockMembers(
       members: members.toList(),
@@ -572,7 +556,7 @@ class Conversation with _Utilities {
   ///
   /// Returns a [MemberResult].
   Future<MemberResult> unblockMembers({
-    @required Set<String> members,
+    required Set<String> members,
   }) async {
     return await _updateBlockMembers(
       members: members.toList(),
@@ -587,8 +571,8 @@ class Conversation with _Utilities {
   ///
   /// Returns a list of members.
   Future<QueryMemberResult> queryBlockedMembers({
-    int limit = 50,
-    String next,
+    int? limit = 50,
+    String? next,
   }) async {
     var args = <dynamic, dynamic>{
       'clientId': client.id,
@@ -618,7 +602,7 @@ class Conversation with _Utilities {
   ///
   /// Returns a [MemberResult].
   Future<MemberResult> muteMembers({
-    @required Set<String> members,
+    required Set<String> members,
   }) async {
     return await _updateMuteMembers(
       members: members.toList(),
@@ -632,7 +616,7 @@ class Conversation with _Utilities {
   ///
   /// Returns a [MemberResult].
   Future<MemberResult> unmuteMembers({
-    @required Set<String> members,
+    required Set<String> members,
   }) async {
     return await _updateMuteMembers(
       members: members.toList(),
@@ -647,8 +631,8 @@ class Conversation with _Utilities {
   ///
   /// Returns a list of members.
   Future<QueryMemberResult> queryMutedMembers({
-    int limit = 50,
-    String next,
+    int? limit = 50,
+    String? next,
   }) async {
     var args = <dynamic, dynamic>{
       'clientId': client.id,
@@ -690,7 +674,7 @@ class Conversation with _Utilities {
   ///
   /// [attributes] should not be empty.
   Future<void> updateInfo({
-    @required Map<String, dynamic> attributes,
+    required Map<String, dynamic> attributes,
   }) async {
     if (attributes.isEmpty) {
       throw ArgumentError(
@@ -721,10 +705,10 @@ class Conversation with _Utilities {
   }
 
   Future<Message> _patchMessage({
-    Message oldMessage,
-    String oldMessageID,
-    int oldMessageTimestamp,
-    Message newMessage,
+    Message? oldMessage,
+    String? oldMessageID,
+    int? oldMessageTimestamp,
+    Message? newMessage,
     bool recall = false,
   }) async {
     Map args = {
@@ -761,10 +745,11 @@ class Conversation with _Utilities {
       method: 'patchMessage',
       arguments: args,
     );
-    Message patchedMessage;
+    Message patchedMessage = Message();
     if (newMessage != null) {
       patchedMessage = newMessage;
-    } else if (recall) {
+    }
+    if (recall) {
       patchedMessage = RecalledMessage();
     }
     patchedMessage._loadMap(rawData);
@@ -775,8 +760,8 @@ class Conversation with _Utilities {
   }
 
   Future<MemberResult> _updateMembers({
-    @required List<String> members,
-    @required String op,
+    required List<String> members,
+    required String op,
   }) async {
     if (members.isEmpty) {
       throw ArgumentError(
@@ -800,8 +785,8 @@ class Conversation with _Utilities {
   }
 
   Future<MemberResult> _updateBlockMembers({
-    @required List<String> members,
-    @required String op,
+    required List<String> members,
+    required String op,
   }) async {
     if (members.isEmpty) {
       throw ArgumentError(
@@ -825,8 +810,8 @@ class Conversation with _Utilities {
   }
 
   Future<MemberResult> _updateMuteMembers({
-    @required List<String> members,
-    @required String op,
+    required List<String> members,
+    required String op,
   }) async {
     if (members.isEmpty) {
       throw ArgumentError(
@@ -850,7 +835,7 @@ class Conversation with _Utilities {
   }
 
   Future<void> _muteToggle({
-    @required String op,
+    required String op,
   }) async {
     assert(op == 'mute' || op == 'unmute');
     var args = {
@@ -882,10 +867,10 @@ class Conversation with _Utilities {
         op == 'unblocked' ||
         op == 'members-blocked' ||
         op == 'members-unblocked');
-    final List m = args['m'];
-    final String initBy = args['initBy'];
-    final String udate = args['udate'];
-    final List members = args['members'];
+    final List? m = args['m'];
+    final String? initBy = args['initBy'];
+    final String? udate = args['udate'];
+    final List? members = args['members'];
     if (members != null) {
       _rawData['m'] = members;
     }
@@ -895,7 +880,7 @@ class Conversation with _Utilities {
     switch (op) {
       case 'joined':
         if (client.onInvited != null) {
-          client.onInvited(
+          client.onInvited!(
             client: client,
             conversation: this,
             byClientID: initBy,
@@ -905,7 +890,7 @@ class Conversation with _Utilities {
         break;
       case 'left':
         if (client.onKicked != null) {
-          client.onKicked(
+          client.onKicked!(
             client: client,
             conversation: this,
             byClientID: initBy,
@@ -915,7 +900,7 @@ class Conversation with _Utilities {
         break;
       case 'members-joined':
         if (client.onMembersJoined != null) {
-          client.onMembersJoined(
+          client.onMembersJoined!(
             client: client,
             conversation: this,
             members: m,
@@ -926,7 +911,7 @@ class Conversation with _Utilities {
         break;
       case 'members-left':
         if (client.onMembersLeft != null) {
-          client.onMembersLeft(
+          client.onMembersLeft!(
             client: client,
             conversation: this,
             members: m,
@@ -937,7 +922,7 @@ class Conversation with _Utilities {
         break;
       case 'muted':
         if (client.onMuted != null) {
-          client.onMuted(
+          client.onMuted!(
             client: client,
             conversation: this,
             byClientID: initBy,
@@ -947,7 +932,7 @@ class Conversation with _Utilities {
         break;
       case 'unmuted':
         if (client.onUnmuted != null) {
-          client.onUnmuted(
+          client.onUnmuted!(
             client: client,
             conversation: this,
             byClientID: initBy,
@@ -957,7 +942,7 @@ class Conversation with _Utilities {
         break;
       case 'members-muted':
         if (client.onMembersMuted != null) {
-          client.onMembersMuted(
+          client.onMembersMuted!(
             client: client,
             conversation: this,
             members: m,
@@ -968,7 +953,7 @@ class Conversation with _Utilities {
         break;
       case 'members-unmuted':
         if (client.onMembersUnMuted != null) {
-          client.onMembersUnMuted(
+          client.onMembersUnMuted!(
             client: client,
             conversation: this,
             members: m,
@@ -979,7 +964,7 @@ class Conversation with _Utilities {
         break;
       case 'blocked':
         if (client.onBlocked != null) {
-          client.onBlocked(
+          client.onBlocked!(
             client: client,
             conversation: this,
             byClientID: initBy,
@@ -989,7 +974,7 @@ class Conversation with _Utilities {
         break;
       case 'unblocked':
         if (client.onUnblocked != null) {
-          client.onUnblocked(
+          client.onUnblocked!(
             client: client,
             conversation: this,
             byClientID: initBy,
@@ -999,7 +984,7 @@ class Conversation with _Utilities {
         break;
       case 'members-blocked':
         if (client.onMembersBlocked != null) {
-          client.onMembersBlocked(
+          client.onMembersBlocked!(
             client: client,
             conversation: this,
             members: m,
@@ -1010,7 +995,7 @@ class Conversation with _Utilities {
         break;
       case 'members-unblocked':
         if (client.onMembersUnBlocked != null) {
-          client.onMembersUnBlocked(
+          client.onMembersUnBlocked!(
             client: client,
             conversation: this,
             members: m,
@@ -1027,12 +1012,12 @@ class Conversation with _Utilities {
   void _dataUpdate(
     Map args,
   ) {
-    final Map rawData = args['rawData'];
+    final Map? rawData = args['rawData'];
     if (rawData != null) {
       _rawData = rawData;
     }
     if (client.onInfoUpdated != null) {
-      client.onInfoUpdated(
+      client.onInfoUpdated!(
         client: client,
         conversation: this,
         updatingAttributes: args['attr'],
@@ -1046,12 +1031,15 @@ class Conversation with _Utilities {
   void _unreadMessageCountUpdate(
     Map args,
   ) {
-    _unreadMessageCount = args['count'];
-    final bool mention = args['mention'];
+    final int? count = args['count'];
+    if (count != null) {
+      _unreadMessageCount = count;
+    }
+    final bool? mention = args['mention'];
     if (mention != null) {
       _unreadMessageMentioned = mention;
     }
-    final Map messageRawData = args['message'];
+    final Map? messageRawData = args['message'];
     if (messageRawData != null) {
       _updateLastMessage(
         message: Message._instanceFrom(
@@ -1060,7 +1048,7 @@ class Conversation with _Utilities {
       );
     }
     if (client.onUnreadMessageCountUpdated != null) {
-      client.onUnreadMessageCountUpdated(
+      client.onUnreadMessageCountUpdated!(
         client: client,
         conversation: this,
       );
@@ -1070,14 +1058,14 @@ class Conversation with _Utilities {
   void _lastReceiptTimestampUpdate(
     Map args,
   ) {
-    final int maxReadTimestamp = args['maxReadTimestamp'];
-    final int maxAckTimestamp = args['maxAckTimestamp'];
+    final int? maxReadTimestamp = args['maxReadTimestamp'];
+    final int? maxAckTimestamp = args['maxAckTimestamp'];
     if (maxReadTimestamp != null) {
       if (_lastReadTimestamp == null ||
-          (maxReadTimestamp > _lastReadTimestamp)) {
+          (maxReadTimestamp > (_lastReadTimestamp ?? -1))) {
         _lastReadTimestamp = maxReadTimestamp;
         if (client.onLastReadAtUpdated != null) {
-          client.onLastReadAtUpdated(
+          client.onLastReadAtUpdated!(
             client: client,
             conversation: this,
           );
@@ -1086,10 +1074,10 @@ class Conversation with _Utilities {
     }
     if (maxAckTimestamp != null) {
       if (_lastDeliveredTimestamp == null ||
-          (maxAckTimestamp > _lastDeliveredTimestamp)) {
+          (maxAckTimestamp > (_lastDeliveredTimestamp ?? -1))) {
         _lastDeliveredTimestamp = maxAckTimestamp;
         if (client.onLastDeliveredAtUpdated != null) {
-          client.onLastDeliveredAtUpdated(
+          client.onLastDeliveredAtUpdated!(
             client: client,
             conversation: this,
           );
@@ -1108,7 +1096,7 @@ class Conversation with _Utilities {
       message: message,
     );
     if (client.onMessage != null) {
-      client.onMessage(
+      client.onMessage!(
         client: client,
         conversation: this,
         message: message,
@@ -1128,7 +1116,7 @@ class Conversation with _Utilities {
     final bool recall = args['recall'] ?? false;
     if (recall) {
       if ((message is RecalledMessage) && client.onMessageRecalled != null) {
-        client.onMessageRecalled(
+        client.onMessageRecalled!(
           client: client,
           conversation: this,
           recalledMessage: message,
@@ -1136,7 +1124,7 @@ class Conversation with _Utilities {
       }
     } else {
       if (client.onMessageUpdated != null) {
-        client.onMessageUpdated(
+        client.onMessageUpdated!(
           client: client,
           conversation: this,
           updatedMessage: message,
@@ -1151,12 +1139,12 @@ class Conversation with _Utilities {
     Map args,
   ) {
     final bool isRead = args['read'] ?? false;
-    final String messageID = args['id'];
-    final String from = args['from'];
-    final int timestamp = args['t'];
+    final String? messageID = args['id'];
+    final String? from = args['from'];
+    final int? timestamp = args['t'];
     if (isRead) {
       if (client.onMessageRead != null) {
-        client.onMessageRead(
+        client.onMessageRead!(
           client: client,
           conversation: this,
           messageID: messageID,
@@ -1166,7 +1154,7 @@ class Conversation with _Utilities {
       }
     } else {
       if (client.onMessageDelivered != null) {
-        client.onMessageDelivered(
+        client.onMessageDelivered!(
           client: client,
           conversation: this,
           messageID: messageID,
@@ -1178,17 +1166,17 @@ class Conversation with _Utilities {
   }
 
   void _updateLastMessage({
-    @required Message message,
+    required Message message,
   }) {
-    bool notTransient = ((message.isTransient ?? false) == false);
+    bool notTransient = (message.isTransient == false);
     bool notWill = ((message._will ?? false) == false);
     bool notTransientConversation = (_type != _ConversationType.transient);
     if (notTransient && notWill && notTransientConversation) {
       if (lastMessage == null) {
         _lastMessage = message;
-      } else if (lastMessage.sentTimestamp != null &&
+      } else if (lastMessage?.sentTimestamp != null &&
           message.sentTimestamp != null &&
-          message.sentTimestamp >= lastMessage.sentTimestamp) {
+          (message.sentTimestamp ?? -2) >= (lastMessage?.sentTimestamp ?? -1)) {
         _lastMessage = message;
       }
     }
@@ -1198,10 +1186,10 @@ class Conversation with _Utilities {
 /// IM Chat Room of RTM Plugin.
 class ChatRoom extends Conversation {
   ChatRoom._from({
-    @required String id,
-    @required Client client,
-    @required _ConversationType type,
-    @required Map rawData,
+    required String id,
+    required Client client,
+    required _ConversationType type,
+    required Map rawData,
   }) : super._from(
           id: id,
           client: client,
@@ -1216,10 +1204,10 @@ class ServiceConversation extends Conversation {
   bool get isSubscribed => _rawData['joined'] ?? false;
 
   ServiceConversation._from({
-    @required String id,
-    @required Client client,
-    @required _ConversationType type,
-    @required Map rawData,
+    required String id,
+    required Client client,
+    required _ConversationType type,
+    required Map rawData,
   }) : super._from(
           id: id,
           client: client,
@@ -1231,13 +1219,13 @@ class ServiceConversation extends Conversation {
 /// IM Temporary Conversation of RTM Plugin.
 class TemporaryConversation extends Conversation {
   /// The living time of the [TemporaryConversation].
-  int get timeToLive => _rawData['ttl'];
+  int? get timeToLive => _rawData['ttl'];
 
   TemporaryConversation._from({
-    @required String id,
-    @required Client client,
-    @required _ConversationType type,
-    @required Map rawData,
+    required String id,
+    required Client client,
+    required _ConversationType type,
+    required Map rawData,
   }) : super._from(
           id: id,
           client: client,

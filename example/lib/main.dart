@@ -22,7 +22,7 @@ Future<void> delay({
   await Future.delayed(Duration(seconds: seconds));
 }
 
-void logException(dynamic e, {String title}) {
+void logException(dynamic e, {String? title}) {
   if (title == null) {
     print('[⁉️][Exception]: $e');
   } else {
@@ -51,7 +51,6 @@ UnitTestCase clientOpenThenClose() => UnitTestCase(
       Client client = Client(id: uuid());
       // open
       await client.open();
-      assert(client.id != null);
       assert(client.tag == null);
       // close
       await client.close();
@@ -70,15 +69,13 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
       Client client2 = Client(id: uuid());
       // event
       client1.onInvited = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client1.onInvited = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -87,19 +84,17 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
         }
       };
       client1.onMembersJoined = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client1.onMembersJoined = null;
-          assert(client != null);
-          assert(conversation != null);
-          assert(members.length == 2);
-          assert(members.contains(client1.id));
-          assert(members.contains(client2.id));
+          assert(members!.length == 2);
+          assert(members!.contains(client1.id));
+          assert(members!.contains(client2.id));
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -108,15 +103,13 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
         }
       };
       client2.onInvited = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2.onInvited = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -125,19 +118,17 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
         }
       };
       client2.onMembersJoined = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2.onMembersJoined = null;
-          assert(client != null);
-          assert(conversation != null);
-          assert(members.length == 2);
-          assert(members.contains(client1.id));
-          assert(members.contains(client2.id));
+          assert(members!.length == 2);
+          assert(members!.contains(client1.id));
+          assert(members!.contains(client2.id));
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -153,11 +144,10 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
         members: {client1.id, client2.id},
       );
       assert(conversation1.rawData['conv_type'] == 1);
-      assert(conversation1.id != null);
       assert(conversation1.uniqueID != null);
-      assert(conversation1.members.length == 2);
-      assert(conversation1.members.contains(client1.id));
-      assert(conversation1.members.contains(client2.id));
+      assert(conversation1.members!.length == 2);
+      assert(conversation1.members!.contains(client1.id));
+      assert(conversation1.members!.contains(client2.id));
       assert(conversation1.isUnique == true);
       assert(conversation1.name == null);
       assert(conversation1.attributes == null);
@@ -176,13 +166,13 @@ UnitTestCase createUniqueConversationAndCountMember() => UnitTestCase(
       assert(conversation2.rawData['conv_type'] == 1);
       assert(conversation2.id == conversation1.id);
       assert(conversation2.uniqueID == conversation1.uniqueID);
-      assert(conversation2.members.length == 2);
-      assert(conversation2.members.contains(client1.id));
-      assert(conversation2.members.contains(client2.id));
+      assert(conversation2.members!.length == 2);
+      assert(conversation2.members!.contains(client1.id));
+      assert(conversation2.members!.contains(client2.id));
       assert(conversation2.isUnique == true);
       assert(conversation2.name == name);
-      assert(conversation2.attributes.length == 1);
-      assert(conversation2.attributes[attrKey] == attrValue);
+      assert(conversation2.attributes!.length == 1);
+      assert(conversation2.attributes![attrKey] == attrValue);
       assert(conversation2.creator == client1.id);
       assert(conversation2.createdAt == conversation1.createdAt);
       int count = await conversation2.countMembers();
@@ -203,23 +193,21 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
       // event
       int client1OnConversationInvite = 2;
       client1.onInvited = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) async {
         try {
           client1OnConversationInvite -= 1;
           if (client1OnConversationInvite <= 0) {
             client1.onInvited = null;
           }
-          assert(client != null);
-          assert(conversation != null);
           assert(atDate != null);
-          assert(conversation.members.length == 3);
-          assert(conversation.members.contains(client0.id));
-          assert(conversation.members.contains(client1.id));
-          assert(conversation.members.contains(client2.id));
+          assert(conversation.members!.length == 3);
+          assert(conversation.members!.contains(client0.id));
+          assert(conversation.members!.contains(client1.id));
+          assert(conversation.members!.contains(client2.id));
           if (client1OnConversationInvite == 1) {
             // join by create
             assert(byClientID == client0.id);
@@ -234,29 +222,27 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
         }
       };
       client1.onKicked = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) async {
         try {
           client1.onKicked = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(byClientID == client1.id);
           assert(atDate != null);
-          assert(conversation.members.length == 2);
-          assert(conversation.members.contains(client0.id));
-          assert(conversation.members.contains(client2.id));
+          assert(conversation.members!.length == 2);
+          assert(conversation.members!.contains(client0.id));
+          assert(conversation.members!.contains(client2.id));
           decrease(1);
           MemberResult joinResult = await conversation.join();
           assert(joinResult.allSucceeded);
           assert(joinResult.succeededMembers.length == 1);
           assert(joinResult.succeededMembers.contains(client1.id));
-          assert(conversation.members.length == 3);
-          assert(conversation.members.contains(client0.id));
-          assert(conversation.members.contains(client1.id));
-          assert(conversation.members.contains(client2.id));
+          assert(conversation.members!.length == 3);
+          assert(conversation.members!.contains(client0.id));
+          assert(conversation.members!.contains(client1.id));
+          assert(conversation.members!.contains(client2.id));
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
@@ -264,52 +250,50 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
       };
       int client1OnConversationMembersJoin = 3;
       client1.onMembersJoined = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) async {
         try {
           client1OnConversationMembersJoin -= 1;
           if (client1OnConversationMembersJoin <= 0) {
             client1.onMembersJoined = null;
           }
-          assert(client != null);
-          assert(conversation != null);
           assert(atDate != null);
           if (client1OnConversationMembersJoin == 2) {
             // join by create
             assert(byClientID == client0.id);
-            assert(members.length == 3);
-            assert(members.contains(client0.id));
-            assert(members.contains(client1.id));
-            assert(members.contains(client2.id));
-            assert(conversation.members.length == 3);
-            assert(conversation.members.contains(client0.id));
-            assert(conversation.members.contains(client1.id));
-            assert(conversation.members.contains(client2.id));
+            assert(members!.length == 3);
+            assert(members!.contains(client0.id));
+            assert(members!.contains(client1.id));
+            assert(members!.contains(client2.id));
+            assert(conversation.members!.length == 3);
+            assert(conversation.members!.contains(client0.id));
+            assert(conversation.members!.contains(client1.id));
+            assert(conversation.members!.contains(client2.id));
             decrease(1);
           } else if (client1OnConversationMembersJoin == 1) {
             // rejoin
             assert(byClientID == client1.id);
-            assert(members.length == 1);
-            assert(members.contains(client1.id));
-            assert(conversation.members.length == 3);
-            assert(conversation.members.contains(client0.id));
-            assert(conversation.members.contains(client1.id));
-            assert(conversation.members.contains(client2.id));
+            assert(members!.length == 1);
+            assert(members!.contains(client1.id));
+            assert(conversation.members!.length == 3);
+            assert(conversation.members!.contains(client0.id));
+            assert(conversation.members!.contains(client1.id));
+            assert(conversation.members!.contains(client2.id));
             decrease(1);
           } else if (client1OnConversationMembersJoin == 0) {
             // add new member
             assert(byClientID == client1.id);
-            assert(members.length == 1);
-            assert(members.contains(client3id));
-            assert(conversation.members.length == 4);
-            assert(conversation.members.contains(client0.id));
-            assert(conversation.members.contains(client1.id));
-            assert(conversation.members.contains(client2.id));
-            assert(conversation.members.contains(client3id));
+            assert(members!.length == 1);
+            assert(members!.contains(client3id));
+            assert(conversation.members!.length == 4);
+            assert(conversation.members!.contains(client0.id));
+            assert(conversation.members!.contains(client1.id));
+            assert(conversation.members!.contains(client2.id));
+            assert(conversation.members!.contains(client3id));
             decrease(1);
           }
           if (client1OnConversationMembersJoin == 2) {
@@ -317,9 +301,9 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
             assert(quitResult.allSucceeded);
             assert(quitResult.succeededMembers.length == 1);
             assert(quitResult.succeededMembers.contains(client1.id));
-            assert(conversation.members.length == 2);
-            assert(conversation.members.contains(client0.id));
-            assert(conversation.members.contains(client2.id));
+            assert(conversation.members!.length == 2);
+            assert(conversation.members!.contains(client0.id));
+            assert(conversation.members!.contains(client2.id));
             decrease(1);
           } else if (client1OnConversationMembersJoin == 1) {
             MemberResult addMemberResult = await conversation.addMembers(
@@ -328,25 +312,25 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
             assert(addMemberResult.allSucceeded);
             assert(addMemberResult.succeededMembers.length == 1);
             assert(addMemberResult.succeededMembers.contains(client3id));
-            assert(conversation.members.length == 4);
-            assert(conversation.members.contains(client0.id));
-            assert(conversation.members.contains(client1.id));
-            assert(conversation.members.contains(client2.id));
-            assert(conversation.members.contains(client3id));
+            assert(conversation.members!.length == 4);
+            assert(conversation.members!.contains(client0.id));
+            assert(conversation.members!.contains(client1.id));
+            assert(conversation.members!.contains(client2.id));
+            assert(conversation.members!.contains(client3id));
             decrease(1);
           } else if (client1OnConversationMembersJoin == 0) {
             Conversation conversation0 =
-                client0.conversationMap[conversation.id];
+                client0.conversationMap[conversation.id]!;
             MemberResult removeMemberResult = await conversation0.removeMembers(
               members: {client3id},
             );
             assert(removeMemberResult.allSucceeded);
             assert(removeMemberResult.succeededMembers.length == 1);
             assert(removeMemberResult.succeededMembers.contains(client3id));
-            assert(conversation0.members.length == 3);
-            assert(conversation0.members.contains(client0.id));
-            assert(conversation0.members.contains(client1.id));
-            assert(conversation0.members.contains(client2.id));
+            assert(conversation0.members!.length == 3);
+            assert(conversation0.members!.contains(client0.id));
+            assert(conversation0.members!.contains(client1.id));
+            assert(conversation0.members!.contains(client2.id));
             decrease(1);
           }
         } catch (e) {
@@ -354,45 +338,41 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
         }
       };
       client1.onMembersLeft = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client1.onMembersLeft = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(byClientID == client0.id);
           assert(atDate != null);
-          assert(members.length == 1);
-          assert(members.contains(client3id));
-          assert(conversation.members.length == 3);
-          assert(conversation.members.contains(client0.id));
-          assert(conversation.members.contains(client1.id));
-          assert(conversation.members.contains(client2.id));
+          assert(members!.length == 1);
+          assert(members!.contains(client3id));
+          assert(conversation.members!.length == 3);
+          assert(conversation.members!.contains(client0.id));
+          assert(conversation.members!.contains(client1.id));
+          assert(conversation.members!.contains(client2.id));
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
       client2.onInvited = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2.onInvited = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(byClientID == client0.id);
           assert(atDate != null);
-          assert(conversation.members.length == 3);
-          assert(conversation.members.contains(client0.id));
-          assert(conversation.members.contains(client1.id));
-          assert(conversation.members.contains(client2.id));
+          assert(conversation.members!.length == 3);
+          assert(conversation.members!.contains(client0.id));
+          assert(conversation.members!.contains(client1.id));
+          assert(conversation.members!.contains(client2.id));
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
@@ -400,52 +380,50 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
       };
       int client2OnConversationMembersJoin = 3;
       client2.onMembersJoined = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2OnConversationMembersJoin -= 1;
           if (client2OnConversationMembersJoin <= 0) {
             client2.onMembersJoined = null;
           }
-          assert(client != null);
-          assert(conversation != null);
           assert(atDate != null);
           if (client2OnConversationMembersJoin == 2) {
             // join by create
             assert(byClientID == client0.id);
-            assert(members.length == 3);
-            assert(members.contains(client0.id));
-            assert(members.contains(client1.id));
-            assert(members.contains(client2.id));
-            assert(conversation.members.length == 3);
-            assert(conversation.members.contains(client0.id));
-            assert(conversation.members.contains(client1.id));
-            assert(conversation.members.contains(client2.id));
+            assert(members!.length == 3);
+            assert(members!.contains(client0.id));
+            assert(members!.contains(client1.id));
+            assert(members!.contains(client2.id));
+            assert(conversation.members!.length == 3);
+            assert(conversation.members!.contains(client0.id));
+            assert(conversation.members!.contains(client1.id));
+            assert(conversation.members!.contains(client2.id));
             decrease(1);
           } else if (client2OnConversationMembersJoin == 1) {
             // rejoin
             assert(byClientID == client1.id);
-            assert(members.length == 1);
-            assert(members.contains(client1.id));
-            assert(conversation.members.length == 3);
-            assert(conversation.members.contains(client0.id));
-            assert(conversation.members.contains(client1.id));
-            assert(conversation.members.contains(client2.id));
+            assert(members!.length == 1);
+            assert(members!.contains(client1.id));
+            assert(conversation.members!.length == 3);
+            assert(conversation.members!.contains(client0.id));
+            assert(conversation.members!.contains(client1.id));
+            assert(conversation.members!.contains(client2.id));
             decrease(1);
           } else if (client2OnConversationMembersJoin == 0) {
             // add new member
             assert(byClientID == client1.id);
-            assert(members.length == 1);
-            assert(members.contains(client3id));
-            assert(conversation.members.length == 4);
-            assert(conversation.members.contains(client0.id));
-            assert(conversation.members.contains(client1.id));
-            assert(conversation.members.contains(client2.id));
-            assert(conversation.members.contains(client3id));
+            assert(members!.length == 1);
+            assert(members!.contains(client3id));
+            assert(conversation.members!.length == 4);
+            assert(conversation.members!.contains(client0.id));
+            assert(conversation.members!.contains(client1.id));
+            assert(conversation.members!.contains(client2.id));
+            assert(conversation.members!.contains(client3id));
             decrease(1);
           }
         } catch (e) {
@@ -454,38 +432,36 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
       };
       int client2OnConversationMembersLeave = 2;
       client2.onMembersLeft = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2OnConversationMembersLeave -= 1;
           if (client2OnConversationMembersLeave <= 0) {
             client2.onMembersLeft = null;
           }
-          assert(client != null);
-          assert(conversation != null);
           assert(atDate != null);
           if (client2OnConversationMembersLeave == 1) {
             // leave
             assert(byClientID == client1.id);
-            assert(members.length == 1);
-            assert(members.contains(client1.id));
-            assert(conversation.members.length == 2);
-            assert(conversation.members.contains(client0.id));
-            assert(conversation.members.contains(client2.id));
+            assert(members!.length == 1);
+            assert(members!.contains(client1.id));
+            assert(conversation.members!.length == 2);
+            assert(conversation.members!.contains(client0.id));
+            assert(conversation.members!.contains(client2.id));
             decrease(1);
           } else if (client2OnConversationMembersLeave == 0) {
             // remove new member
             assert(byClientID == client0.id);
-            assert(members.length == 1);
-            assert(members.contains(client3id));
-            assert(conversation.members.length == 3);
-            assert(conversation.members.contains(client0.id));
-            assert(conversation.members.contains(client1.id));
-            assert(conversation.members.contains(client2.id));
+            assert(members!.length == 1);
+            assert(members!.contains(client3id));
+            assert(conversation.members!.length == 3);
+            assert(conversation.members!.contains(client0.id));
+            assert(conversation.members!.contains(client1.id));
+            assert(conversation.members!.contains(client2.id));
             decrease(1);
           }
         } catch (e) {
@@ -507,15 +483,14 @@ UnitTestCase createNonUniqueConversationAndUpdateMember() => UnitTestCase(
         attributes: {attrKey: attrValue},
       );
       assert(conversation.rawData['conv_type'] == 1);
-      assert(conversation.id != null);
-      assert(conversation.members.length == 3);
-      assert(conversation.members.contains(client0.id));
-      assert(conversation.members.contains(client1.id));
-      assert(conversation.members.contains(client2.id));
+      assert(conversation.members!.length == 3);
+      assert(conversation.members!.contains(client0.id));
+      assert(conversation.members!.contains(client1.id));
+      assert(conversation.members!.contains(client2.id));
       assert(conversation.isUnique == false);
       assert(conversation.name == name);
-      assert(conversation.attributes.length == 1);
-      assert(conversation.attributes[attrKey] == attrValue);
+      assert(conversation.attributes!.length == 1);
+      assert(conversation.attributes![attrKey] == attrValue);
       assert(conversation.creator == client0.id);
       assert(conversation.createdAt != null);
       // recycle
@@ -539,10 +514,9 @@ UnitTestCase createTransientConversationAndCountMember() => UnitTestCase(
         attributes: {attrKey: attrValue},
       );
       assert(chatRoom.rawData['conv_type'] == 2);
-      assert(chatRoom.id != null);
       assert(chatRoom.name == name);
-      assert(chatRoom.attributes.length == 1);
-      assert(chatRoom.attributes[attrKey] == attrValue);
+      assert(chatRoom.attributes!.length == 1);
+      assert(chatRoom.attributes![attrKey] == attrValue);
       assert(chatRoom.creator == client.id);
       assert(chatRoom.createdAt != null);
       await delay();
@@ -561,14 +535,13 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
       Client client2 = Client(id: uuid());
       // event
       client1.onInvited = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client1.onInvited = null;
-          assert(client != null);
           assert(conversation is TemporaryConversation);
           assert(byClientID == client1.id);
           assert(atDate != null);
@@ -578,19 +551,18 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
         }
       };
       client1.onMembersJoined = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client1.onMembersJoined = null;
-          assert(client != null);
           assert(conversation is TemporaryConversation);
-          assert(members.length == 2);
-          assert(members.contains(client1.id));
-          assert(members.contains(client2.id));
+          assert(members!.length == 2);
+          assert(members!.contains(client1.id));
+          assert(members!.contains(client2.id));
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -599,14 +571,13 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
         }
       };
       client2.onInvited = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2.onInvited = null;
-          assert(client != null);
           assert(conversation is TemporaryConversation);
           assert(byClientID == client1.id);
           assert(atDate != null);
@@ -616,19 +587,18 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
         }
       };
       client2.onMembersJoined = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2.onMembersJoined = null;
-          assert(client != null);
           assert(conversation is TemporaryConversation);
-          assert(members.length == 2);
-          assert(members.contains(client1.id));
-          assert(members.contains(client2.id));
+          assert(members!.length == 2);
+          assert(members!.contains(client1.id));
+          assert(members!.contains(client2.id));
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -647,9 +617,9 @@ UnitTestCase createAndQueryTemporaryConversation() => UnitTestCase(
       );
       assert(temporaryConversation.rawData['conv_type'] == 4);
       assert(temporaryConversation.id.startsWith('_tmp:'));
-      assert(temporaryConversation.members.length == 2);
-      assert(temporaryConversation.members.contains(client1.id));
-      assert(temporaryConversation.members.contains(client2.id));
+      assert(temporaryConversation.members!.length == 2);
+      assert(temporaryConversation.members!.contains(client1.id));
+      assert(temporaryConversation.members!.contains(client2.id));
       assert(temporaryConversation.timeToLive == 3600);
       List<TemporaryConversation> temporaryConversations =
           await client2.conversationQuery().findTemporaryConversations(
@@ -754,17 +724,15 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
       // event
       int client2OnMessageReceivedCount = 8;
       client2.onMessage = ({
-        Client client,
-        Conversation conversation,
-        Message message,
+        required Client client,
+        required Conversation conversation,
+        required Message message,
       }) async {
         try {
           client2OnMessageReceivedCount -= 1;
           if (client2OnMessageReceivedCount <= 0) {
             client2.onMessage = null;
           }
-          assert(client != null);
-          assert(conversation != null);
           assertMessage(message, conversation);
           if (message.stringContent != null) {
             // receive string
@@ -773,7 +741,7 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
           } else if (message.binaryContent != null) {
             // receive binary
             int index = 0;
-            message.binaryContent.forEach((item) {
+            message.binaryContent!.forEach((item) {
               assert(item == binaryContent[index]);
               index += 1;
             });
@@ -785,7 +753,7 @@ UnitTestCase sendAndQueryMessage() => UnitTestCase(
           } else if (message is ImageMessage) {
             // receive image
             assertFileMessage(message);
-            assert(message.url.endsWith('/image.png'));
+            assert(message.url!.endsWith('/image.png'));
             assert(message.width != null);
             assert(message.height != null);
             decrease(1);
@@ -908,25 +876,25 @@ UnitTestCase sendAndReceiveCustomMessage() => UnitTestCase(
       // event
       int client2OnMessageCount = 2;
       client2.onMessage = ({
-        Client client,
-        Conversation conversation,
-        Message message,
+        required Client client,
+        required Conversation conversation,
+        required Message message,
       }) {
         try {
           client2OnMessageCount -= 1;
           if (client2OnMessageCount <= 0) {
             client2.onMessage = null;
           }
-          assert(client != null);
-          assert(conversation != null);
-          assert(conversation.lastMessageTimestamp > 0);
+          assert(conversation.lastMessageTimestamp != null);
+          assert(conversation.lastMessageTimestamp! > 0);
           assert(conversation.lastMessageDate != null);
           if (client2OnMessageCount == 1) {
             assert(message.runtimeType == RegisteredMessage);
             decrease(1);
           } else if (client2OnMessageCount == 0) {
             assert(message.runtimeType == Message);
-            assert(message.stringContent.contains('_lctype'));
+            assert(message.stringContent != null);
+            assert(message.stringContent!.contains('_lctype'));
             decrease(1);
           }
         } catch (e) {
@@ -940,6 +908,7 @@ UnitTestCase sendAndReceiveCustomMessage() => UnitTestCase(
       Conversation conversation = await client1.createConversation(
         members: {client1.id, client2.id},
       );
+      await delay();
       // send registered custom message
       RegisteredMessage registeredMessage = RegisteredMessage();
       registeredMessage.text = uuid();
@@ -970,7 +939,7 @@ UnitTestCase sendMessageToUnrelatedConversation() => UnitTestCase(
         members: {client1.id, uuid()},
       );
       await delay();
-      Conversation conversation1 = client1.conversationMap[conversation.id];
+      Conversation conversation1 = client1.conversationMap[conversation.id]!;
       // quit
       MemberResult result = await conversation1.quit();
       assert(result.allSucceeded);
@@ -996,20 +965,18 @@ UnitTestCase sendAndReceiveTransientMessage() => UnitTestCase(
       Client client2 = Client(id: uuid());
       // event
       client2.onUnreadMessageCountUpdated = ({
-        Client client,
-        Conversation conversation,
+        required Client client,
+        required Conversation conversation,
       }) {
         throw Exception("should never happen");
       };
       client2.onMessage = ({
-        Client client,
-        Conversation conversation,
-        Message message,
+        required Client client,
+        required Conversation conversation,
+        required Message message,
       }) {
         try {
           client2.onMessage = null;
-          assert(client != null);
-          assert(conversation != null);
           if (Platform.isIOS) {
             // In Java/Android SDK, transient is not message's character, it is just an option of send action,
             // with transient option, RTM server can deliver the message as many as possible, even dropping the message at all is allowed.
@@ -1058,6 +1025,7 @@ UnitTestCase readMessage() => UnitTestCase(
       Conversation conversation = await client1.createConversation(
         members: {client1.id, client2.id},
       );
+      await delay();
       // send
       Message message = Message();
       message.stringContent = uuid();
@@ -1067,8 +1035,8 @@ UnitTestCase readMessage() => UnitTestCase(
       await delay();
       // event
       client1.onUnreadMessageCountUpdated = ({
-        Client client,
-        Conversation conversation,
+        required Client client,
+        required Conversation conversation,
       }) {
         try {
           assert(conversation.unreadMessageCount == 1);
@@ -1078,9 +1046,9 @@ UnitTestCase readMessage() => UnitTestCase(
         }
       };
       client1.onMessage = ({
-        Client client,
-        Conversation conversation,
-        Message message,
+        required Client client,
+        required Conversation conversation,
+        required Message message,
       }) {
         try {
           assert(conversation.unreadMessageCount == 1);
@@ -1091,19 +1059,18 @@ UnitTestCase readMessage() => UnitTestCase(
       };
       int client2OnConversationUnreadMessageCountUpdateCount = 2;
       client2.onUnreadMessageCountUpdated = ({
-        Client client,
-        Conversation conversation,
+        required Client client,
+        required Conversation conversation,
       }) async {
         try {
           client2OnConversationUnreadMessageCountUpdateCount -= 1;
           if (client2OnConversationUnreadMessageCountUpdateCount <= 0) {
             client2.onUnreadMessageCountUpdated = null;
           }
-          assert(client != null);
-          assert(conversation != null);
           if (conversation.unreadMessageCount == 1) {
             assert(conversation.unreadMessageMentioned == true);
-            Message lastMessage = conversation.lastMessage;
+            assert(conversation.lastMessage != null);
+            Message lastMessage = conversation.lastMessage!;
             assert(lastMessage.id == message.id);
             assert(lastMessage.sentTimestamp == message.sentTimestamp);
             assert(lastMessage.conversationID == message.conversationID);
@@ -1139,16 +1106,14 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
       oldMessage.stringContent = uuid();
       // event
       client2.onMessageUpdated = ({
-        Client client,
-        Conversation conversation,
-        Message updatedMessage,
-        int patchCode,
-        String patchReason,
+        required Client client,
+        required Conversation conversation,
+        required Message updatedMessage,
+        int? patchCode,
+        String? patchReason,
       }) {
         try {
           client2.onMessageUpdated = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(updatedMessage.id == oldMessage.id);
           assert(updatedMessage.sentTimestamp == oldMessage.sentTimestamp);
           assert(updatedMessage.conversationID == oldMessage.conversationID);
@@ -1157,7 +1122,7 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
           assert(updatedMessage is ImageMessage);
           if (updatedMessage is ImageMessage) {
             assert(updatedMessage.url != null);
-            assert(updatedMessage.url.endsWith('/test.jpg'));
+            assert(updatedMessage.url!.endsWith('/test.jpg'));
           }
           decrease(1);
         } catch (e) {
@@ -1165,14 +1130,12 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
         }
       };
       client2.onMessageRecalled = ({
-        Client client,
-        Conversation conversation,
-        RecalledMessage recalledMessage,
+        required Client client,
+        required Conversation conversation,
+        required RecalledMessage recalledMessage,
       }) {
         try {
           client2.onMessageRecalled = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(recalledMessage.id == oldMessage.id);
           assert(recalledMessage.sentTimestamp == oldMessage.sentTimestamp);
           assert(recalledMessage.conversationID == oldMessage.conversationID);
@@ -1211,7 +1174,7 @@ UnitTestCase updateAndRecallMessage() => UnitTestCase(
       assert(newMessage.fromClientID == oldMessage.fromClientID);
       assert(newMessage.patchedTimestamp != null);
       assert(newMessage.url != null);
-      assert(newMessage.url.endsWith('/test.jpg'));
+      assert(newMessage.url!.endsWith('/test.jpg'));
       await delay();
       // recall
       RecalledMessage recalledMessage = await conversation.recallMessage(
@@ -1248,21 +1211,19 @@ UnitTestCase messageReceipt() => UnitTestCase(
       message.stringContent = uuid();
       // event
       client1.onMessageDelivered = ({
-        Client client,
-        Conversation conversation,
-        String messageID,
-        String toClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? messageID,
+        String? toClientID,
+        DateTime? atDate,
       }) async {
         try {
-          assert(client != null);
-          assert(conversation != null);
           if (message.id != null) {
             assert(messageID == message.id);
           }
           if (message.sentTimestamp != null) {
-            int deliveredTimestamp = atDate.millisecondsSinceEpoch;
-            assert(deliveredTimestamp >= message.sentTimestamp);
+            int deliveredTimestamp = atDate!.millisecondsSinceEpoch;
+            assert(deliveredTimestamp >= message.sentTimestamp!);
             message.deliveredTimestamp = deliveredTimestamp;
             assert(MessageStatus.values.indexOf(message.status) >=
                 MessageStatus.delivered.index);
@@ -1274,21 +1235,19 @@ UnitTestCase messageReceipt() => UnitTestCase(
         }
       };
       client1.onMessageRead = ({
-        Client client,
-        Conversation conversation,
-        String messageID,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? messageID,
+        String? byClientID,
+        DateTime? atDate,
       }) async {
         try {
-          assert(client != null);
-          assert(conversation != null);
           if (message.id != null) {
             assert(messageID == message.id);
           }
           if (message.sentTimestamp != null) {
-            int readTimestamp = atDate.millisecondsSinceEpoch;
-            assert(readTimestamp >= message.sentTimestamp);
+            int readTimestamp = atDate!.millisecondsSinceEpoch;
+            assert(readTimestamp >= message.sentTimestamp!);
             message.readTimestamp = readTimestamp;
             assert(MessageStatus.values.indexOf(message.status) >=
                 MessageStatus.read.index);
@@ -1301,41 +1260,37 @@ UnitTestCase messageReceipt() => UnitTestCase(
         }
       };
       client1.onLastDeliveredAtUpdated = ({
-        Client client,
-        Conversation conversation,
+        required Client client,
+        required Conversation conversation,
       }) {
         try {
           client1.onLastDeliveredAtUpdated = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(conversation.lastDeliveredAt != null);
-          assert(conversation.lastDeliveredAt.millisecondsSinceEpoch >=
-              message.sentTimestamp);
+          assert(conversation.lastDeliveredAt!.millisecondsSinceEpoch >=
+              message.sentTimestamp!);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
       client1.onLastReadAtUpdated = ({
-        Client client,
-        Conversation conversation,
+        required Client client,
+        required Conversation conversation,
       }) {
         try {
           client1.onLastReadAtUpdated = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(conversation.lastReadAt != null);
-          assert(conversation.lastReadAt.millisecondsSinceEpoch >=
-              message.sentTimestamp);
+          assert(conversation.lastReadAt!.millisecondsSinceEpoch >=
+              message.sentTimestamp!);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
         }
       };
       client2.onMessage = ({
-        Client client,
-        Conversation conversation,
-        Message message,
+        required Client client,
+        required Conversation conversation,
+        required Message message,
       }) async {
         try {
           client2.onMessage = null;
@@ -1347,13 +1302,11 @@ UnitTestCase messageReceipt() => UnitTestCase(
         }
       };
       client2.onUnreadMessageCountUpdated = ({
-        Client client,
-        Conversation conversation,
+        required Client client,
+        required Conversation conversation,
       }) {
         if (Platform.isAndroid) {
           // only works for android sdk.
-          assert(client != null);
-          assert(conversation != null);
           decrease(1);
         }
       };
@@ -1388,7 +1341,7 @@ UnitTestCase muteConversation() => UnitTestCase(
       // mute
       await conversation.mute();
       assert(conversation.isMuted);
-      DateTime updatedAt = conversation.updatedAt;
+      DateTime? updatedAt = conversation.updatedAt;
       assert(updatedAt != null);
       await delay(seconds: 1);
       // unmute
@@ -1410,37 +1363,35 @@ UnitTestCase updateConversation() => UnitTestCase(
       // client
       Client client1 = Client(id: uuid());
       Client client2 = Client(id: uuid());
-      Conversation conversationTestingMessageSendFailed;
+      Conversation? conversationTestingMessageSendFailed;
       // event
       client2.onInvited = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         conversationTestingMessageSendFailed = conversation;
       };
       client2.onInfoUpdated = ({
-        Client client,
-        Conversation conversation,
-        Map updatingAttributes,
-        Map updatedAttributes,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        Map? updatingAttributes,
+        Map? updatedAttributes,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2.onInfoUpdated = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(byClientID == client1.id);
           assert(atDate != null);
-          assert(updatingAttributes.length == 2);
-          assert(updatingAttributes['attr.set'] == setValue);
-          assert(updatingAttributes['attr.unset']['__op'] == 'Delete');
-          assert(updatedAttributes['attr']['set'] == setValue);
-          assert(updatedAttributes['attr']['unset'] == null);
-          assert(conversation.attributes['set'] == setValue);
-          assert(conversation.attributes['unset'] == null);
+          assert(updatingAttributes!.length == 2);
+          assert(updatingAttributes!['attr.set'] == setValue);
+          assert(updatingAttributes!['attr.unset']['__op'] == 'Delete');
+          assert(updatedAttributes!['attr']['set'] == setValue);
+          assert(updatedAttributes!['attr']['unset'] == null);
+          assert(conversation.attributes!['set'] == setValue);
+          assert(conversation.attributes!['unset'] == null);
           decrease(1);
         } catch (e) {
           decrease(-1, e: e);
@@ -1454,12 +1405,13 @@ UnitTestCase updateConversation() => UnitTestCase(
         members: {client1.id, client2.id},
         attributes: {'unset': unsetValue},
       );
-      assert(conversation.attributes['unset'] == unsetValue);
+      assert(conversation.attributes!['unset'] == unsetValue);
       await delay();
       await client2.close();
       TextMessage failedMessage = TextMessage.from(text: 'failed');
       try {
-        await conversationTestingMessageSendFailed.send(message: failedMessage);
+        await conversationTestingMessageSendFailed?.send(
+            message: failedMessage);
       } catch (e) {}
       assert(failedMessage.status == MessageStatus.failed);
       await delay();
@@ -1469,8 +1421,8 @@ UnitTestCase updateConversation() => UnitTestCase(
           'attr.unset': {'__op': 'Delete'},
         },
       );
-      assert(conversation.attributes['set'] == setValue);
-      assert(conversation.attributes['unset'] == null);
+      assert(conversation.attributes!['set'] == setValue);
+      assert(conversation.attributes!['unset'] == null);
       await delay();
       await client2.open();
       if (Platform.isAndroid) {
@@ -1503,7 +1455,6 @@ UnitTestCase queryConversation() => UnitTestCase(
       List<Conversation> conversations = await query.find();
       assert(conversations.length == 1);
       assert(conversations[0].members == null);
-      assert(conversations[0].lastMessage != null);
       // recycle
       return [client];
     });
@@ -1520,15 +1471,13 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
 
       // event
       client2.onBlocked = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2.onBlocked = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -1537,15 +1486,13 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
         }
       };
       client2.onUnblocked = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2.onUnblocked = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -1554,18 +1501,16 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
         }
       };
       client3.onMembersBlocked = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client1.onMembersBlocked = null;
-          assert(client != null);
-          assert(conversation != null);
-          assert(members.length == 1);
-          assert(members.contains(client2.id));
+          assert(members!.length == 1);
+          assert(members!.contains(client2.id));
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -1574,18 +1519,16 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
         }
       };
       client3.onMembersUnBlocked = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client1.onMembersUnBlocked = null;
-          assert(client != null);
-          assert(conversation != null);
-          assert(members.length == 1);
-          assert(members.contains(client2.id));
+          assert(members!.length == 1);
+          assert(members!.contains(client2.id));
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -1604,7 +1547,6 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
       Conversation conversation = await client1.createConversation(
         members: {client1.id, client2.id, client3.id},
       );
-      assert(conversation.id != null);
       // block member
       MemberResult blockMemberResult =
           await conversation.blockMembers(members: {client2.id});
@@ -1612,9 +1554,9 @@ UnitTestCase blockConversationMembers() => UnitTestCase(
       assert(blockMemberResult.succeededMembers.length == 1);
       assert(blockMemberResult.succeededMembers.contains(client2.id));
       await delay();
-      assert(conversation.members.length == 2);
-      assert(conversation.members.contains(client1.id));
-      assert(conversation.members.contains(client3.id));
+      assert(conversation.members!.length == 2);
+      assert(conversation.members!.contains(client1.id));
+      assert(conversation.members!.contains(client3.id));
       // unblock member
       MemberResult unBlockMemberResult =
           await conversation.unblockMembers(members: {client2.id});
@@ -1647,15 +1589,13 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
 
       // event
       client2.onMuted = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2.onMuted = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -1664,15 +1604,13 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
         }
       };
       client2.onUnmuted = ({
-        Client client,
-        Conversation conversation,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client2.onUnmuted = null;
-          assert(client != null);
-          assert(conversation != null);
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -1681,18 +1619,16 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
         }
       };
       client3.onMembersMuted = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client1.onMembersMuted = null;
-          assert(client != null);
-          assert(conversation != null);
-          assert(members.length == 1);
-          assert(members.contains(client2.id));
+          assert(members!.length == 1);
+          assert(members!.contains(client2.id));
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -1701,18 +1637,16 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
         }
       };
       client3.onMembersUnMuted = ({
-        Client client,
-        Conversation conversation,
-        List members,
-        String byClientID,
-        DateTime atDate,
+        required Client client,
+        required Conversation conversation,
+        List? members,
+        String? byClientID,
+        DateTime? atDate,
       }) {
         try {
           client1.onMembersUnMuted = null;
-          assert(client != null);
-          assert(conversation != null);
-          assert(members.length == 1);
-          assert(members.contains(client2.id));
+          assert(members!.length == 1);
+          assert(members!.contains(client2.id));
           assert(byClientID == client1.id);
           assert(atDate != null);
           decrease(1);
@@ -1731,26 +1665,25 @@ UnitTestCase muteConversationMembers() => UnitTestCase(
       Conversation conversation = await client1.createConversation(
         members: {client1.id, client2.id, client3.id},
       );
-      assert(conversation.id != null);
       MemberResult muteMemberResult =
           await conversation.muteMembers(members: {client2.id});
       assert(muteMemberResult.allSucceeded);
       assert(muteMemberResult.succeededMembers.length == 1);
       assert(muteMemberResult.succeededMembers.contains(client2.id));
-      assert(conversation.members.length == 3);
-      assert(conversation.members.contains(client1.id));
-      assert(conversation.members.contains(client2.id));
-      assert(conversation.members.contains(client3.id));
+      assert(conversation.members!.length == 3);
+      assert(conversation.members!.contains(client1.id));
+      assert(conversation.members!.contains(client2.id));
+      assert(conversation.members!.contains(client3.id));
 
       MemberResult unMuteMemberResult =
           await conversation.unmuteMembers(members: {client2.id});
       assert(unMuteMemberResult.allSucceeded);
       assert(unMuteMemberResult.succeededMembers.length == 1);
       assert(unMuteMemberResult.succeededMembers.contains(client2.id));
-      assert(conversation.members.length == 3);
-      assert(conversation.members.contains(client1.id));
-      assert(conversation.members.contains(client2.id));
-      assert(conversation.members.contains(client3.id));
+      assert(conversation.members!.length == 3);
+      assert(conversation.members!.contains(client1.id));
+      assert(conversation.members!.contains(client2.id));
+      assert(conversation.members!.contains(client3.id));
 
       // query muted members
       Conversation muteConversation = await client1.createConversation(
@@ -1785,14 +1718,13 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
       String appid = aID;
       int timestamp = DateTime.now().millisecondsSinceEpoch;
       String nonce = uuid();
-      String conversationId;
+      String? conversationId;
       // client
       Client client = Client(
         id: clientId,
         openSignatureHandler: ({
-          Client client,
+          required Client client,
         }) async {
-          assert(client != null);
           return Signature(
             nonce: nonce,
             timestamp: timestamp,
@@ -1800,16 +1732,15 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
           );
         },
         conversationSignatureHandler: ({
-          String action,
-          Client client,
-          Conversation conversation,
-          List targetIDs,
+          String? action,
+          required Client client,
+          Conversation? conversation,
+          List? targetIDs,
         }) async {
-          assert(client != null);
           if (action == 'invite' || action == 'kick') {
             assert(conversation != null);
-            assert(targetIDs.length == 1);
-            assert(targetIDs.contains(clientId2));
+            assert(targetIDs!.length == 1);
+            assert(targetIDs!.contains(clientId2));
             return Signature(
               nonce: nonce,
               timestamp: timestamp,
@@ -1818,9 +1749,9 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
             );
           } else {
             assert(action == 'create');
-            assert(targetIDs.length == 2);
-            assert(targetIDs.contains(clientId));
-            assert(targetIDs.contains(clientId1));
+            assert(targetIDs!.length == 2);
+            assert(targetIDs!.contains(clientId));
+            assert(targetIDs!.contains(clientId1));
             return Signature(
               nonce: nonce,
               timestamp: timestamp,
@@ -1846,7 +1777,6 @@ UnitTestCase signClientOpenAndConversationOperation() => UnitTestCase(
       Conversation conversation = await client.createConversation(
         members: {clientId, clientId1},
       );
-      assert(conversation.id != null);
       conversationId = conversation.id;
       // add
       MemberResult addResult = await conversation.addMembers(
@@ -1878,9 +1808,8 @@ UnitTestCase clientSessionClosed() => UnitTestCase(
       Client client = Client(
         id: clientId,
         openSignatureHandler: ({
-          Client client,
+          required Client client,
         }) async {
-          assert(client != null);
           return Signature(
             nonce: nonce,
             timestamp: timestamp,
@@ -1890,8 +1819,8 @@ UnitTestCase clientSessionClosed() => UnitTestCase(
       );
       // event
       client.onClosed = ({
-        Client client,
-        RTMException exception,
+        required Client client,
+        required RTMException exception,
       }) async {
         try {
           client.onClosed = null;
@@ -1916,7 +1845,8 @@ UnitTestCase clientSessionClosed() => UnitTestCase(
           'maybe you should test with app id: $appid');
       // kick
       http.Response response = await http.post(
-        'https://s0g5kxj7.lc-cn-n1-shared.com/1.2/rtm/clients/$clientId/kick',
+        Uri.parse(
+            'https://s0g5kxj7.lc-cn-n1-shared.com/1.2/rtm/clients/$clientId/kick'),
         headers: {
           'X-LC-Id': appid,
           'X-LC-Key': '$mKey,master',
@@ -1940,43 +1870,44 @@ class UnitTestCase {
     }),
   ) testingLogic;
 
-  void Function(int) stateCountWillChange;
-  void Function(int) stateCountDidChange;
+  void Function(int)? stateCountWillChange;
+  void Function(int)? stateCountDidChange;
 
-  int _stateCount;
+  int _stateCount = 0;
   int get stateCount => this._stateCount;
   set stateCount(int value) {
     this._stateCount = value;
     if (this.stateCountDidChange != null) {
-      this.stateCountDidChange(value);
+      this.stateCountDidChange!(value);
       if (value <= 0 && this._timer != null) {
-        this._timer.cancel();
+        this._timer!.cancel();
         this._timer = null;
       }
     }
   }
 
   List<Client> _clients = [];
-  Timer _timer;
+  Timer? _timer;
 
   UnitTestCase({
-    @required this.title,
+    required this.title,
     int extraExpectedCount = 0,
     int timeout = 60,
-    @required this.testingLogic,
-  })  : assert(title != null),
-        this.expectedCount = (extraExpectedCount + 2),
+    required this.testingLogic,
+  })  : this.expectedCount = (extraExpectedCount + 2),
         this.timeout = timeout {
     this._stateCount = this.expectedCount;
   }
 
   Future<void> run({
-    void Function(int) stateCountDidChange,
+    void Function(int)? stateCountDidChange,
   }) async {
     this.stateCountDidChange = stateCountDidChange;
-    this.stateCountWillChange(this.expectedCount - 1);
+    if (this.stateCountWillChange != null) {
+      this.stateCountWillChange!(this.expectedCount - 1);
+    }
     if (this._timer != null) {
-      this._timer.cancel();
+      this._timer?.cancel();
       this._timer = null;
     }
     if (this.timeout > 0) {
@@ -1984,7 +1915,9 @@ class UnitTestCase {
         this._timer = null;
         if (this._stateCount > 0) {
           logException('Timeout', title: this.title);
-          this.stateCountWillChange(-1);
+          if (this.stateCountWillChange != null) {
+            this.stateCountWillChange!(-1);
+          }
           this.tearDown();
         }
       });
@@ -1998,10 +1931,12 @@ class UnitTestCase {
         if (e != null) {
           logException(e, title: this.title);
         }
-        if (count > 0) {
-          this.stateCountWillChange(this._stateCount - count);
-        } else {
-          this.stateCountWillChange(-1);
+        if (this.stateCountWillChange != null) {
+          if (count > 0) {
+            this.stateCountWillChange!(this._stateCount - count);
+          } else {
+            this.stateCountWillChange!(-1);
+          }
         }
         this.tearDown();
       });
@@ -2009,10 +1944,12 @@ class UnitTestCase {
       logException(e, title: this.title);
       hasException = true;
     }
-    if (hasException) {
-      this.stateCountWillChange(-1);
-    } else {
-      this.stateCountWillChange(this._stateCount - 1);
+    if (this.stateCountWillChange != null) {
+      if (hasException) {
+        this.stateCountWillChange!(-1);
+      } else {
+        this.stateCountWillChange!(this._stateCount - 1);
+      }
     }
     this.tearDown();
   }
@@ -2142,8 +2079,8 @@ class UnitTestCaseCard extends StatefulWidget {
   final UnitTestCase model;
 
   UnitTestCaseCard({
-    @required this.model,
-  }) : assert(model != null);
+    required this.model,
+  });
 
   @override
   UnitTestCaseCardState createState() =>
@@ -2154,8 +2091,8 @@ class UnitTestCaseCardState extends State<UnitTestCaseCard> {
   final UnitTestCase model;
 
   UnitTestCaseCardState({
-    @required this.model,
-  }) : assert(model != null);
+    required this.model,
+  });
 
   @override
   Widget build(BuildContext context) {

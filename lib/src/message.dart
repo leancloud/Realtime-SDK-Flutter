@@ -24,10 +24,10 @@ enum MessageStatus {
 /// IM Message of RTM Plugin.
 class Message with _Utilities {
   /// The [Conversation.id] of the [Conversation] which the [Message] belong to.
-  String get conversationID => _conversationID;
+  String? get conversationID => _conversationID;
 
   /// The ID of the [Message].
-  String get id => _id;
+  String? get id => _id;
 
   /// The status of the [Message].
   MessageStatus get status {
@@ -43,57 +43,57 @@ class Message with _Utilities {
   }
 
   /// The timestamp when send the [Message], unit is millisecond.
-  int get sentTimestamp => _timestamp;
+  int? get sentTimestamp => _timestamp;
 
   /// The date representation of the [Message.sentTimestamp].
-  DateTime get sentDate => parseMilliseconds(_timestamp);
+  DateTime? get sentDate => parseMilliseconds(_timestamp);
 
   /// The [Client.id] of the [Client] who send the [Message].
-  String get fromClientID => _fromClientID;
+  String? get fromClientID => _fromClientID;
 
   /// The timestamp when update the [Message], unit is millisecond.
-  int get patchedTimestamp => _patchedTimestamp;
+  int? get patchedTimestamp => _patchedTimestamp;
 
   /// The date representation of the [Message.patchedTimestamp].
-  DateTime get patchedDate => parseMilliseconds(_patchedTimestamp);
+  DateTime? get patchedDate => parseMilliseconds(_patchedTimestamp);
 
   /// The timestamp when the [Message] has been delivered to other.
-  int deliveredTimestamp;
+  int? deliveredTimestamp;
 
   /// The date representation of the [Message.deliveredTimestamp].
-  DateTime get deliveredDate => parseMilliseconds(deliveredTimestamp);
+  DateTime? get deliveredDate => parseMilliseconds(deliveredTimestamp);
 
   /// The timestamp when the [Message] has been read by other.
-  int readTimestamp;
+  int? readTimestamp;
 
   /// The date representation of the [Message.readTimestamp].
-  DateTime get readDate => parseMilliseconds(readTimestamp);
+  DateTime? get readDate => parseMilliseconds(readTimestamp);
 
   /// Whether all members in the [Conversation] are mentioned by the [Message].
-  bool mentionAll;
+  bool? mentionAll;
 
   /// The members in the [Conversation] mentioned by the [Message].
-  List mentionMembers;
+  List? mentionMembers;
 
   /// The string content of the [Message].
   ///
   /// If [Message.binaryContent] exists, [Message.stringContent] will be covered by it.
-  String stringContent;
+  String? stringContent;
 
   /// The binary content of the [Message].
-  Uint8List binaryContent;
+  Uint8List? binaryContent;
 
   /// Indicates whether this [Message] is transient.
-  bool get isTransient => _transient;
+  bool get isTransient => _transient ?? false;
 
-  String _conversationID;
-  String _id;
-  String _fromClientID;
-  String _currentClientID;
-  int _timestamp;
-  int _patchedTimestamp;
-  bool _transient;
-  bool _will;
+  String? _conversationID;
+  String? _id;
+  String? _fromClientID;
+  String? _currentClientID;
+  int? _timestamp;
+  int? _patchedTimestamp;
+  bool? _transient;
+  bool? _will;
   MessageStatus _status = MessageStatus.none;
 
   /// To create a new [Message].
@@ -103,16 +103,18 @@ class Message with _Utilities {
     Map rawData,
   ) {
     Message message = Message();
-    final Map typeMsgData = rawData['typeMsgData'];
-    String jsonString;
+    final Map? typeMsgData = rawData['typeMsgData'];
+    String? jsonString;
     if (typeMsgData != null) {
-      final int typeIndex = typeMsgData['_lctype'];
-      final TypedMessage Function() constructor =
-          TypedMessage._classMap[typeIndex];
-      if (constructor != null) {
-        message = constructor();
-      } else {
-        jsonString = jsonEncode(typeMsgData);
+      final int? typeIndex = typeMsgData['_lctype'];
+      if (typeIndex != null) {
+        final TypedMessage Function()? constructor =
+            TypedMessage._classMap[typeIndex];
+        if (constructor != null) {
+          message = constructor();
+        } else {
+          jsonString = jsonEncode(typeMsgData);
+        }
       }
     }
     message._loadMap(rawData);
@@ -177,11 +179,11 @@ class Message with _Utilities {
     _fromClientID = data['from'];
     _timestamp = data['timestamp'];
     _patchedTimestamp = data['patchTimestamp'];
-    final int ackAt = data['ackAt'];
+    final int? ackAt = data['ackAt'];
     if (ackAt != null) {
       deliveredTimestamp = ackAt;
     }
-    final int readAt = data['readAt'];
+    final int? readAt = data['readAt'];
     if (readAt != null) {
       readTimestamp = readAt;
     }
@@ -247,16 +249,16 @@ class TypedMessage extends Message {
   Map get rawData => _rawData;
 
   /// The default getter for text of the [TypedMessage].
-  String get text => rawData['_lctext'];
+  String? get text => rawData['_lctext'];
 
   /// The default setter for text of the [TypedMessage].
-  set text(String value) => rawData['_lctext'] = value;
+  set text(String? value) => rawData['_lctext'] = value;
 
   /// The default getter for attributes of the [TypedMessage].
-  Map get attributes => rawData['_lcattrs'];
+  Map? get attributes => rawData['_lcattrs'];
 
   /// The default setter for attributes of the [TypedMessage].
-  set attributes(Map<String, dynamic> value) => rawData['_lcattrs'] = value;
+  set attributes(Map? value) => rawData['_lcattrs'] = value;
 
   Map _rawData = {};
 }
@@ -271,7 +273,7 @@ class TextMessage extends TypedMessage {
 
   /// To create a new [TextMessage] with [text] content.
   TextMessage.from({
-    @required String text,
+    required String text,
   }) {
     this.text = text;
   }
@@ -283,9 +285,9 @@ class ImageMessage extends FileMessage {
   int get type => -2;
 
   /// The width of the image file, unit is pixel.
-  double get width {
-    double width;
-    final Map metaDataMap = _metaDataMap;
+  double? get width {
+    double? width;
+    final Map? metaDataMap = _metaDataMap;
     if (metaDataMap != null) {
       width = metaDataMap['width']?.toDouble();
     }
@@ -293,9 +295,9 @@ class ImageMessage extends FileMessage {
   }
 
   /// The height of the image file, unit is pixel.
-  double get height {
-    double height;
-    final Map metaDataMap = _metaDataMap;
+  double? get height {
+    double? height;
+    final Map? metaDataMap = _metaDataMap;
     if (metaDataMap != null) {
       height = metaDataMap['height']?.toDouble();
     }
@@ -316,11 +318,11 @@ class ImageMessage extends FileMessage {
   /// ***Important:***
   /// You must provide only one of parameters in [path], [binaryData] and [url].
   ImageMessage.from({
-    String path,
-    Uint8List binaryData,
-    String url,
-    String format,
-    String name,
+    String? path,
+    Uint8List? binaryData,
+    String? url,
+    String? format,
+    String? name,
   }) : super.from(
           path: path,
           binaryData: binaryData,
@@ -336,9 +338,9 @@ class AudioMessage extends FileMessage {
   int get type => -3;
 
   /// The duration of the audio file, unit is second.
-  double get duration {
-    double duration;
-    final Map metaDataMap = _metaDataMap;
+  double? get duration {
+    double? duration;
+    final Map? metaDataMap = _metaDataMap;
     if (metaDataMap != null) {
       duration = metaDataMap['duration']?.toDouble();
     }
@@ -359,11 +361,11 @@ class AudioMessage extends FileMessage {
   /// ***Important:***
   /// You must provide only one of parameters in [path], [binaryData] and [url].
   AudioMessage.from({
-    String path,
-    Uint8List binaryData,
-    String url,
-    String format,
-    String name,
+    String? path,
+    Uint8List? binaryData,
+    String? url,
+    String? format,
+    String? name,
   }) : super.from(
           path: path,
           binaryData: binaryData,
@@ -379,9 +381,9 @@ class VideoMessage extends FileMessage {
   int get type => -4;
 
   /// The duration of the video file, unit is second.
-  double get duration {
-    double duration;
-    final Map metaDataMap = _metaDataMap;
+  double? get duration {
+    double? duration;
+    final Map? metaDataMap = _metaDataMap;
     if (metaDataMap != null) {
       duration = metaDataMap['duration']?.toDouble();
     }
@@ -402,11 +404,11 @@ class VideoMessage extends FileMessage {
   /// ***Important:***
   /// You must provide only one of parameters in [path], [binaryData] and [url].
   VideoMessage.from({
-    String path,
-    Uint8List binaryData,
-    String url,
-    String format,
-    String name,
+    String? path,
+    Uint8List? binaryData,
+    String? url,
+    String? format,
+    String? name,
   }) : super.from(
           path: path,
           binaryData: binaryData,
@@ -422,9 +424,9 @@ class LocationMessage extends TypedMessage {
   int get type => -5;
 
   /// The latitude of the geolocation.
-  double get latitude {
-    double latitude;
-    final Map locationMap = _locationMap;
+  double? get latitude {
+    double? latitude;
+    final Map? locationMap = _locationMap;
     if (locationMap != null) {
       latitude = locationMap['latitude']?.toDouble();
     }
@@ -432,9 +434,9 @@ class LocationMessage extends TypedMessage {
   }
 
   /// The longitude of the geolocation.
-  double get longitude {
-    double longitude;
-    final Map locationMap = _locationMap;
+  double? get longitude {
+    double? longitude;
+    final Map? locationMap = _locationMap;
     if (locationMap != null) {
       longitude = locationMap['longitude']?.toDouble();
     }
@@ -446,27 +448,17 @@ class LocationMessage extends TypedMessage {
 
   /// To create a new [LocationMessage] with [latitude] and [longitude].
   LocationMessage.from({
-    @required double latitude,
-    @required double longitude,
+    required double latitude,
+    required double longitude,
   }) {
-    if (latitude == null) {
-      throw ArgumentError.notNull(
-        'latitude',
-      );
-    }
-    if (longitude == null) {
-      throw ArgumentError.notNull(
-        'longitude',
-      );
-    }
     _locationMap = {
       'latitude': latitude,
       'longitude': longitude,
     };
   }
 
-  Map get _locationMap => rawData['_lcloc'];
-  set _locationMap(Map value) => rawData['_lcloc'] = value;
+  Map? get _locationMap => rawData['_lcloc'];
+  set _locationMap(Map? value) => rawData['_lcloc'] = value;
 }
 
 /// IM File Message of RTM Plugin.
@@ -475,9 +467,9 @@ class FileMessage extends TypedMessage {
   int get type => -6;
 
   /// The URL of the file.
-  String get url {
-    String url;
-    final Map fileMap = _fileMap;
+  String? get url {
+    String? url;
+    final Map? fileMap = _fileMap;
     if (fileMap != null) {
       url = fileMap['url'];
     }
@@ -485,9 +477,9 @@ class FileMessage extends TypedMessage {
   }
 
   /// The format extension of the file.
-  String get format {
-    String format;
-    final Map metaDataMap = _metaDataMap;
+  String? get format {
+    String? format;
+    final Map? metaDataMap = _metaDataMap;
     if (metaDataMap != null) {
       format = metaDataMap['format'];
     }
@@ -495,9 +487,9 @@ class FileMessage extends TypedMessage {
   }
 
   /// The size of the file, unit is byte.
-  double get size {
-    double size;
-    final Map metaDataMap = _metaDataMap;
+  double? get size {
+    double? size;
+    final Map? metaDataMap = _metaDataMap;
     if (metaDataMap != null) {
       size = metaDataMap['size']?.toDouble();
     }
@@ -518,11 +510,11 @@ class FileMessage extends TypedMessage {
   /// ***Important:***
   /// You must provide only one of parameters in [path], [binaryData] and [url].
   FileMessage.from({
-    String path,
-    Uint8List binaryData,
-    String url,
-    String format,
-    String name,
+    String? path,
+    Uint8List? binaryData,
+    String? url,
+    String? format,
+    String? name,
   }) {
     int count = 0;
     if (path != null) {
@@ -546,17 +538,17 @@ class FileMessage extends TypedMessage {
     _fileName = name;
   }
 
-  String _filePath;
-  Uint8List _fileData;
-  String _fileUrl;
-  String _fileFormat;
-  String _fileName;
+  String? _filePath;
+  Uint8List? _fileData;
+  String? _fileUrl;
+  String? _fileFormat;
+  String? _fileName;
 
-  Map get _fileMap => rawData['_lcfile'];
+  Map? get _fileMap => rawData['_lcfile'];
 
-  Map get _metaDataMap {
-    Map metaData;
-    final Map fileMap = _fileMap;
+  Map? get _metaDataMap {
+    Map? metaData;
+    final Map? fileMap = _fileMap;
     if (fileMap != null) {
       metaData = fileMap['metaData'];
     }

@@ -10,6 +10,7 @@ import LeanCloud
     ) -> Bool {
         do {
             let app = defaultApp
+//            let app = signatureApp
             LCApplication.logLevel = .all
             try LCApplication.default.set(
                 id: app.id,

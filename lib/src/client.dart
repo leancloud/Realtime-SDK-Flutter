@@ -8,37 +8,37 @@ class _Bridge with _Utilities {
   }
 
   final MethodChannel channel = const MethodChannel('leancloud_plugin');
-  final Map<String, Client> clientMap = <String, Client>{};
+  final Map<String, Client?> clientMap = <String, Client?>{};
 
   _Bridge._internal() {
     channel.setMethodCallHandler((call) async {
       final Map args = call.arguments;
-      final Client client = clientMap[args['clientId']];
+      final Client? client = clientMap[args['clientId']!];
       if (client == null) {
         return {};
       }
       switch (call.method) {
         case 'onSessionOpen':
           if (client.onOpened != null) {
-            client.onOpened(
+            client.onOpened!(
               client: client,
             );
           }
           break;
         case 'onSessionResume':
           if (client.onResuming != null) {
-            client.onResuming(
+            client.onResuming!(
               client: client,
             );
           }
           break;
         case 'onSessionDisconnect':
           if (client.onDisconnected != null) {
-            RTMException e;
+            RTMException? e;
             if (isFailure(args)) {
               e = errorFrom(args);
             }
-            client.onDisconnected(
+            client.onDisconnected!(
               client: client,
               exception: e,
             );
@@ -46,7 +46,7 @@ class _Bridge with _Utilities {
           break;
         case 'onSessionClose':
           if (client.onClosed != null) {
-            client.onClosed(
+            client.onClosed!(
               client: client,
               exception: errorFrom(args),
             );
@@ -66,7 +66,7 @@ class _Bridge with _Utilities {
           break;
         case 'onSignSessionOpen':
           if (client._openSignatureHandler != null) {
-            final Signature sign = await client._openSignatureHandler(
+            final Signature sign = await client._openSignatureHandler!(
               client: client,
             );
             return {'sign': sign._toMap()};
@@ -74,14 +74,14 @@ class _Bridge with _Utilities {
           break;
         case 'onSignConversation':
           if (client._conversationSignatureHandler != null) {
-            Conversation conversation;
-            final String conversationID = args['conversationId'];
+            Conversation? conversation;
+            final String? conversationID = args['conversationId'];
             if (conversationID != null) {
               conversation = await client._getConversation(
                 conversationID: conversationID,
               );
             }
-            final Signature sign = await client._conversationSignatureHandler(
+            final Signature sign = await client._conversationSignatureHandler!(
               client: client,
               conversation: conversation,
               targetIDs: args['targetIds'],
@@ -110,10 +110,9 @@ mixin _Utilities {
   }
 
   Future<dynamic> call({
-    @required String method,
-    @required Map arguments,
+    required String method,
+    required Map arguments,
   }) async {
-    assert(method != null && arguments != null);
     final Map result = await _Bridge().channel.invokeMethod(
           method,
           arguments,
@@ -129,16 +128,16 @@ mixin _Utilities {
     'en_US',
   );
 
-  DateTime parseIsoString(String isoString) {
-    DateTime date;
+  DateTime? parseIsoString(String? isoString) {
+    DateTime? date;
     if (isoString != null) {
       date = _Utilities.isoDateFormat.parseStrict(isoString);
     }
     return date;
   }
 
-  DateTime parseMilliseconds(int milliseconds) {
-    DateTime date;
+  DateTime? parseMilliseconds(int? milliseconds) {
+    DateTime? date;
     if (milliseconds != null) {
       date = DateTime.fromMillisecondsSinceEpoch(milliseconds);
     }
@@ -152,23 +151,17 @@ class RTMException implements Exception {
   final String code;
 
   /// The reason of the [RTMException], it is optional.
-  final String message;
+  final String? message;
 
   /// The supplementary information of the [RTMException], it is optional.
   final dynamic details;
 
   /// To create a [RTMException], [code] is needed.
   RTMException({
-    @required this.code,
+    required this.code,
     this.message,
     this.details,
-  }) {
-    if (code == null) {
-      throw ArgumentError.notNull(
-        'code',
-      );
-    }
-  }
+  });
 
   @override
   String toString() => '\nLC.RTM.Exception('
@@ -191,26 +184,10 @@ class Signature {
 
   /// To create a [Signature], the unit of [timestamp] is millisecond.
   Signature({
-    @required this.signature,
-    @required this.timestamp,
-    @required this.nonce,
-  }) {
-    if (signature == null) {
-      throw ArgumentError.notNull(
-        'signature',
-      );
-    }
-    if (timestamp == null) {
-      throw ArgumentError.notNull(
-        'timestamp',
-      );
-    }
-    if (nonce == null) {
-      throw ArgumentError.notNull(
-        'nonce',
-      );
-    }
-  }
+    required this.signature,
+    required this.timestamp,
+    required this.nonce,
+  });
 
   @override
   String toString() => '\nLC.RTM.Signature('
@@ -232,174 +209,174 @@ class Client with _Utilities {
   final String id;
 
   /// The tag of the [Client]. it is optional.
-  final String tag;
+  final String? tag;
 
   /// The map of the [Conversation]s which belong to the [Client] in memory, the key is [Conversation.id].
   final Map<String, Conversation> conversationMap = <String, Conversation>{};
 
   /// The reopened event of the [client].
   void Function({
-    Client client,
-  }) onOpened;
+    required Client client,
+  })? onOpened;
 
   /// The resuming event of the [client].
   void Function({
-    Client client,
-  }) onResuming;
+    required Client client,
+  })? onResuming;
 
   /// The disconnected event of the [client], [exception] is optional.
   ///
   /// This event occurs, for example, when network of local environment unavailable.
   void Function({
-    Client client,
-    RTMException exception,
-  }) onDisconnected;
+    required Client client,
+    RTMException? exception,
+  })? onDisconnected;
 
   /// The closed event of the [client], [exception] will never be `null`.
   ///
   /// This event occurs, for example, [client] has been logged off by server.
   void Function({
-    Client client,
-    RTMException exception,
-  }) onClosed;
+    required Client client,
+    required RTMException exception,
+  })? onClosed;
 
   /// The [client] has been invited to the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    String byClientID,
-    DateTime atDate,
-  }) onInvited;
+    required Client client,
+    required Conversation conversation,
+    String? byClientID,
+    DateTime? atDate,
+  })? onInvited;
 
   /// The [client] has been kicked from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    String byClientID,
-    DateTime atDate,
-  }) onKicked;
+    required Client client,
+    required Conversation conversation,
+    String? byClientID,
+    DateTime? atDate,
+  })? onKicked;
 
   /// Some [members] have joined to the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
-  }) onMembersJoined;
+    required Client client,
+    required Conversation conversation,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
+  })? onMembersJoined;
 
   /// Some [members] have left from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
-  }) onMembersLeft;
+    required Client client,
+    required Conversation conversation,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
+  })? onMembersLeft;
 
   /// Current client be blocked from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    String byClientID,
-    DateTime atDate,
-  }) onBlocked;
+    required Client client,
+    required Conversation conversation,
+    String? byClientID,
+    DateTime? atDate,
+  })? onBlocked;
 
   /// Current client be unblocked from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    String byClientID,
-    DateTime atDate,
-  }) onUnblocked;
+    required Client client,
+    required Conversation conversation,
+    String? byClientID,
+    DateTime? atDate,
+  })? onUnblocked;
 
   /// Some [members] have blocked from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
-  }) onMembersBlocked;
+    required Client client,
+    required Conversation conversation,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
+  })? onMembersBlocked;
 
   /// Some [members] have unblocked from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
-  }) onMembersUnBlocked;
+    required Client client,
+    required Conversation conversation,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
+  })? onMembersUnBlocked;
 
   /// Current client be muted from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    String byClientID,
-    DateTime atDate,
-  }) onMuted;
+    required Client client,
+    required Conversation conversation,
+    String? byClientID,
+    DateTime? atDate,
+  })? onMuted;
 
   /// Current client be unmuted from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    String byClientID,
-    DateTime atDate,
-  }) onUnmuted;
+    required Client client,
+    required Conversation conversation,
+    String? byClientID,
+    DateTime? atDate,
+  })? onUnmuted;
 
   /// Some [members] have muted from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
-  }) onMembersMuted;
+    required Client client,
+    required Conversation conversation,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
+  })? onMembersMuted;
 
   /// Some [members] have unmuted from the [conversation].
   ///
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    List members,
-    String byClientID,
-    DateTime atDate,
-  }) onMembersUnMuted;
+    required Client client,
+    required Conversation conversation,
+    List? members,
+    String? byClientID,
+    DateTime? atDate,
+  })? onMembersUnMuted;
 
   /// The attributes of the [conversation] has been updated.
   ///
@@ -408,90 +385,91 @@ class Client with _Utilities {
   /// [byClientID] means who did it.
   /// [atDate] means when did it.
   void Function({
-    Client client,
-    Conversation conversation,
-    Map updatingAttributes,
-    Map updatedAttributes,
-    String byClientID,
-    DateTime atDate,
-  }) onInfoUpdated;
+    required Client client,
+    required Conversation conversation,
+    Map? updatingAttributes,
+    Map? updatedAttributes,
+    String? byClientID,
+    DateTime? atDate,
+  })? onInfoUpdated;
 
   /// The [Conversation.unreadMessageCount] of the [conversation] has been updated.
   void Function({
-    Client client,
-    Conversation conversation,
-  }) onUnreadMessageCountUpdated;
+    required Client client,
+    required Conversation conversation,
+  })? onUnreadMessageCountUpdated;
 
   /// The [Conversation.lastReadAt] of the [conversation] has been updated.
   void Function({
-    Client client,
-    Conversation conversation,
-  }) onLastReadAtUpdated;
+    required Client client,
+    required Conversation conversation,
+  })? onLastReadAtUpdated;
 
   /// The [Conversation.lastDeliveredAt] of the [conversation] has been updated.
   void Function({
-    Client client,
-    Conversation conversation,
-  }) onLastDeliveredAtUpdated;
+    required Client client,
+    required Conversation conversation,
+  })? onLastDeliveredAtUpdated;
 
   /// [conversation] has a [message].
   ///
   /// If [message] is new one, the [Conversation.lastMessage] of [conversation] will be updated.
   void Function({
-    Client client,
-    Conversation conversation,
-    Message message,
-  }) onMessage;
+    required Client client,
+    required Conversation conversation,
+    required Message message,
+  })? onMessage;
 
   /// The sent message in [conversation] has been updated to [updatedMessage].
   ///
   /// If [patchCode] or [patchReason] not `null`, means the sent message was updated due to special reason.
   void Function({
-    Client client,
-    Conversation conversation,
-    Message updatedMessage,
-    int patchCode,
-    String patchReason,
-  }) onMessageUpdated;
+    required Client client,
+    required Conversation conversation,
+    required Message updatedMessage,
+    int? patchCode,
+    String? patchReason,
+  })? onMessageUpdated;
 
   /// The sent message in the [conversation] has been recalled(updated to [recalledMessage]).
   void Function({
-    Client client,
-    Conversation conversation,
-    RecalledMessage recalledMessage,
-  }) onMessageRecalled;
+    required Client client,
+    required Conversation conversation,
+    required RecalledMessage recalledMessage,
+  })? onMessageRecalled;
 
   /// The sent message(ID is [messageID]) that send to [conversation] with [receipt] option, has been delivered to the client(ID is [toClientID]).
   ///
   /// [atDate] means when it occurred.
   void Function({
-    Client client,
-    Conversation conversation,
-    String messageID,
-    String toClientID,
-    DateTime atDate,
-  }) onMessageDelivered;
+    required Client client,
+    required Conversation conversation,
+    String? messageID,
+    String? toClientID,
+    DateTime? atDate,
+  })? onMessageDelivered;
 
   /// The sent message(ID is [messageID]) that send to [conversation] with [receipt] option, has been read by the client(ID is [toClientID]).
   ///
   /// [atDate] means when it occurred.
   void Function({
-    Client client,
-    Conversation conversation,
-    String messageID,
-    String byClientID,
-    DateTime atDate,
-  }) onMessageRead;
+    required Client client,
+    required Conversation conversation,
+    String? messageID,
+    String? byClientID,
+    DateTime? atDate,
+  })? onMessageRead;
 
   final Future<Signature> Function({
-    Client client,
-  }) _openSignatureHandler;
+    required Client client,
+  })? _openSignatureHandler;
+
   final Future<Signature> Function({
-    Client client,
-    Conversation conversation,
-    List targetIDs,
-    String action,
-  }) _conversationSignatureHandler;
+    required Client client,
+    Conversation? conversation,
+    List? targetIDs,
+    String? action,
+  })? _conversationSignatureHandler;
 
   /// To create an IM [Client] with an [Client.id] and an optional [Client.tag].
   ///
@@ -502,27 +480,21 @@ class Client with _Utilities {
   ///   * When [action] is `invite`, means [Conversation.join] or [Conversation.addMembers] is invoked.
   ///   * When [action] is `kick`, means [Conversation.quit] or [Conversation.removeMembers] is invoked.
   Client({
-    @required this.id,
+    required this.id,
     this.tag,
     Future<Signature> Function({
-      Client client,
-    })
+      required Client client,
+    })?
         openSignatureHandler,
     Future<Signature> Function({
-      Client client,
-      Conversation conversation,
-      List targetIDs,
-      String action,
-    })
+      required Client client,
+      Conversation? conversation,
+      List? targetIDs,
+      String? action,
+    })?
         conversationSignatureHandler,
   })  : _openSignatureHandler = openSignatureHandler,
-        _conversationSignatureHandler = conversationSignatureHandler {
-    if (id == null) {
-      throw ArgumentError.notNull(
-        'id',
-      );
-    }
-  }
+        _conversationSignatureHandler = conversationSignatureHandler;
 
   /// To start IM service.
   ///
@@ -541,7 +513,7 @@ class Client with _Utilities {
       },
     };
     if (tag != null) {
-      args['tag'] = tag;
+      args['tag'] = tag!;
     }
     await call(
       method: 'openClient',
@@ -574,9 +546,9 @@ class Client with _Utilities {
   /// Returns an instance of [Conversation].
   Future<Conversation> createConversation({
     bool isUnique = true,
-    Set<String> members,
-    String name,
-    Map<String, dynamic> attributes,
+    required Set<String> members,
+    String? name,
+    Map<String, dynamic>? attributes,
   }) async {
     return await _createConversation(
       type: _ConversationType.normal,
@@ -594,8 +566,8 @@ class Client with _Utilities {
   ///
   /// Returns an instance of [ChatRoom].
   Future<ChatRoom> createChatRoom({
-    String name,
-    Map<String, dynamic> attributes,
+    String? name,
+    Map<String, dynamic>? attributes,
   }) async {
     return await _createConversation(
       type: _ConversationType.transient,
@@ -611,8 +583,8 @@ class Client with _Utilities {
   ///
   /// Returns an instance of [TemporaryConversation].
   Future<TemporaryConversation> createTemporaryConversation({
-    Set<String> members,
-    int timeToLive,
+    required Set<String> members,
+    int? timeToLive,
   }) async {
     return await _createConversation(
       type: _ConversationType.temporary,
@@ -626,14 +598,14 @@ class Client with _Utilities {
       ConversationQuery._from(client: this);
 
   Future<T> _createConversation<T extends Conversation>({
-    _ConversationType type,
-    bool isUnique,
-    Set<String> members,
-    String name,
-    Map attributes,
-    int ttl,
+    required _ConversationType type,
+    bool? isUnique,
+    Set<String>? members,
+    String? name,
+    Map? attributes,
+    int? ttl,
   }) async {
-    assert(type != null && type != _ConversationType.system);
+    assert(type != _ConversationType.system);
     var args = {
       'clientId': id,
       'conv_type': (isUnique ?? false) ? 0 : (type.index + 1),
@@ -657,7 +629,7 @@ class Client with _Utilities {
       arguments: args,
     );
     final String conversationID = rawData['objectId'];
-    Conversation conversation = conversationMap[conversationID];
+    Conversation? conversation = conversationMap[conversationID];
     if (conversation != null) {
       conversation._rawData = rawData;
     } else {
@@ -667,14 +639,13 @@ class Client with _Utilities {
       );
       conversationMap[conversationID] = conversation;
     }
-    return conversation;
+    return conversation as T;
   }
 
   Future<Conversation> _getConversation({
-    @required String conversationID,
+    required String conversationID,
   }) async {
-    assert(conversationID != null);
-    Conversation existedConversation = conversationMap[conversationID];
+    Conversation? existedConversation = conversationMap[conversationID];
     if (existedConversation != null) {
       return existedConversation;
     }
@@ -686,7 +657,7 @@ class Client with _Utilities {
       method: 'getConversation',
       arguments: args,
     );
-    Conversation conversation = conversationMap[conversationID];
+    Conversation? conversation = conversationMap[conversationID];
     if (conversation != null) {
       conversation._rawData = rawData;
     } else {
@@ -700,8 +671,8 @@ class Client with _Utilities {
   }
 
   Future<void> _processConversationEvent({
-    @required String method,
-    @required Map args,
+    required String method,
+    required Map args,
   }) async {
     final Conversation conversation = await _getConversation(
       conversationID: args['conversationId'],
