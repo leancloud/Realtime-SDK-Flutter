@@ -37,20 +37,20 @@ which offers tutorials, samples, guidance on mobile development, and a full API 
     import 'package:leancloud_official_plugin/leancloud_plugin.dart';
     ```
 
-2. import `cn.leancloud.AVOSCloud`, `cn.leancloud.AVLogger` and `cn.leancloud.im.AVIMOptions` in `YourApplication.java` of your project, then set up ***ID***, ***Key*** and ***URL***, like this:
+2. import `cn.leancloud.LeanCloud`, `cn.leancloud.LCLogger` and `cn.leancloud.im.LCIMOptions` in `YourApplication.java` of your project, then set up ***ID***, ***Key*** and ***URL***, like this:
     ```java
     import io.flutter.app.FlutterApplication;
-    import cn.leancloud.AVOSCloud;
-    import cn.leancloud.AVLogger;
-    import cn.leancloud.im.AVIMOptions;
+    import cn.leancloud.LeanCloud;
+    import cn.leancloud.LCLogger;
+    import cn.leancloud.im.LCIMOptions;
 
     public class YourApplication extends FlutterApplication {
       @Override
       public void onCreate() {
         super.onCreate();
-        AVIMOptions.getGlobalOptions().setUnreadNotificationEnabled(true);
-        AVOSCloud.setLogLevel(AVLogger.Level.DEBUG);
-        AVOSCloud.initialize(this, YOUR_LC_APP_ID, YOUR_LC_APP_KEY, YOUR_LC_SERVER_URL);
+        LCIMOptions.getGlobalOptions().setUnreadNotificationEnabled(true);
+        LeanCloud.setLogLevel(LCLogger.Level.DEBUG);
+        LeanCloud.initialize(this, YOUR_LC_APP_ID, YOUR_LC_APP_KEY, YOUR_LC_SERVER_URL);
       }
     }
     ```
