@@ -2,8 +2,8 @@
 
 * Support null-safety
 * Update dependencies
-  * Swift SDK >= *17.9.2*
-  * Java SDK >= *8.1.2*
+  * Swift SDK >= *17.10.0*
+  * Java SDK >= *8.1.4*
 
 ## 1.0.0-beta.13
 

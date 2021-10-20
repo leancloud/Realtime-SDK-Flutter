@@ -1,14 +1,14 @@
 PODS:
   - Alamofire (5.4.4)
   - Flutter (1.0.0)
-  - LeanCloud/Foundation (17.9.2):
+  - LeanCloud/Foundation (17.10.0):
     - Alamofire (~> 5.4)
-  - LeanCloud/RTM-no-local-storage (17.9.2):
-    - LeanCloud/Foundation (= 17.9.2)
-    - SwiftProtobuf (~> 1.17)
+  - LeanCloud/RTM-no-local-storage (17.10.0):
+    - LeanCloud/Foundation (= 17.10.0)
+    - SwiftProtobuf (~> 1.18)
   - leancloud_official_plugin (0.0.1):
     - Flutter
-    - LeanCloud/RTM-no-local-storage (~> 17.9)
+    - LeanCloud/RTM-no-local-storage (~> 17.10)
   - SwiftProtobuf (1.18.0)
 
 DEPENDENCIES:
@@ -30,8 +30,8 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Alamofire: f3b09a368f1582ab751b3fff5460276e0d2cf5c9
   Flutter: 0e3d915762c693b495b44d77113d4970485de6ec
-  LeanCloud: a2b78da1d4a36a89a2af71d345e19cdd9da8e762
-  leancloud_official_plugin: e28b53acff0a3901e3f29fa50b6b09a6f144cba1
+  LeanCloud: a40bbecf9dc8077252bd1bff980ce32c47ea0690
+  leancloud_official_plugin: 6f30dc57a7f181193f511355c17519a61dce033d
   SwiftProtobuf: c3c12645230d9b09c72267e0de89468c5543bd86
 
 PODFILE CHECKSUM: 5f76bcca94843d0bb879a81a1328495e26892d01
