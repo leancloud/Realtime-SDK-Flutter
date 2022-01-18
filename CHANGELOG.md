@@ -1,3 +1,8 @@
+## 1.0.1
+
+* Update dependencies
+  * Java SDK >= *8.1.5*
+
 ## 1.0.0
 
 * Support null-safety
